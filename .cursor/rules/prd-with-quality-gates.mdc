@@ -1,3 +1,8 @@
+---
+description: to build enterprise grade prd
+globs:
+alwaysApply: false
+---
 # PRD with Quality Gates Rule
 
 ## Overview
