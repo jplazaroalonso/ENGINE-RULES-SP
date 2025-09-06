@@ -1,0 +1,620 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Microservices with REST API - Context Document
+
+## 1. Architecture Overview
+
+### 1.1 Hexagonal Architecture (Ports and Adapters)
+- **Core Domain Layer**
+  - Business logic and domain models
+  - Independent of external frameworks
+  - Pure Go code with no external dependencies
+
+- **Application Layer**
+  - Use cases and application services
+  - Orchestrates domain objects
+  - Implements business workflows
+
+- **Ports (Interfaces)**
+  - Primary (Driving) Ports: Define how the application is used via REST API
+  - Secondary (Driven) Ports: Define how the application interacts with external services
+
+- **Adapters**
+  - Primary Adapters: REST API endpoints with HTTP/JSON
+  - Secondary Adapters: Database, Message Queue, External Services
+
+### 1.2 Technology Stack
+- **Backend**
+  - Language: Go 1.21+
+  - Framework: Gin, Echo, or Chi for HTTP routing
+  - API: REST with JSON
+  - Database: PostgreSQL
+  - Message Queue: RabbitMQ/Kafka
+  - HTTP Client: Standard net/http or custom HTTP client
+
+## 2. REST API Design
+
+### 2.1 RESTful Principles
+```go
+// Example REST API structure
+type UserController struct {
+    userService *service.UserService
+}
+
+// GET /api/v1/users
+func (c *UserController) GetUsers(ctx *gin.Context) {
+    users, err := c.userService.GetAllUsers(ctx.Request.Context())
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    ctx.JSON(http.StatusOK, gin.H{"data": users})
+}
+
+// POST /api/v1/users
+func (c *UserController) CreateUser(ctx *gin.Context) {
+    var req CreateUserRequest
+    if err := ctx.ShouldBindJSON(&req); err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    
+    user, err := c.userService.CreateUser(ctx.Request.Context(), req)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    ctx.JSON(http.StatusCreated, gin.H{"data": user})
+}
+```
+
+### 2.2 HTTP Status Codes
+```go
+// Standard HTTP status codes for REST API
+const (
+    // Success
+    StatusOK           = 200  // GET, PUT, DELETE success
+    StatusCreated      = 201  // POST success
+    StatusNoContent    = 204  // DELETE success with no content
+    
+    // Client Error
+    StatusBadRequest   = 400  // Invalid request
+    StatusUnauthorized = 401  // Authentication required
+    StatusForbidden    = 403  // Access denied
+    StatusNotFound     = 404  // Resource not found
+    StatusConflict     = 409  // Resource conflict
+    
+    // Server Error
+    StatusInternalServerError = 500  // Internal server error
+    StatusServiceUnavailable  = 503  // Service unavailable
+)
+```
+
+### 2.3 Request/Response Models
+```go
+// Request models
+type CreateUserRequest struct {
+    Name     string `json:"name" binding:"required"`
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required,min=8"`
+}
+
+type UpdateUserRequest struct {
+    Name  *string `json:"name,omitempty"`
+    Email *string `json:"email,omitempty" binding:"omitempty,email"`
+}
+
+// Response models
+type UserResponse struct {
+    ID        uint      `json:"id"`
+    Name      string    `json:"name"`
+    Email     string    `json:"email"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+
+type APIResponse struct {
+    Data    interface{} `json:"data,omitempty"`
+    Error   *APIError   `json:"error,omitempty"`
+    Meta    *Meta       `json:"meta,omitempty"`
+}
+
+type APIError struct {
+    Code    string `json:"code"`
+    Message string `json:"message"`
+    Details string `json:"details,omitempty"`
+}
+
+type Meta struct {
+    Page       int `json:"page"`
+    PerPage    int `json:"per_page"`
+    Total      int `json:"total"`
+    TotalPages int `json:"total_pages"`
+}
+```
+
+## 3. Observability
+
+### 3.1 HTTP Middleware for Tracing
+```go
+import (
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/trace"
+    "github.com/gin-gonic/gin"
+)
+
+func TracingMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        ctx, span := otel.Tracer("rest-api").Start(
+            c.Request.Context(),
+            fmt.Sprintf("%s %s", c.Request.Method, c.FullPath()),
+        )
+        defer span.End()
+        
+        c.Request = c.Request.WithContext(ctx)
+        c.Next()
+        
+        span.SetAttributes(
+            attribute.String("http.method", c.Request.Method),
+            attribute.String("http.url", c.Request.URL.String()),
+            attribute.Int("http.status_code", c.Writer.Status()),
+        )
+    }
+}
+```
+
+### 3.2 Logging Strategy
+```go
+type LogEntry struct {
+    Level      string                 `json:"level"`
+    Timestamp  string                 `json:"timestamp"`
+    Message    string                 `json:"message"`
+    TraceID    string                 `json:"trace_id"`
+    SpanID     string                 `json:"span_id"`
+    Method     string                 `json:"method"`     // HTTP method
+    Path       string                 `json:"path"`       // Request path
+    StatusCode int                    `json:"status_code"`
+    Duration   string                 `json:"duration"`
+    Fields     map[string]interface{} `json:"fields"`
+}
+
+func LoggingMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        start := time.Now()
+        c.Next()
+        
+        logger.Info("HTTP Request",
+            zap.String("method", c.Request.Method),
+            zap.String("path", c.Request.URL.Path),
+            zap.Int("status", c.Writer.Status()),
+            zap.Duration("duration", time.Since(start)),
+        )
+    }
+}
+```
+
+## 4. Testing Strategy
+
+### 4.1 HTTP Testing
+```go
+import (
+    "github.com/stretchr/testify/assert"
+    "net/http/httptest"
+    "testing"
+)
+
+func TestCreateUser(t *testing.T) {
+    // Setup
+    router := setupRouter()
+    
+    reqBody := `{"name":"John Doe","email":"john@example.com","password":"password123"}`
+    req := httptest.NewRequest("POST", "/api/v1/users", strings.NewReader(reqBody))
+    req.Header.Set("Content-Type", "application/json")
+    
+    w := httptest.NewRecorder()
+    router.ServeHTTP(w, req)
+    
+    // Assertions
+    assert.Equal(t, http.StatusCreated, w.Code)
+    
+    var response APIResponse
+    err := json.Unmarshal(w.Body.Bytes(), &response)
+    assert.NoError(t, err)
+    assert.NotNil(t, response.Data)
+}
+```
+
+### 4.2 BDD Testing for REST APIs
+```go
+import (
+    "github.com/cucumber/godog"
+    "net/http"
+)
+
+func FeatureContext(s *godog.Suite) {
+    var response *http.Response
+    var requestBody string
+    
+    s.Step(`^I send a POST request to "([^"]*)" with:$`, func(endpoint string, body *godog.DocString) error {
+        requestBody = body.Content
+        req, _ := http.NewRequest("POST", baseURL+endpoint, strings.NewReader(requestBody))
+        req.Header.Set("Content-Type", "application/json")
+        
+        client := &http.Client{}
+        response, _ = client.Do(req)
+        return nil
+    })
+    
+    s.Step(`^the response status should be (\d+)$`, func(expectedStatus int) error {
+        if response.StatusCode != expectedStatus {
+            return fmt.Errorf("expected status %d, got %d", expectedStatus, response.StatusCode)
+        }
+        return nil
+    })
+}
+```
+
+## 5. Development Guidelines
+
+### 5.1 Code Organization
+```
+project/
+├── cmd/
+│   └── api/
+│       └── main.go
+├── internal/
+│   ├── domain/
+│   │   ├── entity/
+│   │   └── repository/
+│   ├── application/
+│   │   └── service/
+│   ├── infrastructure/
+│   │   ├── persistence/
+│   │   └── http/
+│   │       ├── controller/
+│   │       ├── middleware/
+│   │       └── router/
+│   └── ports/
+│       ├── primary/
+│       └── secondary/
+├── pkg/
+│   ├── logger/
+│   ├── validator/
+│   └── telemetry/
+├── api/
+│   └── openapi/
+│       └── spec.yaml
+├── test/
+│   ├── integration/
+│   └── e2e/
+└── docs/
+    └── api/
+```
+
+### 5.2 Middleware Stack
+```go
+func SetupRouter() *gin.Engine {
+    router := gin.New()
+    
+    // Middleware stack
+    router.Use(gin.Recovery())
+    router.Use(CORSMiddleware())
+    router.Use(TracingMiddleware())
+    router.Use(LoggingMiddleware())
+    router.Use(RateLimitMiddleware())
+    router.Use(AuthenticationMiddleware())
+    
+    // API versioning
+    v1 := router.Group("/api/v1")
+    {
+        users := v1.Group("/users")
+        {
+            users.GET("", userController.GetUsers)
+            users.POST("", userController.CreateUser)
+            users.GET("/:id", userController.GetUser)
+            users.PUT("/:id", userController.UpdateUser)
+            users.DELETE("/:id", userController.DeleteUser)
+        }
+    }
+    
+    return router
+}
+```
+
+## 6. Error Handling
+
+### 6.1 Custom Error Types
+```go
+type APIError struct {
+    Code       string `json:"code"`
+    Message    string `json:"message"`
+    Details    string `json:"details,omitempty"`
+    StatusCode int    `json:"-"`
+}
+
+func (e *APIError) Error() string {
+    return e.Message
+}
+
+// Error constructors
+func NewBadRequestError(message string) *APIError {
+    return &APIError{
+        Code:       "BAD_REQUEST",
+        Message:    message,
+        StatusCode: http.StatusBadRequest,
+    }
+}
+
+func NewNotFoundError(resource string) *APIError {
+    return &APIError{
+        Code:       "NOT_FOUND",
+        Message:    fmt.Sprintf("%s not found", resource),
+        StatusCode: http.StatusNotFound,
+    }
+}
+```
+
+### 6.2 Error Handling Middleware
+```go
+func ErrorHandlingMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Next()
+        
+        if len(c.Errors) > 0 {
+            err := c.Errors.Last().Err
+            
+            var apiError *APIError
+            if errors.As(err, &apiError) {
+                c.JSON(apiError.StatusCode, gin.H{"error": apiError})
+                return
+            }
+            
+            // Default error response
+            c.JSON(http.StatusInternalServerError, gin.H{
+                "error": &APIError{
+                    Code:    "INTERNAL_ERROR",
+                    Message: "An internal error occurred",
+                },
+            })
+        }
+    }
+}
+```
+
+## 7. Security
+
+### 7.1 Authentication & Authorization
+```go
+// JWT middleware
+func JWTAuthMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        token := c.GetHeader("Authorization")
+        if token == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+            c.Abort()
+            return
+        }
+        
+        // Validate JWT token
+        claims, err := validateJWT(token)
+        if err != nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+            c.Abort()
+            return
+        }
+        
+        c.Set("user_id", claims.UserID)
+        c.Set("user_role", claims.Role)
+        c.Next()
+    }
+}
+
+// RBAC middleware
+func RequireRole(role string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        userRole, exists := c.Get("user_role")
+        if !exists || userRole != role {
+            c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+            c.Abort()
+            return
+        }
+        c.Next()
+    }
+}
+```
+
+### 7.2 Input Validation
+```go
+import "github.com/go-playground/validator/v10"
+
+type Validator struct {
+    validator *validator.Validate
+}
+
+func NewValidator() *Validator {
+    return &Validator{
+        validator: validator.New(),
+    }
+}
+
+func (v *Validator) ValidateStruct(s interface{}) error {
+    return v.validator.Struct(s)
+}
+
+// Custom validation middleware
+func ValidationMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Next()
+        
+        if len(c.Errors) > 0 {
+            err := c.Errors.Last().Err
+            if validationErr, ok := err.(validator.ValidationErrors); ok {
+                c.JSON(http.StatusBadRequest, gin.H{
+                    "error": formatValidationError(validationErr),
+                })
+                c.Abort()
+                return
+            }
+        }
+    }
+}
+```
+
+## 8. API Documentation
+
+### 8.1 OpenAPI Specification
+```yaml
+openapi: 3.0.3
+info:
+  title: User Service API
+  version: 1.0.0
+  description: REST API for user management
+
+paths:
+  /api/v1/users:
+    get:
+      summary: Get all users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+    post:
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+```
+
+## 9. Performance Optimization
+
+### 9.1 Caching Strategy
+```go
+import "github.com/go-redis/redis/v8"
+
+type CacheService struct {
+    client *redis.Client
+}
+
+func (c *CacheService) GetUser(ctx context.Context, userID string) (*User, error) {
+    // Try cache first
+    cached, err := c.client.Get(ctx, fmt.Sprintf("user:%s", userID)).Result()
+    if err == nil {
+        var user User
+        json.Unmarshal([]byte(cached), &user)
+        return &user, nil
+    }
+    
+    // Fallback to database
+    user, err := c.userRepo.GetByID(ctx, userID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Cache the result
+    userJSON, _ := json.Marshal(user)
+    c.client.Set(ctx, fmt.Sprintf("user:%s", userID), userJSON, time.Hour)
+    
+    return user, nil
+}
+```
+
+### 9.2 Rate Limiting
+```go
+import "golang.org/x/time/rate"
+
+func RateLimitMiddleware() gin.HandlerFunc {
+    limiter := rate.NewLimiter(10, 100) // 10 requests per second, burst of 100
+    
+    return func(c *gin.Context) {
+        if !limiter.Allow() {
+            c.JSON(http.StatusTooManyRequests, gin.H{
+                "error": "Rate limit exceeded",
+            })
+            c.Abort()
+            return
+        }
+        c.Next()
+    }
+}
+```
+
+## 10. Deployment Strategy
+
+### 10.1 Containerization
+```dockerfile
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -o main ./cmd/api
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/main .
+EXPOSE 8080
+CMD ["./main"]
+```
+
+### 10.2 Health Checks
+```go
+func HealthCheckHandler(c *gin.Context) {
+    health := map[string]interface{}{
+        "status": "healthy",
+        "timestamp": time.Now().UTC(),
+        "version": version,
+        "checks": map[string]interface{}{
+            "database": checkDatabase(),
+            "redis": checkRedis(),
+        },
+    }
+    
+    c.JSON(http.StatusOK, health)
+}
+
+func LivenessProbe(c *gin.Context) {
+    c.JSON(http.StatusOK, gin.H{"status": "alive"})
+}
+
+func ReadinessProbe(c *gin.Context) {
+    if !isDatabaseReady() {
+        c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not ready"})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"status": "ready"})
+}
+```

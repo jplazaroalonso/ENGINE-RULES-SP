@@ -1,0 +1,606 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Prompt Engineering Framework - Context Document
+
+## 1. Overview
+
+This framework validates and improves prompts to ensure effective communication with AI systems. It provides structured guidelines for creating unambiguous, contextual, and results-oriented prompts tailored to different technical roles.
+
+### 1.1 Core Principles
+- **Clarity**: Unambiguous specifications with precise language
+- **Context**: Sufficient background information and constraints
+- **Structure**: Logical decomposition using Chain-of-Thought approach
+- **Examples**: Illustrative samples using Few-Shot prompting
+- **Validation**: Human checkpoints at each reasoning step
+- **Constraints**: Clear boundaries and limitations
+
+### 1.2 Prompt Validation Process
+```mermaid
+graph TD
+    A[Raw Prompt] --> B[Role Identification]
+    B --> C[Completeness Assessment]
+    C --> D[Structure Analysis]
+    D --> E[Context Validation]
+    E --> F[Constraint Definition]
+    F --> G[Example Integration]
+    G --> H[Chain-of-Thought Decomposition]
+    H --> I[Human Validation Points]
+    I --> J[Final Prompt Document]
+    J --> K[Effectiveness Review]
+```
+
+## 2. Universal Prompt Structure
+
+### 2.1 Required Components
+```markdown
+# Prompt Title
+
+## 1. Feedback Section
+### Identified Issues:
+- [List of shortcomings in original prompt]
+- [Specific improvements needed]
+- [Missing components]
+
+### Recommendations:
+- [Specific actions to improve prompt quality]
+
+## 2. Role and Context Definition
+### Target Role: [Specific technical role]
+### Background Context:
+- [Relevant domain knowledge]
+- [Technical environment]
+- [Organizational constraints]
+
+## 3. Objective and Goals
+### Primary Objective:
+- [Clear, measurable goal]
+
+### Success Criteria:
+- [Specific deliverables]
+- [Quality metrics]
+- [Acceptance criteria]
+
+## 4. Key Terms and Definitions
+### Technical Terminology:
+- **Term 1**: Definition with scope
+- **Term 2**: Definition with scope
+
+## 5. Task Decomposition (Chain-of-Thought)
+### Step 1: [Initial Analysis]
+- Input: [What information is needed]
+- Process: [What analysis to perform]
+- Output: [Expected result]
+- **Human Validation Point**: [What to verify]
+
+### Step 2: [Detailed Design]
+- Input: [Output from Step 1]
+- Process: [Refinement actions]
+- Output: [Enhanced result]
+- **Human Validation Point**: [What to verify]
+
+[Continue for each logical step...]
+
+## 6. Context and Constraints
+### Technical Context:
+- [Environment details]
+- [Technology stack]
+- [Integration requirements]
+
+### Business Context:
+- [Organizational requirements]
+- [Timeline constraints]
+- [Budget limitations]
+
+### Negative Constraints:
+- [What NOT to do]
+- [Technologies to avoid]
+- [Approaches to exclude]
+
+## 7. Examples and Illustrations (Few-Shot)
+### Example 1: [Scenario Description]
+```
+[Input example]
+[Expected output]
+[Reasoning process]
+```
+
+### Example 2: [Different Scenario]
+```
+[Input example]
+[Expected output]
+[Reasoning process]
+```
+
+## 8. Output Specifications
+### Format Requirements:
+- [Specific format details]
+- [Structure requirements]
+- [Documentation standards]
+
+### Quality Criteria:
+- [Technical accuracy requirements]
+- [Completeness metrics]
+- [Review standards]
+
+## 9. Validation Checkpoints
+### Pre-execution Validation:
+- [ ] All requirements understood
+- [ ] Context sufficient
+- [ ] Constraints clear
+
+### Mid-execution Validation:
+- [ ] Progress against objectives
+- [ ] Quality of intermediate outputs
+- [ ] Adherence to constraints
+
+### Post-execution Validation:
+- [ ] Final output quality
+- [ ] Objective achievement
+- [ ] Stakeholder approval
+```
+
+## 3. Role-Specific Validation Rules
+
+### 3.1 Infrastructure as Code (IaC) Creators
+
+#### Required Context Elements:
+- **Cloud Platform**: AWS, Azure, GCP, or hybrid
+- **IaC Tool**: Terraform, CloudFormation, Pulumi, etc.
+- **Environment**: Development, staging, production
+- **Compliance Requirements**: Security, governance, cost optimization
+- **Integration Points**: Existing infrastructure, CI/CD pipelines
+
+#### Specific Validation Criteria:
+```yaml
+validation_rules:
+  technical_specifications:
+    - resource_definitions: "Must specify exact resource types and configurations"
+    - networking: "Include VPC, subnets, security groups, routing"
+    - security: "Define IAM roles, policies, encryption requirements"
+    - monitoring: "Specify logging, metrics, alerting configurations"
+    - backup_recovery: "Include disaster recovery and backup strategies"
+  
+  code_quality:
+    - modularity: "Use reusable modules and components"
+    - documentation: "Include inline comments and README files"
+    - testing: "Specify unit tests and integration tests"
+    - version_control: "Define branching and release strategies"
+  
+  operational_requirements:
+    - deployment_process: "Step-by-step deployment instructions"
+    - rollback_procedures: "Rollback and recovery procedures"
+    - maintenance_windows: "Scheduled maintenance requirements"
+    - cost_optimization: "Resource sizing and cost control measures"
+```
+
+#### Chain-of-Thought Template for IaC:
+```markdown
+### Step 1: Infrastructure Assessment
+- Input: Current infrastructure state, requirements document
+- Process: Analyze existing resources, identify gaps, assess compliance
+- Output: Infrastructure gap analysis and recommendations
+- **Human Validation**: Review analysis accuracy and completeness
+
+### Step 2: Architecture Design
+- Input: Gap analysis from Step 1
+- Process: Design target architecture, select appropriate services
+- Output: Detailed architecture diagram and service specifications
+- **Human Validation**: Approve architecture design and service selection
+
+### Step 3: Resource Definition
+- Input: Architecture design from Step 2
+- Process: Define IaC resources, modules, and dependencies
+- Output: IaC code structure and resource definitions
+- **Human Validation**: Review code structure and resource configurations
+
+### Step 4: Security and Compliance Implementation
+- Input: Resource definitions from Step 3
+- Process: Implement security controls, IAM policies, compliance measures
+- Output: Security-enhanced IaC code with compliance documentation
+- **Human Validation**: Security review and compliance verification
+
+### Step 5: Testing and Validation
+- Input: Complete IaC code from Step 4
+- Process: Create test plans, implement automated tests, validate deployment
+- Output: Tested and validated IaC code with test results
+- **Human Validation**: Test results review and deployment approval
+```
+
+### 3.2 IT Consultants - Cloud
+
+#### Required Context Elements:
+- **Client Industry**: Financial, healthcare, retail, etc.
+- **Current State**: On-premises, hybrid, cloud-native
+- **Migration Goals**: Lift-and-shift, re-architecture, modernization
+- **Compliance Requirements**: Industry-specific regulations
+- **Budget Constraints**: Cost optimization requirements
+- **Timeline**: Migration phases and deadlines
+
+#### Specific Validation Criteria:
+```yaml
+validation_rules:
+  business_alignment:
+    - business_case: "Clear ROI and business value proposition"
+    - stakeholder_mapping: "Identify key stakeholders and their concerns"
+    - risk_assessment: "Comprehensive risk analysis and mitigation"
+    - success_metrics: "Measurable KPIs and success criteria"
+  
+  technical_assessment:
+    - current_state_analysis: "Detailed inventory of existing systems"
+    - dependency_mapping: "System dependencies and integration points"
+    - performance_requirements: "SLA and performance benchmarks"
+    - security_requirements: "Data protection and compliance needs"
+  
+  migration_strategy:
+    - phased_approach: "Migration waves and sequencing"
+    - pilot_projects: "Proof-of-concept and pilot implementations"
+    - training_plan: "Team upskilling and knowledge transfer"
+    - support_model: "Post-migration support and maintenance"
+```
+
+#### Chain-of-Thought Template for Cloud Consulting:
+```markdown
+### Step 1: Current State Discovery
+- Input: Client requirements, existing documentation, stakeholder interviews
+- Process: Conduct technical assessment, analyze current architecture
+- Output: Current state architecture document and gap analysis
+- **Human Validation**: Client review of current state accuracy
+
+### Step 2: Future State Design
+- Input: Current state analysis, business requirements
+- Process: Design target cloud architecture, select cloud services
+- Output: Future state architecture and migration roadmap
+- **Human Validation**: Stakeholder approval of target architecture
+
+### Step 3: Migration Strategy Development
+- Input: Gap analysis and target architecture
+- Process: Define migration approach, sequencing, and timelines
+- Output: Detailed migration plan with phases and milestones
+- **Human Validation**: Client approval of migration strategy
+
+### Step 4: Risk Assessment and Mitigation
+- Input: Migration plan and business requirements
+- Process: Identify risks, develop mitigation strategies
+- Output: Risk register and mitigation plan
+- **Human Validation**: Risk review with client stakeholders
+
+### Step 5: Implementation Planning
+- Input: Approved migration strategy and risk mitigation
+- Process: Create detailed implementation plans and procedures
+- Output: Implementation guides and operational procedures
+- **Human Validation**: Technical team review and client approval
+```
+
+### 3.3 Solution Architects
+
+#### Required Context Elements:
+- **Business Domain**: E-commerce, fintech, healthcare, etc.
+- **System Scope**: Enterprise, departmental, application-specific
+- **Integration Requirements**: Internal systems, third-party services
+- **Scalability Needs**: User load, data volume, geographic distribution
+- **Technology Constraints**: Approved technology stack, vendor preferences
+- **Quality Attributes**: Performance, security, availability, maintainability
+
+#### Specific Validation Criteria:
+```yaml
+validation_rules:
+  architectural_principles:
+    - scalability: "Horizontal and vertical scaling strategies"
+    - reliability: "Fault tolerance and disaster recovery"
+    - security: "Defense in depth and zero-trust principles"
+    - performance: "Response time and throughput requirements"
+    - maintainability: "Modular design and separation of concerns"
+  
+  design_documentation:
+    - architecture_views: "Multiple perspectives (logical, physical, deployment)"
+    - component_diagrams: "Service boundaries and interactions"
+    - data_flow: "Information flow and data transformation"
+    - decision_rationale: "Architecture decision records (ADRs)"
+  
+  quality_assurance:
+    - non_functional_requirements: "Performance, security, availability targets"
+    - testing_strategy: "Testing approaches for each quality attribute"
+    - monitoring_observability: "Logging, metrics, and alerting design"
+    - capacity_planning: "Resource estimation and scaling thresholds"
+```
+
+#### Chain-of-Thought Template for Solution Architecture:
+```markdown
+### Step 1: Requirements Analysis
+- Input: Business requirements, stakeholder needs, constraints
+- Process: Analyze functional and non-functional requirements
+- Output: Detailed requirements specification and architecture principles
+- **Human Validation**: Stakeholder review of requirements understanding
+
+### Step 2: Architecture Design
+- Input: Requirements specification and design principles
+- Process: Design system architecture, define components and interfaces
+- Output: Architecture diagrams and component specifications
+- **Human Validation**: Technical review of architecture design
+
+### Step 3: Technology Selection
+- Input: Architecture design and technical constraints
+- Process: Evaluate and select appropriate technologies and platforms
+- Output: Technology stack recommendations with justification
+- **Human Validation**: Technology review board approval
+
+### Step 4: Quality Attribute Analysis
+- Input: Architecture design and quality requirements
+- Process: Analyze quality attributes, identify trade-offs
+- Output: Quality attribute scenarios and design decisions
+- **Human Validation**: Quality requirements validation with stakeholders
+
+### Step 5: Implementation Guidance
+- Input: Approved architecture and technology selections
+- Process: Create implementation guidelines and best practices
+- Output: Development standards and implementation roadmap
+- **Human Validation**: Development team review and feedback
+```
+
+### 3.4 Development Architects
+
+#### Required Context Elements:
+- **Development Framework**: Spring Boot, .NET Core, Django, etc.
+- **Programming Languages**: Java, C#, Python, JavaScript, etc.
+- **Database Systems**: Relational, NoSQL, graph databases
+- **Development Methodology**: Agile, DevOps, CI/CD practices
+- **Team Structure**: Team size, skill levels, distributed teams
+- **Code Quality Standards**: Testing, documentation, review processes
+
+#### Specific Validation Criteria:
+```yaml
+validation_rules:
+  code_architecture:
+    - design_patterns: "Appropriate use of design patterns and principles"
+    - code_organization: "Package structure and module organization"
+    - dependency_management: "Dependency injection and inversion of control"
+    - error_handling: "Exception handling and error recovery strategies"
+    - testing_architecture: "Unit, integration, and end-to-end testing"
+  
+  development_practices:
+    - coding_standards: "Code style, naming conventions, documentation"
+    - version_control: "Branching strategies and merge practices"
+    - code_review: "Review processes and quality gates"
+    - continuous_integration: "Build automation and testing pipelines"
+  
+  performance_optimization:
+    - caching_strategies: "Application and data caching approaches"
+    - database_optimization: "Query optimization and indexing"
+    - memory_management: "Resource utilization and garbage collection"
+    - monitoring_profiling: "Performance monitoring and profiling tools"
+```
+
+#### Chain-of-Thought Template for Development Architecture:
+```markdown
+### Step 1: Application Structure Design
+- Input: Functional requirements and technology constraints
+- Process: Define application layers, modules, and component boundaries
+- Output: Application architecture diagram and component specifications
+- **Human Validation**: Development team review of structure design
+
+### Step 2: Data Architecture Design
+- Input: Data requirements and application structure
+- Process: Design data models, storage strategies, and access patterns
+- Output: Data architecture documentation and database schemas
+- **Human Validation**: Data architecture review and approval
+
+### Step 3: Integration Architecture
+- Input: System integration requirements and external dependencies
+- Process: Design API interfaces, message patterns, and integration flows
+- Output: Integration specifications and interface definitions
+- **Human Validation**: Integration design review with stakeholders
+
+### Step 4: Development Standards Definition
+- Input: Approved architecture designs and team capabilities
+- Process: Define coding standards, testing approaches, and development workflows
+- Output: Development guidelines and best practices documentation
+- **Human Validation**: Team review and adoption of standards
+
+### Step 5: Implementation Roadmap
+- Input: Complete architecture design and development standards
+- Process: Create implementation plan with priorities and dependencies
+- Output: Development roadmap with milestones and deliverables
+- **Human Validation**: Project management and team capacity review
+```
+
+### 3.5 Developers
+
+#### Required Context Elements:
+- **Feature Requirements**: User stories, acceptance criteria, business rules
+- **Technical Stack**: Programming languages, frameworks, libraries
+- **Development Environment**: IDE, tools, local setup requirements
+- **Code Repository**: Version control system, branching model
+- **Testing Requirements**: Unit tests, integration tests, coverage targets
+- **Deployment Process**: Build pipeline, environments, release procedures
+
+#### Specific Validation Criteria:
+```yaml
+validation_rules:
+  implementation_requirements:
+    - functional_specifications: "Detailed feature specifications and edge cases"
+    - api_contracts: "Input/output specifications and data formats"
+    - error_scenarios: "Error handling and validation requirements"
+    - performance_targets: "Response time and throughput expectations"
+    - security_considerations: "Authentication, authorization, data protection"
+  
+  code_quality:
+    - testing_requirements: "Test coverage and testing strategies"
+    - documentation: "Code comments, API documentation, README files"
+    - code_style: "Formatting, naming conventions, best practices"
+    - dependency_management: "Library versions and security updates"
+  
+  delivery_process:
+    - version_control: "Commit messages, branch management, pull requests"
+    - code_review: "Review checklist and approval process"
+    - deployment_process: "Build, test, and deployment automation"
+    - monitoring: "Application monitoring and error tracking"
+```
+
+#### Chain-of-Thought Template for Development:
+```markdown
+### Step 1: Requirement Analysis
+- Input: User stories, acceptance criteria, technical specifications
+- Process: Analyze requirements, identify edge cases, clarify ambiguities
+- Output: Detailed implementation plan and task breakdown
+- **Human Validation**: Product owner review of requirement understanding
+
+### Step 2: Technical Design
+- Input: Implementation plan and architecture guidelines
+- Process: Design solution approach, select algorithms and data structures
+- Output: Technical design document with implementation details
+- **Human Validation**: Code review of design approach
+
+### Step 3: Implementation
+- Input: Approved technical design and development environment
+- Process: Write code following standards, implement features and tests
+- Output: Working code with comprehensive test coverage
+- **Human Validation**: Code review and testing validation
+
+### Step 4: Integration and Testing
+- Input: Implemented features and integration requirements
+- Process: Integrate with existing systems, perform comprehensive testing
+- Output: Tested and integrated feature ready for deployment
+- **Human Validation**: QA testing and integration verification
+
+### Step 5: Deployment and Monitoring
+- Input: Tested feature and deployment procedures
+- Process: Deploy to environments, configure monitoring, verify functionality
+- Output: Successfully deployed feature with monitoring in place
+- **Human Validation**: Production deployment verification and sign-off
+```
+
+## 4. Validation Framework Implementation
+
+### 4.1 Prompt Assessment Checklist
+```markdown
+## Pre-Validation Assessment
+
+### Completeness Check:
+- [ ] Role clearly identified
+- [ ] Context sufficiently detailed
+- [ ] Objectives measurably defined
+- [ ] Constraints explicitly stated
+- [ ] Examples provided
+- [ ] Chain-of-thought structure present
+- [ ] Human validation points defined
+
+### Quality Check:
+- [ ] Language is unambiguous
+- [ ] Technical terms defined
+- [ ] Examples are relevant
+- [ ] Constraints are realistic
+- [ ] Steps are logical and sequential
+- [ ] Validation points are meaningful
+
+### Role-Specific Check:
+- [ ] Domain-specific context included
+- [ ] Appropriate technical depth
+- [ ] Relevant best practices referenced
+- [ ] Industry standards considered
+- [ ] Tool-specific requirements addressed
+
+## Post-Validation Improvement
+
+### Common Issues and Solutions:
+1. **Vague Objectives**
+   - Issue: "Create a system" vs "Design a scalable microservices architecture"
+   - Solution: Use specific, measurable, actionable language
+
+2. **Missing Context**
+   - Issue: No technology stack, environment, or constraints specified
+   - Solution: Include comprehensive context section
+
+3. **No Decomposition**
+   - Issue: Single-step request without reasoning chain
+   - Solution: Break into logical steps with validation points
+
+4. **Insufficient Examples**
+   - Issue: No examples or irrelevant examples
+   - Solution: Provide 2-3 relevant, detailed examples
+
+5. **Unclear Constraints**
+   - Issue: No negative constraints or boundaries
+   - Solution: Explicitly state what NOT to do or include
+```
+
+### 4.2 Feedback Template
+```markdown
+## Feedback Section
+
+### Original Prompt Analysis:
+**Identified Issues:**
+1. [Specific issue with original prompt]
+2. [Another specific issue]
+3. [Additional concerns]
+
+**Completeness Score:** [X/10] - [Brief explanation]
+
+**Clarity Score:** [X/10] - [Brief explanation]
+
+**Context Score:** [X/10] - [Brief explanation]
+
+### Improvement Recommendations:
+1. **Add Missing Context:**
+   - [Specific context needed]
+   - [Why this context is important]
+
+2. **Clarify Objectives:**
+   - [How to make objectives more specific]
+   - [Suggested measurable outcomes]
+
+3. **Enhance Structure:**
+   - [Recommended decomposition approach]
+   - [Suggested validation points]
+
+4. **Provide Examples:**
+   - [Type of examples needed]
+   - [How examples should be structured]
+
+5. **Define Constraints:**
+   - [Missing constraints to add]
+   - [Negative constraints to include]
+
+### Expected Improvements:
+- **Clarity:** [How clarity will improve]
+- **Actionability:** [How actionability will improve]
+- **Completeness:** [How completeness will improve]
+- **Success Rate:** [Expected improvement in results]
+```
+
+## 5. Implementation Guidelines
+
+### 5.1 Usage Process
+1. **Input Assessment**: Analyze original prompt against role-specific criteria
+2. **Gap Identification**: Identify missing components and quality issues
+3. **Structure Application**: Apply appropriate template and decomposition
+4. **Context Enhancement**: Add role-specific context and constraints
+5. **Example Integration**: Include relevant examples and scenarios
+6. **Validation Design**: Define human checkpoints and review criteria
+7. **Quality Review**: Final assessment against validation framework
+
+### 5.2 Continuous Improvement
+- **Feedback Collection**: Gather effectiveness data from prompt usage
+- **Template Refinement**: Update templates based on success patterns
+- **Role Evolution**: Adapt rules as roles and technologies evolve
+- **Best Practice Integration**: Incorporate new prompting techniques
+- **Community Contribution**: Share improvements and lessons learned
+
+### 5.3 Metrics and Success Criteria
+```yaml
+effectiveness_metrics:
+  clarity_score: "Measured by reduction in clarification requests"
+  completion_rate: "Percentage of prompts producing desired outcomes"
+  iteration_count: "Average rounds of refinement needed"
+  stakeholder_satisfaction: "Approval rate of generated outputs"
+  time_to_completion: "Time from prompt to acceptable deliverable"
+
+quality_indicators:
+  specification_completeness: "All required elements present"
+  context_sufficiency: "Adequate background information provided"
+  constraint_clarity: "Clear boundaries and limitations defined"
+  example_relevance: "Examples directly applicable to use case"
+  validation_effectiveness: "Human checkpoints catch issues early"
+```

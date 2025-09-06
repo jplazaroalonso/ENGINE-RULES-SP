@@ -1,0 +1,630 @@
+# PRD (Product Requirements Document) CONSTRUCTION RULE — DDD Approach + Examples
+> **Purpose**: To establish an enforceable and verifiable standard for creating **complete**, **section-segmentable**, and **requirement/story-traceable** PRDs under **Domain-Driven Design (DDD)**.
+  
+> **Key principle**: Strict **separation** between **domain logic** (business rules) and **user interfaces** (interaction/presentation).
+> **Validation**: Each defined element **MUST** include its **functional**, **behavioural** and **technical (unit)** validation.
+---
+## 0) Mandatory folder structure
+- **PRD root path**: `../`
+- **Subfolders by section (all mandatory - 9 sections):**
+1. `../01-executive-summary/`
+2. `../02-general-description/`
+3. `../03-functional-models-ddd/`
+4. `../04-functional-requirements/`
+5. `../05-technical-requirements/`
+6. `../06-non-functional-requirements/`
+7. `../07-ui-ux/`
+8. `../08-success-metrics/`
+9. `../09-appendices/`
+
+> **IMPORTANT**: Section `08-milestones-and-schedule/` has been removed. The structure now contains 9 mandatory sections.
+
+- **Segmentation by feature/requirement/story** (mandatory):
+- For **each feature**, a folder will be created in:
+- `../04-functional-requirements/features/<ID>-<slug>/`
+  
+- Minimum structure within each feature folder (all mandatory):
+ - `feature.md` (description/value/scope/ADR-lite)
+- `domain/` (DDD models specific to the feature)
+- `model.md` (entities, aggregates, invariants, policies)
+    
+- `stories.md` (user stories)
+- `acceptance.md` (Given/When/Then criteria)
+- `functional-tests.md` (cases in natural language)
+ - `behaviour-tests.md` (BDD e2e scenarios)
+- `unit-tests.md` (expected technical/unit criteria)
+- `dependencies.md` (systems/contracts/feature flags)
+- `traceability.yaml` (requirement→criterion→test→metric)
+
+> **Rule**: No requirement/feature will be considered **complete** unless it has **all** of the above pieces in its folder.
+
+## 1) Identification and naming conventions
+- **PRD**: `../` (current structure)
+- **Feature**: `FEAT-<number>` (e.g. `FEAT-0001`)
+- **User story**: `US-<number>` (e.g. `US-0034`)
+- **Non-functional requirement**: `NFR-<number>` (e.g. `NFR-0007`)
+- **Acceptance criteria**: `AC-<number>`
+- **Test case**: `TC-<type>-<number>` (FUNC/BDD/UT/IT)
+The ID must appear in the **folder name** and in the **header** of `feature.md`.
+
+## 2) Domain-Driven Design (DDD) Approach
+Each **domain** and **subdomain** must be documented in `../03-functional-models-ddd/` with:
+- **Ubiquitous language** (glossary).
+- **Context Map**: domains, subdomains and relationships (upstream/downstream).
+- **Entities and Value Objects** (definitions and invariants).
+- **Aggregates and consistency boundaries** (transaction rules).
+- **Domain services** (policies, rules).
+- **Domain events** (and their semantics).
+- **Bounded Contexts** and integration contracts (anti-corruption if applicable).
+
+> **CoT/ADR-lite**: every relevant decision must be recorded in the **Decisions** section within `feature.md` with 4 fields: **Context**, **Alternatives**, **Decision**, **Consequences**. (This is NOT code; it is functional technical rationale).
+
+## 3) Technology and Architecture Requirements
+
+### 3.1 Generic Technology Naming (MANDATORY)
+- **Use generic, vendor-neutral technology names** instead of specific product names
+- **Examples of generic names to use**:
+  - `API Gateway` instead of "Spring Cloud Gateway"
+  - `Message Broker` instead of "Kafka"
+  - `Database` instead of "PostgreSQL"
+  - `Cache` instead of "Redis"
+  - `Event Store` instead of specific event store products
+  - `Load Balancer` instead of specific load balancer products
+  - `Monitoring System` instead of specific monitoring tools
+
+- **Benefits**: 
+  - Vendor flexibility and independence
+  - Easier technology evaluation and migration
+  - Focus on capabilities rather than specific implementations
+  - Better for RFPs and vendor selection
+
+### 3.2 Mermaid Diagrams (MANDATORY)
+- **All visual elements MUST use Mermaid diagrams** with native markdown syntax
+- **Required diagram types**:
+  - Architecture diagrams (system components and relationships)
+  - Flow diagrams (user journeys, business processes)
+  - Class diagrams (domain models, entities, relationships)
+  - Sequence diagrams (interactions between components)
+  - State diagrams (workflow states and transitions)
+  - Metrics and KPIs visualization
+
+- **Mermaid syntax format**:
+```markdown
+```mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Process]
+    B -->|No| D[End]
+    C --> D
+```
+```
+
+- **Benefits**:
+  - Real-time preview in compatible editors
+  - Version control friendly
+  - Easy to maintain and update
+  - Cross-platform compatibility
+
+### 3.3 SLI/SLO Definitions (MANDATORY)
+- **Service Level Indicators (SLIs)** must be defined for all critical system components
+- **Service Level Objectives (SLOs)** must specify measurable targets for each SLI
+- **Required SLI/SLO categories**:
+  - **Performance**: Response time, throughput, latency
+  - **Reliability**: Availability, error rates, uptime
+  - **Scalability**: Resource utilization, capacity limits
+  - **Security**: Authentication success rates, security incident response times
+  - **Compliance**: Audit completion rates, regulatory compliance metrics
+
+- **SLI/SLO format**:
+```markdown
+## SLI/SLO Definitions
+
+### Performance SLIs
+- **Response Time**: 95th percentile response time for API calls
+- **Throughput**: Requests per second the system can handle
+
+### Performance SLOs
+- **Response Time**: 95% of API calls must respond within 200ms
+- **Throughput**: System must handle 1000 requests/second under normal load
+
+### Reliability SLIs
+- **Availability**: System uptime percentage
+- **Error Rate**: Percentage of failed requests
+
+### Reliability SLOs
+- **Availability**: 99.9% uptime (8.76 hours downtime per year)
+- **Error Rate**: Less than 0.1% of requests should fail
+```
+
+## 4) Separation of logic and UI
+- **Domain logic**
+- Described in `03-functional-models-ddd/` (general level) and in `features/<ID>/domain/` (feature level).
+- Contains entities, rules, invariants, and policies.
+  
+- Technical validation is articulated with **unit tests** (criteria in `unit-tests.md`).
+- **User interfaces (UI)**
+- Documented in `07-ui-ux/` and, by feature, in `features/<ID>/` (interaction files).
+  
+- The UI must include **interaction actions** and **events** that trigger domain logic.
+- The UI **must not** contain business rules (only flow, screen states, and presentation).
+
+### 4.1 UI/Presentation Rules Clarification
+- **Allowed in UI documentation**: 
+  - **Conditional presentation logic** (show/hide fields based on user roles or states)
+  - **Validation rules for user experience** (field formatting, input masks)
+  - **Navigation flow rules** (which screen follows which based on user actions)
+  - **Accessibility rules** (screen reader support, keyboard navigation)
+- **NOT allowed in UI documentation**:
+  - **Business calculation rules** (tax calculations, discount logic)
+  - **Data validation rules** (business constraint validation)
+  - **Workflow rules** (approval processes, state transitions)
+  - **Integration rules** (external system communication logic)
+- **Boundary guideline**: If the rule affects **business outcome or data integrity**, it belongs in domain logic. If it affects **user experience or presentation**, it can be in UI documentation.
+
+### 4.2 Comprehensive UI/UX Documentation Structure (MANDATORY)
+Each UI feature **MUST** include three key areas documented in `../07-ui-ux/<ID>-<slug>/`:
+
+#### 4.2.1 Detailed User Flows (MANDATORY)
+- **Main flow (Happy Path)**: The ideal path a user follows to complete a task without errors
+- **Alternative Flows**: Paths users can take when conditions change (e.g., saving drafts, continuing later)
+- **Exception Flows**: What happens when users make mistakes or encounter errors
+- **Flow documentation format**:
+```mermaid
+graph TD
+    A[Start: User Action] --> B{Decision Point}
+    B -->|Happy Path| C[Success Action]
+    B -->|Alternative| D[Alternative Action]
+    B -->|Error| E[Error Handling]
+    C --> F[End State]
+    D --> F
+    E --> G[Recovery Action] --> F
+```
+- **Each step must document**: User action → System response → Next state
+- **Clear event mapping**: Actions that trigger domain events must be explicitly identified
+
+#### 4.2.2 Wireframes and Visual Prototypes (MANDATORY)
+- **Low-fidelity wireframes**: Simple sketches showing layout structure without design details
+- **Interactive prototypes**: Navigable prototypes (Figma, Miro, etc.) for stakeholder validation
+- **Reusable components**: Design system components (buttons, inputs, tables) identification
+- **Wireframe documentation format**:
+```markdown
+### Screen: [Screen Name]
+**Layout**: [Layout description]
+**Components**:
+- **[Component Type]**: [Label/Properties]
+- **[Component Type]**: [Label/Properties]
+**Responsive Behavior**: [Mobile/tablet adaptations]
+**Accessibility**: [Screen reader, keyboard navigation]
+```
+
+#### 4.2.3 Interaction and Behavior Definitions (MANDATORY)
+- **UI States**: All possible component states (loading, empty, data, error, disabled)
+- **User Actions**: Precise definition of what happens for each user interaction
+- **Domain Event Handling**: How UI reacts to events from business layer
+- **Interaction documentation format**:
+```markdown
+### UI States
+- **Initial State**: [Description of default state]
+- **Loading State**: [Loading indicators and behavior]
+- **Success State**: [Success feedback and transitions]
+- **Error State**: [Error display and recovery options]
+
+### User Actions → Domain Events
+- **Action**: [User interaction]
+  - **UI Response**: [Immediate UI feedback]
+  - **Domain Event**: [Event triggered: EVENT_NAME]
+  - **Event Payload**: [Data sent to domain]
+```
+
+## 5) Content guidelines
+- **User stories**
+```markdown
+As <user type>
+I want <action>
+So that <benefit/value>
+```
+- **Acceptance criteria (Gherkin-like)**
+```markdown
+Given <context>
+When <action>
+Then <expected result>
+```
+- **Priority matrix** (MoSCoW/value vs effort)
+- **KPIs/OKRs** per feature and global.
+
+## 6) Mandatory templates
+### 6.1 Header of `feature.md`
+```markdown
+# <ID> - <Feature name>
+**Objective**: <what it solves and for whom>
+**Expected value**: <impact metric (%/£/time)>
+**Scope (In/Out)**: <what it includes / what it excludes>
+**Assumptions**: <key assumptions>
+**Risks**: <risks and mitigations>
+## Decisions (ADR-lite / CoT)
+- **Context**: <situation and constraints>
+- **Alternatives**: <options considered>
+- **Decision**: <option chosen and why>
+- **Consequences**: <positive/negative impacts>
+```
+### 6.2 `stories.md`
+- Each story **must** be linked to at least one acceptance criterion and its tests.
+### 6.3 `acceptance.md`
+- Criteria always expressed in **Given/When/Then**.
+### 6.4 `functional-tests.md`
+- Test cases in natural language, with **preconditions**, **steps**, **data**, **expected result**.
+### 6.5 `behaviour-tests.md`
+- End-to-end BDD scenarios (main and alternate flows).
+### 6.6 `unit-tests.md`
+- Units to be tested, inputs/outputs, happy paths/errors, limits, and minimum coverage threshold **≥80%**.
+- **DDD Unit Testing Scope**: Test the following domain components:
+  - **Entities**: Business logic, invariants, and state transitions
+  - **Value Objects**: Immutability, validation, and equality
+  - **Aggregates**: Business rules, consistency boundaries, and transaction integrity
+  - **Domain Services**: Complex business logic and cross-aggregate operations
+  - **Domain Events**: Event creation, payload validation, and event handling
+  - **Specifications**: Business rule validation and complex queries
+- **Coverage Requirements**: Each domain component must have dedicated unit tests covering business logic, not just technical implementation
+### 6.7 `traceability.yaml` (enhanced example)
+```yaml
+featureId: FEAT-0001
+stories:
+  - id: US-0001
+    criteria:
+      - id: AC-01
+        tests:
+          functional: [TC-FUNC-01]
+          behaviour: [TC-BDD-01]
+          unit: [TC-UT-01, TC-UT-02]
+# Feature-specific success metrics that contribute to global KPIs
+successMetrics:
+  - kpi: 'Payment success rate'
+    objective: '≥ 98% in Q2'
+    globalMetricMapping: 'PM-001' # Reference to global metric in 08-success-metrics/
+  - kpi: 'Rule creation efficiency'
+    objective: '+60% reduction in creation time'
+    globalMetricMapping: 'EM-003' # Links to efficiency metrics
+coverage:
+  requirements: '100%'
+  functional tests: '100%'
+  unit tests: '>=80%'
+# Global project contribution
+globalContribution:
+  businessValue: 'Reduces manual rule creation effort'
+  technicalValue: 'Improves system maintainability'
+  riskMitigation: 'Reduces human errors in rule definition'
+```
+
+## 6.8) Feature-to-Global Metrics Mapping (MANDATORY)
+Each feature's `traceability.yaml` **MUST** explicitly map to global success metrics defined in `../08-success-metrics/`:
+
+- **globalMetricMapping**: Each feature KPI must reference a global metric ID from section 08
+- **globalContribution**: Describe how the feature contributes to overall project success
+- **impactAssessment**: Quantify the feature's impact on global objectives
+
+**Required mapping format**:
+```yaml
+successMetrics:
+  - kpi: 'Feature-specific metric name'
+    objective: 'Measurable target'
+    globalMetricMapping: 'GM-XXX' # Must exist in 08-success-metrics/
+    impactWeight: 0.15 # Percentage contribution to global metric
+globalContribution:
+  businessValue: 'How this feature delivers business value'
+  technicalValue: 'How this feature improves technical capabilities'
+  riskMitigation: 'What risks this feature reduces'
+  dependencies: ['GM-001', 'GM-005'] # Other global metrics this affects
+```
+
+**Validation Rule**: No feature is complete until its metrics are mapped to global success criteria and impact is quantified.
+
+## 7) Validation rules (gates)
+1. **Integrity (MUST)**: Sections 01..09 complete. Each feature with all mandatory files.
+2. **Clarity (MUST)**: No ambiguities; glossary/ubiquitous updated.
+3. **Traceability (MUST)**: Requirement ↔ Story ↔ Criterion ↔ Test ↔ Metric ↔ Global KPI.
+4. **Coverage (MUST)**: 100% functional and behavioural tests; unit tests ≥80% with DDD component coverage.
+5. **Technology Naming (MUST)**: Generic, vendor-neutral technology names used throughout.
+6. **Mermaid Diagrams (MUST)**: All visual elements use native Mermaid syntax.
+7. **SLI/SLO (MUST)**: Service level indicators and objectives defined for all critical components.
+8. **Feature-Global Mapping (MUST)**: Each feature's metrics mapped to global success criteria with quantified impact.
+9. **UI/Logic Separation (MUST)**: UI documentation follows presentation vs. business logic separation guidelines.
+10. **Comprehensive UI/UX (MUST)**: All UI features include detailed user flows, wireframes, and interaction definitions.
+11. **DDD Unit Testing (MUST)**: Domain components (entities, aggregates, services, events) properly tested.
+12. **Security/Compliance (MUST)**: Documented in technical sections and referenced by feature.
+13. **Versioning/Approvals (MUST)**: SemVer + `CHANGELOG.md` + `APPROVALS.md` updated.
+
+## 8) PRD DoD (Definition of Done)
+- **Structural completeness**: All 9 sections (01..09) complete and approved.
+- **Feature completeness**: 100% of requirements created for the scope with all 8 mandatory files per feature.
+- **Test coverage**: 100% functional and behavioural test coverage per requirement.
+- **DDD unit testing**: Unit tests with ≥80% coverage including all domain components (entities, aggregates, domain services, events, specifications).
+- **Complete traceability**: Full mapping from requirements → stories → criteria → tests → feature metrics → global KPIs.
+- **Feature-global mapping**: Each feature's metrics explicitly mapped to global success criteria with quantified impact weights.
+- **Technology standards**: All technology names are generic and vendor-neutral.
+- **Visual standards**: All visual elements use Mermaid diagrams with native syntax.
+- **Performance standards**: SLI/SLO definitions complete for all critical components.
+- **Separation compliance**: UI/UX documentation properly separates presentation logic from business rules.
+- **Comprehensive UI/UX**: All UI features include detailed user flows (main, alternative, exception), wireframes/prototypes, and complete interaction definitions.
+- **Event mapping**: All user actions mapped to domain events with clear payloads and UI state responses.
+- **Validation passed**: All 13 validation gate rules satisfied.
+
+## 9) Implementation notes for Cursor
+- When creating a **new feature**: generate a folder `features/<ID>-<slug>/` with **all** 8 mandatory files.
+- Automatically validate that no mandatory files are missing and that `traceability.yaml` is populated with global metric mappings.
+- Where information is missing, generate a blocking **TODO** and indicate the section that must be completed.
+- **ALWAYS use generic technology names** - never specific product names.
+- **ALWAYS include Mermaid diagrams** for visual elements.
+- **ALWAYS define SLI/SLO** for critical system components.
+- **ALWAYS map feature metrics to global KPIs** with quantified impact weights.
+- **ALWAYS include DDD unit testing scope** covering entities, aggregates, domain services, events, and specifications.
+- **ALWAYS validate UI/business logic separation** according to section 4.1 guidelines.
+- **ALWAYS include comprehensive UI/UX documentation** with three mandatory areas: detailed user flows, wireframes/prototypes, and interaction definitions.
+- **ALWAYS map user actions to domain events** with clear event payload specifications.
+- **ALWAYS define all UI states** including loading, error, success, and disabled states.
+- **ALWAYS ensure comprehensive traceability** from requirements through global KPIs.
+
+## 10) PRACTICAL EXAMPLES (ready to copy/paste)
+
+### 10.1 Domain example (DDD) — **Rules Engine**
+`../03-functional-models-ddd/rules/README.md`
+```markdown
+# Domain: Rules Engine
+## Ubiquitous language
+- Rule, RuleSet, RuleExecution, RuleEvaluation, RuleResult, RuleVersion
+## Subdomains
+- Rule Management (critical)
+- Rule Execution (critical)
+- Rule Approval (support)
+## Entities and VOs
+- Entity: BusinessRule { id, name, description, logic, status, version }
+- VO: RuleLogic { expression, conditions, actions } (invariant: valid syntax)
+## Aggregates
+- BusinessRule as root. Invariants:
+- Cannot be executed if `status != ACTIVE`
+- Valid statuses: DRAFT → PENDING_APPROVAL → ACTIVE | REJECTED
+## Domain services
+- ExecuteRule(BusinessRule, InputData)
+## Domain events
+- RuleExecuted, RuleApproved, RuleRejected
+## Bounded Contexts and contracts
+- Rules Engine (Upstream) → Business Systems (Downstream) via RuleExecuted event
+```
+
+### 10.2 Feature example — **FEAT-0001 Rule Creation and Management**
+`../04-functional-requirements/features/FEAT-0001-rule-creation-management/feature.md`
+```markdown
+# FEAT-0001 - Rule Creation and Management
+**Objective**: Allow business users to create, edit, and manage business rules through an intuitive interface.
+**Expected value**: ↑ rule creation efficiency +60%, ↓ rule errors -80%
+**Scope (In/Out)**: In: rule creation, editing, versioning. Out: rule execution engine.
+**Assumptions**: Business users have basic understanding of rule logic.
+**Risks**: Complex rule syntax may confuse users.
+## Decisions (ADR-lite / CoT)
+- Context: Need to choose between custom DSL and existing rule language.
+- Alternatives: Custom DSL, Drools DRL, JSON-based rules.
+- Decision: Custom DSL with visual builder for business users.
+- Consequences: Higher development cost, better user experience, vendor independence.
+```
+
+### 10.3 Technology Architecture Example
+```markdown
+## System Architecture
+
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        UI[Web Interface]
+        API[API Gateway]
+    end
+    
+    subgraph "Business Logic Layer"
+        RM[Rule Management Service]
+        RE[Rule Execution Service]
+        AP[Approval Workflow Service]
+    end
+    
+    subgraph "Data Layer"
+        DB[(Database)]
+        Cache[(Cache)]
+        ES[(Event Store)]
+    end
+    
+    UI --> API
+    API --> RM
+    API --> RE
+    API --> AP
+    RM --> DB
+    RE --> Cache
+    AP --> ES
+```
+
+## Technology Stack
+- **API Gateway**: Generic API Gateway (not specific product names)
+- **Database**: Relational Database (not specific database names)
+- **Cache**: In-Memory Cache (not specific cache names)
+- **Message Broker**: Event Message Broker (not specific broker names)
+```
+
+### 10.4 SLI/SLO Example
+```markdown
+## Service Level Indicators and Objectives
+
+### Performance SLIs
+- **Rule Execution Latency**: Time from rule submission to result
+- **Rule Creation Throughput**: Rules created per hour
+- **API Response Time**: 95th percentile response time
+
+### Performance SLOs
+- **Rule Execution**: 95% of rules must execute within 100ms
+- **Rule Creation**: System must support 100 rule creations per hour
+- **API Response**: 95% of API calls must respond within 200ms
+
+### Reliability SLIs
+- **System Availability**: Percentage of time system is operational
+- **Rule Execution Success Rate**: Percentage of successful rule executions
+- **Data Consistency**: Percentage of data consistency checks passed
+
+### Reliability SLOs
+- **System Availability**: 99.9% uptime (8.76 hours downtime per year)
+- **Rule Execution Success**: 99.5% of rule executions must succeed
+- **Data Consistency**: 100% of data consistency checks must pass
+```
+
+### 10.5 Comprehensive UI/UX Example — **Rule Creation Interface**
+`../07-ui-ux/FEAT-0001-rule-creation-interface/README.md`
+```markdown
+# UI/UX: Rule Creation Interface
+
+## 1) Detailed User Flows
+
+### Main Flow (Happy Path)
+```mermaid
+graph TD
+    A[Start: Navigate to Rule Creation] --> B[Load Template Selection]
+    B --> C[Select Rule Template]
+    C --> D[Fill Rule Metadata]
+    D --> E[Configure Rule Logic]
+    E --> F[Preview Rule]
+    F --> G{Validation Check}
+    G -->|Valid| H[Save Rule]
+    G -->|Invalid| I[Show Validation Errors]
+    H --> J[Show Success Message]
+    J --> K[Redirect to Rule List]
+    I --> E
+```
+
+### Alternative Flows
+```mermaid
+graph TD
+    A[Start: Navigate to Rule Creation] --> B[Load Previous Draft]
+    B --> C[Continue Editing]
+    C --> D[Save as Draft]
+    D --> E[Show Draft Saved]
+    E --> F[Continue Later]
+```
+
+### Exception Flows
+```mermaid
+graph TD
+    A[Rule Logic Error] --> B[Show Error Message]
+    B --> C[Highlight Invalid Field]
+    C --> D[Suggest Correction]
+    D --> E[User Fixes Error]
+    E --> F[Revalidate]
+    F --> G{Valid?}
+    G -->|Yes| H[Continue Flow]
+    G -->|No| B
+```
+
+## 2) Wireframes and Visual Prototypes
+
+### Screen: Rule Creation Page
+**Layout**: Two-column responsive layout (sidebar + main content)
+**Components**:
+- **Header**: Breadcrumb navigation + "Create Rule" title + Help icon
+- **Sidebar**: Rule template selector with categories
+- **Main Panel**: Rule builder form with tabs (Metadata, Logic, Preview)
+- **Footer**: Action buttons (Save Draft, Preview, Save & Activate, Cancel)
+
+**Responsive Behavior**: 
+- Mobile: Single column, collapsible sidebar
+- Tablet: Maintains two-column with adjusted proportions
+
+**Accessibility**: 
+- Keyboard navigation between all interactive elements
+- Screen reader labels for all form fields
+- High contrast mode support
+
+### Reusable Components
+- **TemplateCard**: Selectable card showing template name, description, icon
+- **RuleBuilder**: Drag-and-drop interface for condition/action pairs
+- **ValidationMessage**: Error/warning/success message with icon
+- **ActionButton**: Primary/secondary/danger button variants
+
+## 3) Interaction and Behavior Definitions
+
+### UI States
+- **Initial State**: Template selection active, main panel disabled until template selected
+- **Loading State**: Skeleton loaders while templates/data loads, disabled interactions
+- **Editing State**: All fields active, real-time validation feedback, unsaved changes indicator
+- **Validation Error State**: Error messages visible, invalid fields highlighted, save button disabled
+- **Success State**: Success message toast, clean form state, enabled navigation
+
+### User Actions → Domain Events
+- **Action**: User selects rule template
+  - **UI Response**: Load template form fields, update main panel
+  - **Domain Event**: TEMPLATE_SELECTED
+  - **Event Payload**: {templateId, templateType, defaultValues}
+
+- **Action**: User modifies rule logic
+  - **UI Response**: Real-time syntax highlighting, auto-save indicator
+  - **Domain Event**: RULE_LOGIC_CHANGED
+  - **Event Payload**: {ruleId, logicExpression, isValid}
+
+- **Action**: User clicks "Save & Activate"
+  - **UI Response**: Show loading spinner, disable form
+  - **Domain Event**: RULE_SAVE_REQUESTED
+  - **Event Payload**: {ruleData, activateImmediately: true}
+
+- **Action**: User clicks "Save Draft"
+  - **UI Response**: Show draft saved indicator
+  - **Domain Event**: RULE_DRAFT_SAVED
+  - **Event Payload**: {ruleData, isDraft: true}
+
+### Domain Event Handling
+- **Event Received**: RULE_VALIDATION_FAILED
+  - **UI Response**: Show validation errors, highlight fields, keep form active
+- **Event Received**: RULE_SAVED_SUCCESSFULLY
+  - **UI Response**: Show success toast, redirect to rule list after 2s
+- **Event Received**: RULE_SAVE_FAILED
+  - **UI Response**: Show error message, re-enable form, maintain user data
+```
+
+## 11) COMPREHENSIVE PRD VALIDATION CHECKLIST
+
+### 11.1 Structure and Completeness
+- [ ] **All 9 mandatory sections present**: 01-executive-summary through 09-appendices
+- [ ] **Folder structure correct**: Using appropriate relative paths (`../`)
+- [ ] **Feature completeness**: Each feature has all 8 mandatory files (`feature.md`, `domain/model.md`, `stories.md`, `acceptance.md`, `functional-tests.md`, `behaviour-tests.md`, `unit-tests.md`, `dependencies.md`, `traceability.yaml`)
+
+### 11.2 Content Quality and Standards
+- [ ] **DDD compliance**: Ubiquitous language and Context Map are current and complete
+- [ ] **Generic technology naming**: All technology references use vendor-neutral names
+- [ ] **Mermaid diagrams**: All visual elements use native Mermaid syntax
+- [ ] **SLI/SLO definitions**: Service level indicators and objectives defined for all critical components
+
+### 11.3 Testing and Validation
+- [ ] **Test coverage**: 100% functional and behavioural test coverage achieved
+- [ ] **Unit test coverage**: ≥80% coverage with DDD component testing (entities, aggregates, domain services, etc.)
+- [ ] **DDD unit testing scope**: All domain components properly tested according to DDD principles
+
+### 11.4 Traceability and Metrics
+- [ ] **Complete traceability**: Requirements ↔ Stories ↔ Criteria ↔ Tests ↔ Metrics fully mapped
+- [ ] **Feature-to-global metrics mapping**: Each feature's KPIs mapped to global success metrics with impact quantification
+- [ ] **Global contribution defined**: Business value, technical value, and risk mitigation clearly documented
+
+### 11.5 UI/UX and Business Logic Separation
+- [ ] **Proper separation**: UI/UX documentation contains only presentation logic, not business rules
+- [ ] **Presentation rules compliance**: UI rules follow the allowed/not-allowed guidelines (section 4.1)
+- [ ] **Interaction mapping**: UI actions and events properly mapped to domain logic triggers
+- [ ] **Detailed user flows**: Main, alternative, and exception flows documented with Mermaid diagrams
+- [ ] **Wireframes and prototypes**: Low-fidelity wireframes and interactive prototypes provided
+- [ ] **Component identification**: Reusable design system components clearly identified
+- [ ] **UI states defined**: All component states (loading, error, success, disabled) documented
+- [ ] **User actions mapped**: All user interactions mapped to specific domain events
+- [ ] **Domain event handling**: UI responses to domain events clearly specified
+- [ ] **Responsive design**: Mobile and tablet adaptations documented
+- [ ] **Accessibility compliance**: Screen reader and keyboard navigation specified
+
+### 11.6 Documentation and Approval
+- [ ] **Version control**: `CHANGELOG.md` and `APPROVALS.md` updated appropriately
+- [ ] **Security and compliance**: Documented in technical sections and referenced by features
+- [ ] **Accessibility**: Wireframes/flows include accessibility criteria for UI-enabled features
+
+### 11.7 Implementation Readiness
+- [ ] **No blocking TODOs**: All mandatory information completed
+- [ ] **Validation gates passed**: All 13 validation rules (section 7) satisfied
+- [ ] **PRD DoD achieved**: All Definition of Done criteria met (section 8)
+
+---
+**Document Version**: Enhanced with improved traceability, DDD testing clarification, UI/business logic separation guidelines, and consolidated validation checklist.

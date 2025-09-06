@@ -1,0 +1,4137 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Microservices with gRPC - Context Document
+
+## 0. Comprehensive gRPC Microservice Code Generation Framework
+
+### 0.1 Code Generation Tool Instructions
+
+**CRITICAL**: This rule functions as an automated code generation tool that analyzes PRD and DDD documentation to produce complete, production-ready gRPC microservices following hexagonal architecture patterns.
+
+### 0.2 Source Documentation Analysis and Mapping
+
+**Problem Solved**: Direct connection between PRD/DDD documentation and gRPC service generation without assuming pre-existing knowledge.
+
+#### **Folder Structure Analysis Pattern**:
+```bash
+# 1. Analyze PRD structure (following @apps_prd.mdc)
+PRD_ROOT="../"
+FEATURES_PATH="$PRD_ROOT/04-functional-requirements/features/"
+DDD_PATH="$PRD_ROOT/03-functional-models-ddd/" 
+NFR_PATH="$PRD_ROOT/06-non-functional-requirements/"
+
+# 2. Scan for bounded contexts and aggregates
+for feature_dir in "$FEATURES_PATH"/*; do
+    if [ -d "$feature_dir/domain/" ]; then
+        # Extract aggregate information from domain/model.md
+        # Extract business rules from acceptance.md
+        # Extract error scenarios from unit-tests.md
+    fi
+done
+
+# 3. Analyze DDD documentation structure
+DDD_CONTEXTS="docs/bounded-contexts/"
+for context_dir in "$DDD_CONTEXTS"/*; do
+    # Extract aggregate definitions and relationships
+    # Identify domain services and value objects
+    # Map integration patterns
+done
+```
+
+#### **Document Content Inference Strategy**:
+1. **Aggregate Discovery**: Scan all `domain/model.md` files to identify aggregate roots and entities
+2. **Service Interface Extraction**: Analyze `acceptance.md` to identify required operations
+3. **Error Mapping**: Parse `unit-tests.md` for error scenarios and business rule violations
+4. **Integration Requirements**: Extract from `dependencies.md` for external service contracts
+5. **NFR Analysis**: Parse non-functional requirements for middleware and security needs
+
+#### Primary Sources for Code Generation:
+- **PRD Structure** (following @apps_prd.mdc):
+  - `../04-functional-requirements/features/<ID>-<slug>/domain/model.md` - Aggregate definitions and entities
+  - `../04-functional-requirements/features/<ID>-<slug>/acceptance.md` - Business rules and validation logic  
+  - `../04-functional-requirements/features/<ID>-<slug>/unit-tests.md` - Domain error scenarios
+  - `../04-functional-requirements/features/<ID>-<slug>/dependencies.md` - External service integrations
+  - `../03-functional-models-ddd/` - Context boundaries and domain services
+
+- **DDD Artifacts** (following @ddd-from-prd.mdc):
+  - `docs/bounded-contexts/*/domain-model.md` - Aggregate root identification
+  - `docs/bounded-contexts/*/aggregates/` - Business invariants and consistency boundaries
+  - `docs/domain/ubiquitous-language.md` - Value object definitions
+  - `docs/architecture/strategic-design.md` - Integration patterns
+
+#### Code Generation Process Overview:
+```mermaid
+graph TD
+    A[PRD Sources] --> B[DDD Analysis]
+    B --> C[Protocol Buffers Generation]
+    B --> D[Domain Layer Generation]
+    B --> E[Application Layer Generation]
+    B --> F[gRPC Server Generation]
+    
+    A1[model.md] --> C1[.proto messages]
+    A2[acceptance.md] --> D1[Domain errors]
+    A3[unit-tests.md] --> F1[Error handling]
+    
+    B1[Aggregates] --> C2[gRPC services]
+    B2[Domain Services] --> E1[Application services]
+    B3[Bounded Contexts] --> F2[Server structure]
+```
+
+### 0.2 Protocol Buffers (.proto) Generation from DDD
+
+**Source Analysis Process**:
+1. **Analyze Aggregates and Consistency Boundaries** from DDD documentation:
+   - Extract aggregate root entities from `docs/bounded-contexts/*/aggregates/`
+   - Identify entity attributes from domain model definitions
+   - Map value objects to proto message fields with proper types
+
+2. **Domain Services to gRPC Service Methods**:
+   - Analyze commands and queries from aggregate documentation
+   - Map each command to an RPC method (Create*, Update*, Delete*)
+   - Map each query to Get* or List* methods
+   - Extract method parameters from aggregate method signatures
+
+**Generation Template**:
+```protobuf
+// Generated from: docs/bounded-contexts/{context-name}/aggregates/{aggregate-name}.md
+syntax = "proto3";
+
+package {context_name}.v1;
+
+option go_package = "github.com/{project}/{service}/proto/{context_name}/v1;{context_name}v1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Service definition from domain services analysis
+service {AggregateName}Service {
+  // Commands from aggregate methods
+  rpc Create{AggregateName}(Create{AggregateName}Request) returns (Create{AggregateName}Response);
+  rpc Update{AggregateName}(Update{AggregateName}Request) returns (Update{AggregateName}Response);
+  rpc Delete{AggregateName}(Delete{AggregateName}Request) returns (google.protobuf.Empty);
+  
+  // Queries from repository interfaces
+  rpc Get{AggregateName}(Get{AggregateName}Request) returns (Get{AggregateName}Response);
+  rpc List{AggregateName}s(List{AggregateName}sRequest) returns (List{AggregateName}sResponse);
+}
+
+// Messages from aggregate entities and value objects
+message {AggregateName} {
+  // Generated from aggregate root attributes
+  string id = 1;
+  // Add fields based on entity attributes from domain model
+  google.protobuf.Timestamp created_at = 100;
+  google.protobuf.Timestamp updated_at = 101;
+}
+```
+
+### 0.3 gRPC Request/Response Models Generation
+
+**Problem Solved**: Generate Go structs for gRPC message models directly from PRD and DDD analysis.
+
+**Source Analysis for Request/Response Models**:
+1. **Analyze Aggregates and Entities** from DDD documentation:
+   - Extract entity attributes from `docs/bounded-contexts/*/aggregates/` 
+   - Map value objects to proto message fields with proper types
+   - Identify business constraints from domain model definitions
+
+2. **Analyze Request Models** from PRD functional requirements:
+   - Extract input parameters from `acceptance.md` scenarios
+   - Identify validation rules from `unit-tests.md`
+   - Map user story data requirements to message fields
+
+**gRPC Message Generation Process**:
+```protobuf
+// Generated from: docs/bounded-contexts/{context}/aggregates/{aggregate}.md
+syntax = "proto3";
+
+package {context_name}.v1;
+
+option go_package = "github.com/{project}/{service}/proto/{context_name}/v1;{context_name}v1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+// Message generated from aggregate entity analysis
+message {AggregateName} {
+  // Generated from entity ID field
+  string id = 1 [(validate.rules).string.pattern = "^[a-zA-Z0-9-_]+$"];
+  
+  // Generated from entity attributes in domain model
+  string name = 2 [(validate.rules).string = {min_len: 1, max_len: 100}];
+  
+  // Generated from value objects
+  {ValueObjectName} {value_object_field} = 3;
+  
+  // Generated from business metadata requirements
+  google.protobuf.Timestamp created_at = 100;
+  google.protobuf.Timestamp updated_at = 101;
+  int32 version = 102; // For optimistic concurrency control
+}
+
+// Request message generated from acceptance criteria parameters
+message Create{AggregateName}Request {
+  // Generated from "Given" clauses in acceptance criteria
+  string name = 1 [(validate.rules).string = {min_len: 1, max_len: 100}];
+  
+  // Generated from business rules in domain model
+  {ValueObjectName} {value_object_field} = 2 [(validate.rules).message.required = true];
+  
+  // Generated from user story input requirements
+  map<string, string> metadata = 3;
+}
+
+// Response message with business context
+message Create{AggregateName}Response {
+  {AggregateName} {aggregate_name} = 1;
+  
+  // Generated from domain events
+  repeated DomainEvent events = 2;
+  
+  // Generated from business validation results
+  ValidationResult validation_result = 3;
+}
+
+// Value object messages generated from ubiquitous language
+message {ValueObjectName} {
+  // Generated from value object attributes
+  string value = 1 [(validate.rules).string.pattern = "^[A-Z0-9-]+$"];
+  
+  // Generated from validation rules in domain model
+  bool is_valid = 2;
+}
+```
+
+### 0.3.1 Enhanced Proto Validation from Business Rules
+
+**Problem Solved**: Generate strict proto validation rules directly from business constraints in unit-tests.md.
+
+**Business Rule to Proto Validation Mapping Process**:
+1. **Parse unit-tests.md** for validation test cases and business constraints
+2. **Extract data limits** from test scenarios and edge cases
+3. **Map business rules** to proto validation annotations
+4. **Generate client-side validation** before server processing
+
+**Enhanced Proto Validation Generation**:
+```protobuf
+// Enhanced validation generated from: ../04-functional-requirements/features/*/unit-tests.md
+syntax = "proto3";
+
+package {context_name}.v1;
+
+import "validate/validate.proto";
+
+// Message with strict validation rules generated from business tests
+message Create{AggregateName}Request {
+  // Generated from UT-001: "Name validation - required, 1-100 chars, no special chars"
+  string name = 1 [
+    (validate.rules).string = {
+      min_len: 1,
+      max_len: 100,
+      pattern: "^[a-zA-Z0-9\\s-_]+$"
+    }
+  ];
+  
+  // Generated from UT-002: "Email validation - required, valid email format"
+  string email = 2 [
+    (validate.rules).string = {
+      min_len: 5,
+      max_len: 255,
+      pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    }
+  ];
+  
+  // Generated from UT-003: "Age validation - required, 18-120 range"
+  int32 age = 3 [
+    (validate.rules).int32 = {
+      gte: 18,
+      lte: 120
+    }
+  ];
+  
+  // Generated from UT-004: "Priority validation - enum values only"
+  Priority priority = 4 [
+    (validate.rules).enum = {
+      defined_only: true,
+      not_in: [0] // Exclude default/unspecified value
+    }
+  ];
+  
+  // Generated from UT-005: "Metadata validation - max 10 entries, key/value length limits"
+  map<string, string> metadata = 5 [
+    (validate.rules).map = {
+      max_pairs: 10,
+      keys: {
+        string: {
+          min_len: 1,
+          max_len: 50,
+          pattern: "^[a-zA-Z0-9_-]+$"
+        }
+      },
+      values: {
+        string: {
+          max_len: 500
+        }
+      }
+    }
+  ];
+  
+  // Generated from UT-006: "Tags validation - max 5 tags, each 1-30 chars"
+  repeated string tags = 6 [
+    (validate.rules).repeated = {
+      max_items: 5,
+      items: {
+        string: {
+          min_len: 1,
+          max_len: 30,
+          pattern: "^[a-zA-Z0-9-_]+$"
+        }
+      }
+    }
+  ];
+  
+  // Generated from UT-007: "Config validation - required nested object"
+  {AggregateName}Config config = 7 [
+    (validate.rules).message = {
+      required: true
+    }
+  ];
+}
+
+// Nested message validation from business constraints
+message {AggregateName}Config {
+  // Generated from UT-008: "Timeout validation - 1-3600 seconds"
+  int32 timeout_seconds = 1 [
+    (validate.rules).int32 = {
+      gte: 1,
+      lte: 3600
+    }
+  ];
+  
+  // Generated from UT-009: "Retry attempts - 0-10 range"
+  int32 max_retries = 2 [
+    (validate.rules).int32 = {
+      gte: 0,
+      lte: 10
+    }
+  ];
+  
+  // Generated from UT-010: "Feature flags - boolean required"
+  bool enable_feature_x = 3; // No validation needed for boolean
+}
+
+// Enum validation from business rules
+enum Priority {
+  // Generated from UT-011: "Priority enum validation"
+  PRIORITY_UNSPECIFIED = 0; // Default value (should be excluded in validation)
+  PRIORITY_LOW = 1;
+  PRIORITY_MEDIUM = 2;
+  PRIORITY_HIGH = 3;
+  PRIORITY_CRITICAL = 4;
+}
+
+// Update request with partial validation
+message Update{AggregateName}Request {
+  // ID is required for updates
+  string id = 1 [
+    (validate.rules).string = {
+      min_len: 1,
+      pattern: "^[a-zA-Z0-9-_]+$"
+    }
+  ];
+  
+  // Optional fields use oneof or optional with same validation rules
+  optional string name = 2 [
+    (validate.rules).string = {
+      min_len: 1,
+      max_len: 100,
+      pattern: "^[a-zA-Z0-9\\s-_]+$"
+    }
+  ];
+  
+  optional string email = 3 [
+    (validate.rules).string = {
+      min_len: 5,
+      max_len: 255,
+      pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    }
+  ];
+}
+
+// List request with pagination validation
+message List{AggregateName}sRequest {
+  // Generated from UT-012: "Pagination validation - page >= 1, page_size 1-100"
+  int32 page = 1 [
+    (validate.rules).int32 = {
+      gte: 1
+    }
+  ];
+  
+  int32 page_size = 2 [
+    (validate.rules).int32 = {
+      gte: 1,
+      lte: 100
+    }
+  ];
+  
+  // Generated from UT-013: "Filter validation - optional, max 500 chars"
+  optional string filter = 3 [
+    (validate.rules).string = {
+      max_len: 500
+    }
+  ];
+  
+  // Generated from UT-014: "Sort validation - enum values only"
+  repeated SortField sort_by = 4 [
+    (validate.rules).repeated = {
+      max_items: 3 // Max 3 sort fields
+    }
+  ];
+}
+
+// Sort field validation
+message SortField {
+  string field = 1 [
+    (validate.rules).string = {
+      min_len: 1,
+      max_len: 50,
+      pattern: "^[a-zA-Z0-9_]+$"
+    }
+  ];
+  
+  SortDirection direction = 2 [
+    (validate.rules).enum = {
+      defined_only: true,
+      not_in: [0]
+    }
+  ];
+}
+
+enum SortDirection {
+  SORT_DIRECTION_UNSPECIFIED = 0;
+  SORT_DIRECTION_ASC = 1;
+  SORT_DIRECTION_DESC = 2;
+}
+```
+
+**Validation Rule Generation Script**:
+```bash
+#!/bin/bash
+# scripts/generate-proto-validation-from-tests.sh
+
+echo "🔍 Analyzing unit-tests.md for proto validation rules..."
+
+# Process each feature's unit tests
+for feature_dir in ../../04-functional-requirements/features/*/; do
+    if [ -f "$feature_dir/unit-tests.md" ]; then
+        echo "  📋 Processing: $feature_dir/unit-tests.md"
+        
+        # Extract validation rules from test cases
+        # Parse patterns like:
+        # - "Name must be 1-100 characters" -> min_len: 1, max_len: 100
+        # - "Email must be valid format" -> email pattern validation
+        # - "Age must be 18-120" -> gte: 18, lte: 120
+        # - "Priority must be valid enum" -> enum defined_only validation
+        
+        # Generate validation annotations for proto messages
+        grep -E "(must be|should be|valid|invalid|range|length|format)" "$feature_dir/unit-tests.md" | \
+        while read -r line; do
+            # Extract validation rules and generate proto annotations
+            echo "    🔍 Found validation rule: $line"
+            
+            # Pattern matching and validation rule generation logic
+            # This would generate the appropriate validate.rules annotations
+        done
+    fi
+done
+
+echo "✅ Proto validation rules generated from business tests!"
+```
+```
+
+### 0.4 Enhanced Domain Error Handling Generation
+
+**Problem Solved**: Comprehensive error handling middleware with business context mapping.
+
+**Expanded Error Analysis Process**:
+1. **Acceptance Criteria Error Mining**:
+   - Parse all "Then" clauses for error states
+   - Extract business rule violations from scenarios
+   - Map validation failures to specific gRPC status codes
+
+2. **Unit Test Error Scenario Analysis**:
+   - Identify edge cases from `unit-tests.md`
+   - Extract expected error types and business impact
+   - Generate custom error constructors for domain errors
+
+**Enhanced Error Handling Generation**:
+```go
+// Generated from: comprehensive PRD error analysis
+package errors
+
+import (
+    "fmt"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+)
+
+// Domain error types generated from acceptance criteria
+var (
+    // Generated from AC-001: "User not found scenario"
+    ErrUserNotFound = NewNotFoundError("USER_NOT_FOUND", "user not found")
+    
+    // Generated from AC-002: "Duplicate user scenario"  
+    ErrUserAlreadyExists = NewConflictError("USER_ALREADY_EXISTS", "user already exists")
+    
+    // Generated from UT-003: "Invalid input validation"
+    ErrInvalidInput = NewValidationError("INVALID_INPUT", "input validation failed")
+    
+    // Generated from business rules in domain model
+    ErrBusinessRuleViolation = NewBusinessError("BUSINESS_RULE_VIOLATION", "business rule violated")
+)
+
+// Custom error constructors generated from error patterns
+func NewNotFoundError(code, message string) error {
+    return &DomainError{
+        Code:       code,
+        Message:    message,
+        Type:       "NOT_FOUND",
+        HTTPStatus: 404,
+        GRPCCode:   codes.NotFound,
+    }
+}
+
+func NewConflictError(code, message string) error {
+    return &DomainError{
+        Code:       code,
+        Message:    message,
+        Type:       "CONFLICT",
+        HTTPStatus: 409,
+        GRPCCode:   codes.AlreadyExists,
+    }
+}
+
+func NewValidationError(code, message string) error {
+    return &DomainError{
+        Code:       code,
+        Message:    message,
+        Type:       "VALIDATION",
+        HTTPStatus: 400,
+        GRPCCode:   codes.InvalidArgument,
+    }
+}
+
+func NewBusinessError(code, message string) error {
+    return &DomainError{
+        Code:       code,
+        Message:    message,
+        Type:       "BUSINESS_RULE",
+        HTTPStatus: 422,
+        GRPCCode:   codes.FailedPrecondition,
+    }
+}
+
+// Domain error structure with gRPC context
+type DomainError struct {
+    Code       string      `json:"code"`
+    Message    string      `json:"message"`
+    Type       string      `json:"type"`
+    HTTPStatus int         `json:"http_status"`
+    GRPCCode   codes.Code  `json:"grpc_code"`
+    Context    map[string]interface{} `json:"context,omitempty"`
+}
+
+func (e *DomainError) Error() string {
+    return fmt.Sprintf("[%s] %s", e.Code, e.Message)
+}
+
+// Enhanced domain error handler with business context
+func HandleDomainError(err error) error {
+    switch domainErr := err.(type) {
+    case *DomainError:
+        // Create gRPC status with structured error details
+        st := status.New(domainErr.GRPCCode, domainErr.Message)
+        
+        // Add error details for client context
+        details := &ErrorDetails{
+            Code:    domainErr.Code,
+            Type:    domainErr.Type,
+            Context: domainErr.Context,
+        }
+        
+        if stWithDetails, err := st.WithDetails(details); err == nil {
+            return stWithDetails.Err()
+        }
+        
+        return st.Err()
+        
+    default:
+        // Map generic errors based on patterns from unit tests
+        switch {
+        // Generated from unit test error patterns
+        case errors.Is(err, sql.ErrNoRows):
+            return status.Error(codes.NotFound, "resource not found")
+        case errors.Is(err, context.DeadlineExceeded):
+            return status.Error(codes.DeadlineExceeded, "operation timeout")
+        case errors.Is(err, context.Canceled):
+            return status.Error(codes.Canceled, "operation canceled")
+        default:
+            return status.Error(codes.Internal, "internal server error")
+        }
+    }
+}
+
+// Error details structure for gRPC error responses
+message ErrorDetails {
+    string code = 1;
+    string type = 2;
+    map<string, string> context = 3;
+    repeated FieldViolation field_violations = 4;
+}
+
+message FieldViolation {
+    string field = 1;
+    string description = 2;
+}
+```
+
+### 0.4 Generation Workflow and File Organization
+
+#### Proto Generation Workflow:
+```bash
+# 1. Analyze DDD artifacts for aggregate definitions
+echo "Analyzing aggregates from docs/bounded-contexts/*/aggregates/"
+
+# 2. Create proto file structure
+mkdir -p proto/{context_name}/v1/
+
+# 3. Generate .proto file from aggregate analysis
+# Template: proto/{context_name}/v1/{aggregate_name}.proto
+
+# 4. Run proto generation script
+scripts/proto-gen.sh
+
+# 5. Generated files appear in api/grpc/generated/
+```
+
+#### Domain Layer Generation Workflow:
+```bash
+# 1. Create domain structure from DDD aggregates
+mkdir -p internal/domain/{context_name}/{aggregate_name}
+
+# 2. Generate entities from aggregate definitions
+# Source: docs/bounded-contexts/{context}/aggregates/{aggregate}.md
+
+# 3. Generate value objects from ubiquitous language
+# Source: docs/domain/ubiquitous-language.md
+
+# 4. Generate repository interfaces from aggregate boundaries
+# Source: docs/bounded-contexts/{context}/domain-model.md
+```
+
+## 1. Architecture Overview
+
+### 1.1 Hexagonal Architecture (Ports and Adapters)
+- **Core Domain Layer**
+  - Business logic and domain models
+  - Independent of external frameworks
+  - Pure Go code with no external dependencies
+
+- **Application Layer**
+  - Use cases and application services
+  - Orchestrates domain objects
+  - Implements business workflows
+
+- **Ports (Interfaces)**
+  - Primary (Driving) Ports: Define how the application is used via gRPC
+  - Secondary (Driven) Ports: Define how the application interacts with external services
+
+- **Adapters**
+  - Primary Adapters: gRPC server with Protocol Buffers
+  - Secondary Adapters: Database, Message Queue, External gRPC Services
+
+### 1.2 Technology Stack
+- **Backend**
+  - Language: Go 1.21+
+  - Framework: Standard library with gRPC
+  - API: gRPC with Protocol Buffers
+  - Database: PostgreSQL
+  - Message Queue: RabbitMQ/Kafka
+  - Service Discovery: Consul/etcd
+
+## 2. gRPC Service Design
+
+### 2.1 Protocol Buffers Definition
+```protobuf
+// user/v1/user.proto
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/example/user-service/proto/user/v1;userv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc StreamUsers(google.protobuf.Empty) returns (stream User);
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message CreateUserResponse {
+  User user = 1;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message UpdateUserRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string email = 3;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+message DeleteUserRequest {
+  string id = 1;
+}
+
+message ListUsersRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string filter = 3;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 total_count = 2;
+  string next_page_token = 3;
+}
+```
+
+### 2.2 gRPC Server Implementation
+```go
+package grpc
+
+import (
+    "context"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+    userv1 "github.com/example/user-service/proto/user/v1"
+)
+
+type UserServer struct {
+    userv1.UnimplementedUserServiceServer
+    userService *service.UserService
+}
+
+func NewUserServer(userService *service.UserService) *UserServer {
+    return &UserServer{
+        userService: userService,
+    }
+}
+
+func (s *UserServer) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.CreateUserResponse, error) {
+    // Validate request
+    if err := validateCreateUserRequest(req); err != nil {
+        return nil, status.Error(codes.InvalidArgument, err.Error())
+    }
+    
+    // Call domain service
+    user, err := s.userService.CreateUser(ctx, &domain.CreateUserParams{
+        Name:     req.Name,
+        Email:    req.Email,
+        Password: req.Password,
+    })
+    if err != nil {
+        return nil, handleDomainError(err)
+    }
+    
+    // Convert to proto
+    return &userv1.CreateUserResponse{
+        User: convertUserToProto(user),
+    }, nil
+}
+
+func (s *UserServer) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.GetUserResponse, error) {
+    if req.Id == "" {
+        return nil, status.Error(codes.InvalidArgument, "user ID is required")
+    }
+    
+    user, err := s.userService.GetUserByID(ctx, req.Id)
+    if err != nil {
+        return nil, handleDomainError(err)
+    }
+    
+    return &userv1.GetUserResponse{
+        User: convertUserToProto(user),
+    }, nil
+}
+
+func (s *UserServer) StreamUsers(req *emptypb.Empty, stream userv1.UserService_StreamUsersServer) error {
+    users, err := s.userService.GetAllUsers(stream.Context())
+    if err != nil {
+        return handleDomainError(err)
+    }
+    
+    for _, user := range users {
+        if err := stream.Send(convertUserToProto(user)); err != nil {
+            return status.Error(codes.Internal, "failed to send user")
+        }
+    }
+    
+    return nil
+}
+```
+
+### 2.3 Error Handling
+```go
+import (
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+)
+
+func handleDomainError(err error) error {
+    switch {
+    case errors.Is(err, domain.ErrUserNotFound):
+        return status.Error(codes.NotFound, "user not found")
+    case errors.Is(err, domain.ErrUserAlreadyExists):
+        return status.Error(codes.AlreadyExists, "user already exists")
+    case errors.Is(err, domain.ErrInvalidInput):
+        return status.Error(codes.InvalidArgument, err.Error())
+    case errors.Is(err, domain.ErrUnauthorized):
+        return status.Error(codes.Unauthenticated, "unauthorized")
+    case errors.Is(err, domain.ErrForbidden):
+        return status.Error(codes.PermissionDenied, "permission denied")
+    default:
+        return status.Error(codes.Internal, "internal server error")
+    }
+}
+
+// Custom error details
+func createErrorWithDetails(code codes.Code, message string, details proto.Message) error {
+    st := status.New(code, message)
+    st, _ = st.WithDetails(details)
+    return st.Err()
+}
+```
+
+## 3. Observability
+
+### 3.1 OpenTelemetry Integration
+```go
+import (
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/trace"
+    "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+    "google.golang.org/grpc"
+)
+
+func TracingInterceptor() grpc.UnaryServerInterceptor {
+    return otelgrpc.UnaryServerInterceptor()
+}
+
+func StreamTracingInterceptor() grpc.StreamServerInterceptor {
+    return otelgrpc.StreamServerInterceptor()
+}
+
+// Custom tracing for business logic
+func (s *UserServer) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.CreateUserResponse, error) {
+    ctx, span := otel.Tracer("user-service").Start(ctx, "CreateUser")
+    defer span.End()
+    
+    span.SetAttributes(
+        attribute.String("user.email", req.Email),
+        attribute.String("operation", "create_user"),
+    )
+    
+    // Business logic...
+    
+    return response, nil
+}
+```
+
+### 3.2 Logging Strategy
+```go
+import (
+    "go.uber.org/zap"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/peer"
+)
+
+func LoggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
+    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+        start := time.Now()
+        
+        // Get client IP
+        clientIP := ""
+        if p, ok := peer.FromContext(ctx); ok {
+            clientIP = p.Addr.String()
+        }
+        
+        resp, err := handler(ctx, req)
+        
+        // Log request
+        fields := []zap.Field{
+            zap.String("method", info.FullMethod),
+            zap.Duration("duration", time.Since(start)),
+            zap.String("client_ip", clientIP),
+        }
+        
+        if err != nil {
+            st, _ := status.FromError(err)
+            fields = append(fields,
+                zap.String("grpc_code", st.Code().String()),
+                zap.String("error", st.Message()),
+            )
+            logger.Error("gRPC request failed", fields...)
+        } else {
+            logger.Info("gRPC request completed", fields...)
+        }
+        
+        return resp, err
+    }
+}
+```
+
+### 3.3 Metrics Collection
+```go
+import (
+    "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+    grpcRequestsTotal = promauto.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "grpc_requests_total",
+            Help: "Total number of gRPC requests",
+        },
+        []string{"method", "status"},
+    )
+    
+    grpcRequestDuration = promauto.NewHistogramVec(
+        prometheus.HistogramOpts{
+            Name: "grpc_request_duration_seconds",
+            Help: "Duration of gRPC requests",
+        },
+        []string{"method"},
+    )
+)
+
+func MetricsInterceptor() grpc.UnaryServerInterceptor {
+    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+        start := time.Now()
+        
+        resp, err := handler(ctx, req)
+        
+        status := "success"
+        if err != nil {
+            st, _ := status.FromError(err)
+            status = st.Code().String()
+        }
+        
+        grpcRequestsTotal.WithLabelValues(info.FullMethod, status).Inc()
+        grpcRequestDuration.WithLabelValues(info.FullMethod).Observe(time.Since(start).Seconds())
+        
+        return resp, err
+    }
+}
+```
+
+## 4. Testing Strategy
+
+### 4.1 gRPC Testing
+```go
+import (
+    "context"
+    "testing"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/test/bufconn"
+    userv1 "github.com/example/user-service/proto/user/v1"
+)
+
+const bufSize = 1024 * 1024
+
+var lis *bufconn.Listener
+
+func init() {
+    lis = bufconn.Listen(bufSize)
+    s := grpc.NewServer()
+    
+    userService := &mockUserService{}
+    userServer := NewUserServer(userService)
+    userv1.RegisterUserServiceServer(s, userServer)
+    
+    go func() {
+        if err := s.Serve(lis); err != nil {
+            log.Fatalf("Server exited with error: %v", err)
+        }
+    }()
+}
+
+func bufDialer(context.Context, string) (net.Conn, error) {
+    return lis.Dial()
+}
+
+func TestCreateUser(t *testing.T) {
+    ctx := context.Background()
+    conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+    require.NoError(t, err)
+    defer conn.Close()
+    
+    client := userv1.NewUserServiceClient(conn)
+    
+    req := &userv1.CreateUserRequest{
+        Name:     "John Doe",
+        Email:    "john@example.com",
+        Password: "password123",
+    }
+    
+    resp, err := client.CreateUser(ctx, req)
+    require.NoError(t, err)
+    require.NotNil(t, resp.User)
+    assert.Equal(t, req.Name, resp.User.Name)
+    assert.Equal(t, req.Email, resp.User.Email)
+}
+```
+
+### 4.2 BDD Testing for gRPC
+```go
+import (
+    "github.com/cucumber/godog"
+    "google.golang.org/grpc"
+)
+
+type gRPCTestContext struct {
+    client userv1.UserServiceClient
+    lastResponse interface{}
+    lastError error
+}
+
+func FeatureContext(s *godog.Suite) {
+    ctx := &gRPCTestContext{}
+    
+    s.BeforeSuite(func() {
+        conn, _ := grpc.Dial("localhost:50051", grpc.WithInsecure())
+        ctx.client = userv1.NewUserServiceClient(conn)
+    })
+    
+    s.Step(`^I create a user with name "([^"]*)" and email "([^"]*)"$`, ctx.createUser)
+    s.Step(`^the user should be created successfully$`, ctx.userShouldBeCreated)
+    s.Step(`^I should receive a user response$`, ctx.shouldReceiveUserResponse)
+}
+
+func (ctx *gRPCTestContext) createUser(name, email string) error {
+    req := &userv1.CreateUserRequest{
+        Name:     name,
+        Email:    email,
+        Password: "password123",
+    }
+    
+    resp, err := ctx.client.CreateUser(context.Background(), req)
+    ctx.lastResponse = resp
+    ctx.lastError = err
+    return nil
+}
+
+func (ctx *gRPCTestContext) userShouldBeCreated() error {
+    if ctx.lastError != nil {
+        return ctx.lastError
+    }
+    return nil
+}
+```
+
+## 5. Development Guidelines
+
+### 5.1 Code Organization
+```
+project/
+├── cmd/
+│   └── grpc-server/
+│       └── main.go
+├── internal/
+│   ├── domain/
+│   │   ├── entity/
+│   │   └── repository/
+│   ├── application/
+│   │   └── service/
+│   ├── infrastructure/
+│   │   ├── persistence/
+│   │   └── grpc/
+│   │       ├── server/
+│   │       ├── client/
+│   │       └── interceptor/
+│   └── ports/
+│       ├── primary/
+│       └── secondary/
+├── pkg/
+│   ├── logger/
+│   └── telemetry/
+├── proto/
+│   ├── user/
+│   │   └── v1/
+│   │       └── user.proto
+│   ├── order/
+│   │   └── v1/
+│   │       └── order.proto
+│   └── buf.yaml
+├── api/
+│   └── grpc/
+│       └── generated/
+├── test/
+│   ├── integration/
+│   └── e2e/
+└── scripts/
+    └── proto-gen.sh
+```
+
+### 5.2 gRPC Server Generation from DDD
+
+**Source Analysis for Server Generation**:
+1. **Analyze Commands and Queries** from DDD aggregates:
+   - Extract aggregate methods from `docs/bounded-contexts/*/aggregates/`
+   - Map each command to an RPC method implementation
+   - Map each query to Get* or List* method implementation
+   - Use business rules from acceptance criteria for validation logic
+
+2. **Use Invariant Traceability Table** for code comments:
+   - Generate code comments explaining business rules in each method
+   - Reference source acceptance criteria (AC-XX) in comments
+   - Include business impact and validation rules from DDD documentation
+
+**Server Generation Template**:
+```go
+// Generated from: docs/bounded-contexts/{context-name}/aggregates/{aggregate-name}.md
+package grpc
+
+import (
+    "context"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+    {context_name}v1 "github.com/{project}/{service}/proto/{context_name}/v1"
+)
+
+type {AggregateName}Server struct {
+    {context_name}v1.Unimplemented{AggregateName}ServiceServer
+    {aggregate_name}Service *service.{AggregateName}Service
+}
+
+func New{AggregateName}Server({aggregate_name}Service *service.{AggregateName}Service) *{AggregateName}Server {
+    return &{AggregateName}Server{
+        {aggregate_name}Service: {aggregate_name}Service,
+    }
+}
+
+// Generated from aggregate command: Create{AggregateName}
+// Business Rule (AC-001): {business_rule_from_acceptance_criteria}
+// Invariant: {invariant_from_DDD_documentation}
+func (s *{AggregateName}Server) Create{AggregateName}(ctx context.Context, req *{context_name}v1.Create{AggregateName}Request) (*{context_name}v1.Create{AggregateName}Response, error) {
+    // Validate request based on business rules from acceptance criteria
+    if err := validate{AggregateName}Request(req); err != nil {
+        return nil, status.Error(codes.InvalidArgument, err.Error())
+    }
+    
+    // Call domain service - enforces aggregate invariants
+    {aggregate_name}, err := s.{aggregate_name}Service.Create{AggregateName}(ctx, &domain.Create{AggregateName}Params{
+        // Map fields based on aggregate root attributes from domain model
+    })
+    if err != nil {
+        return nil, handleDomainError(err)
+    }
+    
+    // Convert domain object to proto message
+    return &{context_name}v1.Create{AggregateName}Response{
+        {AggregateName}: convert{AggregateName}ToProto({aggregate_name}),
+    }, nil
+}
+
+// Generated from aggregate query: Get{AggregateName}ByID
+// Business Rule (AC-002): {access_control_rule_from_acceptance_criteria}
+func (s *{AggregateName}Server) Get{AggregateName}(ctx context.Context, req *{context_name}v1.Get{AggregateName}Request) (*{context_name}v1.Get{AggregateName}Response, error) {
+    if req.Id == "" {
+        return nil, status.Error(codes.InvalidArgument, "{aggregate_name} ID is required")
+    }
+    
+    {aggregate_name}, err := s.{aggregate_name}Service.Get{AggregateName}ByID(ctx, req.Id)
+    if err != nil {
+        return nil, handleDomainError(err)
+    }
+    
+    return &{context_name}v1.Get{AggregateName}Response{
+        {AggregateName}: convert{AggregateName}ToProto({aggregate_name}),
+    }, nil
+}
+```
+
+### 5.3 gRPC Server Generation with Commands and Queries Mapping
+
+**Problem Solved**: Generate gRPC server methods directly from DDD commands and queries analysis.
+
+**Source Analysis for Server Generation**:
+1. **Commands and Queries Mapping** from DDD aggregates:
+   - Extract aggregate methods from `docs/bounded-contexts/*/aggregates/`
+   - Map each command to gRPC method (Create*, Update*, Delete*)
+   - Map each query to gRPC method (Get*, List*, Search*)
+   - Link methods to application layer services from user stories
+
+**gRPC Server Generation Template**:
+```go
+// Generated from: docs/bounded-contexts/{context-name}/aggregates/{aggregate-name}.md
+package server
+
+import (
+    "context"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+    
+    {context_name}v1 "github.com/{project}/{service}/proto/{context_name}/v1"
+    "github.com/{project}/{service}/internal/application/service"
+    "github.com/{project}/{service}/internal/ports/primary"
+)
+
+// {AggregateName}Server implements gRPC service for {aggregate_name} aggregate
+// Generated from commands and queries defined in DDD aggregates
+type {AggregateName}Server struct {
+    {context_name}v1.Unimplemented{AggregateName}ServiceServer
+    
+    // Application layer service (primary port implementation)
+    {aggregate_name}UseCase primary.{AggregateName}UseCase
+    
+    // Cross-cutting concerns
+    logger Logger
+    metrics Metrics
+}
+
+// New{AggregateName}Server creates gRPC server with application layer service
+func New{AggregateName}Server({aggregate_name}UseCase primary.{AggregateName}UseCase, logger Logger, metrics Metrics) *{AggregateName}Server {
+    return &{AggregateName}Server{
+        {aggregate_name}UseCase: {aggregate_name}UseCase,
+        logger:                  logger,
+        metrics:                 metrics,
+    }
+}
+
+// Create{AggregateName} implements gRPC method for aggregate command
+// Generated from: DDD aggregate command Create{AggregateName}
+// Business Rules: {extracted_from_acceptance_criteria}
+// Links to: application service Create{AggregateName} method
+func (s *{AggregateName}Server) Create{AggregateName}(ctx context.Context, req *{context_name}v1.Create{AggregateName}Request) (*{context_name}v1.Create{AggregateName}Response, error) {
+    // Request validation based on proto validation rules
+    if err := s.validateCreate{AggregateName}Request(req); err != nil {
+        s.metrics.IncValidationErrors("create_{aggregate_name}")
+        return nil, status.Error(codes.InvalidArgument, err.Error())
+    }
+    
+    // Map gRPC request to application service parameters
+    params := &service.Create{AggregateName}Params{
+        Name:        req.Name,
+        // Map additional fields from proto message
+    }
+    
+    // Call application layer service (orchestrates domain logic)
+    {aggregate_name}, err := s.{aggregate_name}UseCase.Create{AggregateName}(ctx, params)
+    if err != nil {
+        s.metrics.IncServiceErrors("create_{aggregate_name}")
+        s.logger.Error("Failed to create {aggregate_name}", "error", err)
+        return nil, HandleDomainError(err)
+    }
+    
+    s.metrics.IncSuccessfulOperations("create_{aggregate_name}")
+    s.logger.Info("{AggregateName} created successfully", "{aggregate_name}_id", {aggregate_name}.ID())
+    
+    // Map domain entity to gRPC response
+    return &{context_name}v1.Create{AggregateName}Response{
+        {AggregateName}: s.mapEntityToProto({aggregate_name}),
+    }, nil
+}
+
+// Get{AggregateName} implements gRPC method for aggregate query
+// Generated from: DDD aggregate query Get{AggregateName}ByID
+// Access Control: {extracted_from_acceptance_criteria}
+// Links to: application service Get{AggregateName}ByID method
+func (s *{AggregateName}Server) Get{AggregateName}(ctx context.Context, req *{context_name}v1.Get{AggregateName}Request) (*{context_name}v1.Get{AggregateName}Response, error) {
+    if req.Id == "" {
+        s.metrics.IncValidationErrors("get_{aggregate_name}")
+        return nil, status.Error(codes.InvalidArgument, "{aggregate_name} ID is required")
+    }
+    
+    // Call application layer service
+    {aggregate_name}, err := s.{aggregate_name}UseCase.Get{AggregateName}ByID(ctx, req.Id)
+    if err != nil {
+        s.metrics.IncServiceErrors("get_{aggregate_name}")
+        s.logger.Error("Failed to get {aggregate_name}", "error", err, "id", req.Id)
+        return nil, HandleDomainError(err)
+    }
+    
+    s.metrics.IncSuccessfulOperations("get_{aggregate_name}")
+    
+    return &{context_name}v1.Get{AggregateName}Response{
+        {AggregateName}: s.mapEntityToProto({aggregate_name}),
+    }, nil
+}
+
+// List{AggregateName}s implements gRPC method for aggregate list query
+// Generated from: repository query patterns and pagination requirements
+func (s *{AggregateName}Server) List{AggregateName}s(ctx context.Context, req *{context_name}v1.List{AggregateName}sRequest) (*{context_name}v1.List{AggregateName}sResponse, error) {
+    // Validate pagination parameters
+    if req.PageSize <= 0 || req.PageSize > 100 {
+        req.PageSize = 20 // Default page size
+    }
+    
+    params := &service.List{AggregateName}Params{
+        Page:     req.Page,
+        PageSize: req.PageSize,
+        Filter:   req.Filter,
+    }
+    
+    {aggregate_name}s, total, err := s.{aggregate_name}UseCase.List{AggregateName}s(ctx, params)
+    if err != nil {
+        s.metrics.IncServiceErrors("list_{aggregate_name}s")
+        return nil, HandleDomainError(err)
+    }
+    
+    // Map entities to proto messages
+    proto{AggregateName}s := make([]*{context_name}v1.{AggregateName}, len({aggregate_name}s))
+    for i, entity := range {aggregate_name}s {
+        proto{AggregateName}s[i] = s.mapEntityToProto(entity)
+    }
+    
+    s.metrics.IncSuccessfulOperations("list_{aggregate_name}s")
+    
+    return &{context_name}v1.List{AggregateName}sResponse{
+        {AggregateName}s: proto{AggregateName}s,
+        TotalCount:      int32(total),
+        PageSize:        req.PageSize,
+        Page:            req.Page,
+    }, nil
+}
+
+// Entity to Proto mapping based on domain model
+func (s *{AggregateName}Server) mapEntityToProto(entity *domain.{AggregateName}) *{context_name}v1.{AggregateName} {
+    return &{context_name}v1.{AggregateName}{
+        Id:   string(entity.ID()),
+        Name: entity.Name(),
+        // Map additional fields based on entity attributes
+        CreatedAt: timestamppb.New(entity.CreatedAt()),
+        UpdatedAt: timestamppb.New(entity.UpdatedAt()),
+        Version:   int32(entity.Version()),
+    }
+}
+
+// Request validation methods generated from business rules
+func (s *{AggregateName}Server) validateCreate{AggregateName}Request(req *{context_name}v1.Create{AggregateName}Request) error {
+    // Generated from acceptance criteria validation rules
+    if req.Name == "" {
+        return fmt.Errorf("name is required")
+    }
+    
+    // Generated from business constraints in domain model
+    if len(req.Name) > 100 {
+        return fmt.Errorf("name cannot exceed 100 characters")
+    }
+    
+    // Additional validations based on business rules
+    return nil
+}
+```
+
+### 5.4 Middleware Standardization and Configuration
+
+**Problem Solved**: Build comprehensive middleware stack based on project NFR analysis and gRPC best practices.
+
+**NFR Analysis for Middleware Generation**:
+1. **Security Requirements** from `../06-non-functional-requirements/`:
+   - Extract authentication requirements (JWT, OAuth, API Keys)
+   - Identify authorization patterns (RBAC, ABAC)
+   - Generate security middleware based on requirements
+
+2. **Performance Requirements** from NFR:
+   - Extract rate limiting specifications
+   - Identify caching requirements
+   - Generate performance middleware
+
+3. **Observability Requirements** from NFR:
+   - Extract logging level requirements
+   - Identify metrics collection needs
+   - Generate monitoring middleware
+
+**Generated Middleware Stack**:
+```go
+// Generated from: ../06-non-functional-requirements/ analysis
+package middleware
+
+import (
+    "context"
+    "time"
+    
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+    "google.golang.org/grpc/metadata"
+    "go.uber.org/zap"
+    "github.com/prometheus/client_golang/prometheus"
+)
+
+// Middleware stack generated from NFR requirements
+type MiddlewareStack struct {
+    // Generated from security NFR
+    authMiddleware     AuthMiddleware
+    
+    // Generated from performance NFR  
+    rateLimitMiddleware RateLimitMiddleware
+    
+    // Generated from observability NFR
+    loggingMiddleware  LoggingMiddleware
+    metricsMiddleware  MetricsMiddleware
+    tracingMiddleware  TracingMiddleware
+    
+    // Generated from resilience NFR
+    circuitBreaker     CircuitBreaker
+    timeout           TimeoutMiddleware
+}
+
+// JWT Authentication Middleware
+// Generated when NFR specifies: "JWT token authentication required"
+func (m *MiddlewareStack) JWTAuthInterceptor() grpc.UnaryServerInterceptor {
+    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+        // Skip auth for health checks and public endpoints
+        if m.isPublicEndpoint(info.FullMethod) {
+            return handler(ctx, req)
+        }
+        
+        md, ok := metadata.FromIncomingContext(ctx)
+        if !ok {
+            return nil, status.Error(codes.Unauthenticated, "missing metadata")
+        }
+        
+        token := m.extractToken(md)
+        if token == "" {
+            return nil, status.Error(codes.Unauthenticated, "missing authorization token")
+        }
+        
+        claims, err := m.authMiddleware.ValidateJWT(token)
+        if err != nil {
+            return nil, status.Error(codes.Unauthenticated, "invalid token")
+        }
+        
+        // Add user context for authorization
+        ctx = context.WithValue(ctx, "user_id", claims.UserID)
+        ctx = context.WithValue(ctx, "user_roles", claims.Roles)
+        
+        return handler(ctx, req)
+    }
+}
+
+// Rate Limiting Middleware  
+// Generated when NFR specifies: "Rate limiting: 100 requests/minute per user"
+func (m *MiddlewareStack) RateLimitInterceptor() grpc.UnaryServerInterceptor {
+    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+        // Extract user ID for rate limiting
+        userID := m.getUserID(ctx)
+        
+        // Check rate limit based on NFR specifications
+        if !m.rateLimitMiddleware.Allow(userID, info.FullMethod) {
+            return nil, status.Error(codes.ResourceExhausted, "rate limit exceeded")
+        }
+        
+        return handler(ctx, req)
+    }
+}
+
+// Comprehensive Logging Middleware
+// Generated based on logging level requirements from NFR
+func (m *MiddlewareStack) LoggingInterceptor() grpc.UnaryServerInterceptor {
+    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+        start := time.Now()
+        
+        // Extract request context for logging
+        userID := m.getUserID(ctx)
+        requestID := m.getRequestID(ctx)
+        
+        // Log request start
+        m.loggingMiddleware.LogRequestStart(info.FullMethod, userID, requestID, req)
+        
+        resp, err := handler(ctx, req)
+        
+        duration := time.Since(start)
+        
+        // Log request completion with business context
+        if err != nil {
+            m.loggingMiddleware.LogRequestError(info.FullMethod, userID, requestID, err, duration)
+        } else {
+            m.loggingMiddleware.LogRequestSuccess(info.FullMethod, userID, requestID, duration)
+        }
+        
+        return resp, err
+    }
+}
+
+// Metrics Collection Middleware
+// Generated based on metrics requirements from NFR
+func (m *MiddlewareStack) MetricsInterceptor() grpc.UnaryServerInterceptor {
+    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+        start := time.Now()
+        
+        resp, err := handler(ctx, req)
+        
+        // Collect metrics based on NFR specifications
+        m.metricsMiddleware.RecordRequestDuration(info.FullMethod, time.Since(start))
+        m.metricsMiddleware.IncRequestTotal(info.FullMethod, m.getStatusCode(err))
+        
+        if err != nil {
+            m.metricsMiddleware.IncErrorTotal(info.FullMethod, m.getErrorType(err))
+        }
+        
+        return resp, err
+    }
+}
+```
+
+## 15. Enhanced main.go Generation with Multiple Aggregates Support
+
+### 15.1 Multi-Aggregate Microservice Generation
+
+**Problem Solved**: Generate main.go that supports microservices with multiple aggregates by analyzing the DDD folder structure and registering all gRPC servers and dependencies.
+
+**Multi-Aggregate Analysis Process**:
+1. **Scan DDD Structure** for all aggregates in bounded contexts
+2. **Generate Dynamic Registration** loop for all aggregate servers
+3. **Create Comprehensive Dependency Injection** for all repositories and services
+4. **Handle Cross-Aggregate Dependencies** and event publishing
+
+**Enhanced main.go Template with Multiple Aggregates**:
+```go
+// Generated template for multi-aggregate microservice main.go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "net"
+    "os"
+    "os/signal"
+    "path/filepath"
+    "strings"
+    "syscall"
+    "time"
+
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/reflection"
+    "go.uber.org/zap"
+    
+    // Generated imports for all discovered aggregates
+    {DYNAMIC_IMPORTS_GENERATED_FROM_DDD_SCAN}
+    
+    // Infrastructure imports
+    "github.com/{project}/{service}/internal/infrastructure/persistence"
+    "github.com/{project}/{service}/internal/infrastructure/external"
+    "github.com/{project}/{service}/pkg/logger"
+    "github.com/{project}/{service}/pkg/telemetry"
+    "github.com/{project}/{service}/pkg/config"
+)
+
+// AggregateInfo holds information about discovered aggregates
+type AggregateInfo struct {
+    Name           string
+    ContextName    string
+    ProtoPackage   string
+    ServerType     string
+    ServiceType    string
+    RepositoryType string
+}
+
+// DiscoveredAggregates holds all aggregates found in DDD structure
+var DiscoveredAggregates []AggregateInfo
+
+func init() {
+    // Generated aggregate discovery from DDD folder structure
+    DiscoveredAggregates = []AggregateInfo{
+        {DYNAMIC_AGGREGATE_INFO_GENERATED_FROM_DDD_SCAN}
+    }
+}
+
+func main() {
+    // Initialize logger
+    zapLogger, err := logger.NewLogger()
+    if err != nil {
+        log.Fatalf("Failed to initialize logger: %v", err)
+    }
+    defer zapLogger.Sync()
+
+    zapLogger.Info("Starting multi-aggregate microservice",
+        zap.Int("aggregate_count", len(DiscoveredAggregates)),
+        zap.Strings("aggregates", getAggregateNames()),
+    )
+
+    // Load configuration
+    cfg, err := config.Load()
+    if err != nil {
+        zapLogger.Fatal("Failed to load configuration", zap.Error(err))
+    }
+
+    // Initialize telemetry
+    shutdown, err := telemetry.InitTelemetry(context.Background(), cfg.ServiceName)
+    if err != nil {
+        zapLogger.Fatal("Failed to initialize telemetry", zap.Error(err))
+    }
+    defer shutdown()
+
+    // Initialize infrastructure dependencies
+    deps, err := initializeInfrastructure(zapLogger, cfg)
+    if err != nil {
+        zapLogger.Fatal("Failed to initialize infrastructure", zap.Error(err))
+    }
+    defer deps.Close()
+
+    // Initialize all aggregate dependencies
+    aggregateDeps, err := initializeAllAggregateDependencies(deps, zapLogger)
+    if err != nil {
+        zapLogger.Fatal("Failed to initialize aggregate dependencies", zap.Error(err))
+    }
+
+    // Create and configure gRPC server with all aggregates
+    grpcServer := createMultiAggregateGRPCServer(aggregateDeps, zapLogger)
+
+    // Start server
+    port := cfg.GRPCPort
+    if port == "" {
+        port = "50051"
+    }
+
+    listener, err := net.Listen("tcp", ":"+port)
+    if err != nil {
+        zapLogger.Fatal("Failed to listen", zap.String("port", port), zap.Error(err))
+    }
+
+    // Graceful shutdown
+    go func() {
+        zapLogger.Info("Starting gRPC server with multiple aggregates", 
+            zap.String("port", port),
+            zap.Int("aggregate_count", len(DiscoveredAggregates)),
+        )
+        if err := grpcServer.Serve(listener); err != nil {
+            zapLogger.Fatal("Failed to serve", zap.Error(err))
+        }
+    }()
+
+    // Wait for interrupt signal
+    sigCh := make(chan os.Signal, 1)
+    signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+    <-sigCh
+
+    zapLogger.Info("Shutting down server...")
+    grpcServer.GracefulStop()
+}
+
+// Infrastructure dependencies container
+type InfrastructureDependencies struct {
+    Database       *persistence.Database
+    EventPublisher *external.NATSEventPublisher
+    Logger         *zap.Logger
+    Config         *config.Config
+}
+
+func (d *InfrastructureDependencies) Close() error {
+    if d.EventPublisher != nil {
+        d.EventPublisher.Close()
+    }
+    if d.Database != nil {
+        return d.Database.Close()
+    }
+    return nil
+}
+
+// Aggregate dependencies container for all aggregates
+type AllAggregateDependencies struct {
+    // Dynamic map of aggregate dependencies
+    Repositories map[string]interface{}
+    Services     map[string]interface{}
+    Servers      map[string]interface{}
+}
+
+// initializeInfrastructure creates shared infrastructure dependencies
+func initializeInfrastructure(logger *zap.Logger, cfg *config.Config) (*InfrastructureDependencies, error) {
+    // Initialize database
+    db, err := persistence.NewDatabase(cfg.DatabaseURL)
+    if err != nil {
+        return nil, fmt.Errorf("failed to initialize database: %w", err)
+    }
+
+    // Initialize event publisher
+    eventPublisher, err := external.NewNATSEventPublisher(
+        cfg.NATSUrl,
+        cfg.ServiceName,
+        cfg.EventStream,
+        logger,
+    )
+    if err != nil {
+        return nil, fmt.Errorf("failed to initialize event publisher: %w", err)
+    }
+
+    return &InfrastructureDependencies{
+        Database:       db,
+        EventPublisher: eventPublisher,
+        Logger:         logger,
+        Config:         cfg,
+    }, nil
+}
+
+// initializeAllAggregateDependencies creates dependencies for all discovered aggregates
+func initializeAllAggregateDependencies(infraDeps *InfrastructureDependencies, logger *zap.Logger) (*AllAggregateDependencies, error) {
+    deps := &AllAggregateDependencies{
+        Repositories: make(map[string]interface{}),
+        Services:     make(map[string]interface{}),
+        Servers:      make(map[string]interface{}),
+    }
+
+    // Generate dependencies for each discovered aggregate
+    for _, aggregateInfo := range DiscoveredAggregates {
+        logger.Info("Initializing dependencies for aggregate",
+            zap.String("aggregate", aggregateInfo.Name),
+            zap.String("context", aggregateInfo.ContextName),
+        )
+
+        // Initialize repository for this aggregate
+        repository, err := initializeAggregateRepository(aggregateInfo, infraDeps)
+        if err != nil {
+            return nil, fmt.Errorf("failed to initialize repository for %s: %w", aggregateInfo.Name, err)
+        }
+        deps.Repositories[aggregateInfo.Name] = repository
+
+        // Initialize application service for this aggregate
+        service, err := initializeAggregateService(aggregateInfo, repository, infraDeps)
+        if err != nil {
+            return nil, fmt.Errorf("failed to initialize service for %s: %w", aggregateInfo.Name, err)
+        }
+        deps.Services[aggregateInfo.Name] = service
+
+        // Initialize gRPC server for this aggregate
+        server, err := initializeAggregateServer(aggregateInfo, service, infraDeps)
+        if err != nil {
+            return nil, fmt.Errorf("failed to initialize server for %s: %w", aggregateInfo.Name, err)
+        }
+        deps.Servers[aggregateInfo.Name] = server
+    }
+
+    return deps, nil
+}
+
+// initializeAggregateRepository creates repository for specific aggregate
+func initializeAggregateRepository(aggregateInfo AggregateInfo, infraDeps *InfrastructureDependencies) (interface{}, error) {
+    // Use reflection or type switching to create the appropriate repository
+    switch aggregateInfo.Name {
+    {DYNAMIC_REPOSITORY_INITIALIZATION_CASES}
+    default:
+        return nil, fmt.Errorf("unknown aggregate: %s", aggregateInfo.Name)
+    }
+}
+
+// initializeAggregateService creates application service for specific aggregate
+func initializeAggregateService(aggregateInfo AggregateInfo, repository interface{}, infraDeps *InfrastructureDependencies) (interface{}, error) {
+    // Use reflection or type switching to create the appropriate service
+    switch aggregateInfo.Name {
+    {DYNAMIC_SERVICE_INITIALIZATION_CASES}
+    default:
+        return nil, fmt.Errorf("unknown aggregate: %s", aggregateInfo.Name)
+    }
+}
+
+// initializeAggregateServer creates gRPC server for specific aggregate
+func initializeAggregateServer(aggregateInfo AggregateInfo, service interface{}, infraDeps *InfrastructureDependencies) (interface{}, error) {
+    // Use reflection or type switching to create the appropriate server
+    switch aggregateInfo.Name {
+    {DYNAMIC_SERVER_INITIALIZATION_CASES}
+    default:
+        return nil, fmt.Errorf("unknown aggregate: %s", aggregateInfo.Name)
+    }
+}
+
+// createMultiAggregateGRPCServer creates gRPC server and registers all aggregate services
+func createMultiAggregateGRPCServer(deps *AllAggregateDependencies, logger *zap.Logger) *grpc.Server {
+    // Standard interceptor chain
+    unaryInterceptors := []grpc.UnaryServerInterceptor{
+        LoggingInterceptor(logger),
+        MetricsInterceptor(),
+        TracingInterceptor(),
+        AuthenticationInterceptor(),
+        ValidationInterceptor(),
+        RecoveryInterceptor(),
+    }
+    
+    streamInterceptors := []grpc.StreamServerInterceptor{
+        StreamLoggingInterceptor(logger),
+        StreamTracingInterceptor(),
+        StreamAuthenticationInterceptor(),
+    }
+    
+    opts := []grpc.ServerOption{
+        grpc.ChainUnaryInterceptor(unaryInterceptors...),
+        grpc.ChainStreamInterceptor(streamInterceptors...),
+        grpc.MaxRecvMsgSize(4 * 1024 * 1024), // 4MB
+        grpc.MaxSendMsgSize(4 * 1024 * 1024), // 4MB
+        grpc.ConnectionTimeout(30 * time.Second),
+    }
+    
+    server := grpc.NewServer(opts...)
+    
+    // Register all aggregate services dynamically
+    for _, aggregateInfo := range DiscoveredAggregates {
+        aggregateServer := deps.Servers[aggregateInfo.Name]
+        
+        logger.Info("Registering gRPC service for aggregate",
+            zap.String("aggregate", aggregateInfo.Name),
+            zap.String("context", aggregateInfo.ContextName),
+        )
+        
+        // Register service using reflection or type switching
+        if err := registerAggregateService(server, aggregateInfo, aggregateServer); err != nil {
+            logger.Error("Failed to register aggregate service",
+                zap.String("aggregate", aggregateInfo.Name),
+                zap.Error(err),
+            )
+        }
+    }
+    
+    // Enable reflection in development environments
+    if os.Getenv("ENVIRONMENT") == "development" {
+        reflection.Register(server)
+        logger.Info("gRPC reflection enabled for development")
+    }
+    
+    return server
+}
+
+// registerAggregateService registers individual aggregate service with gRPC server
+func registerAggregateService(server *grpc.Server, aggregateInfo AggregateInfo, aggregateServer interface{}) error {
+    // Use reflection or type switching to register the appropriate service
+    switch aggregateInfo.Name {
+    {DYNAMIC_SERVICE_REGISTRATION_CASES}
+    default:
+        return fmt.Errorf("unknown aggregate for registration: %s", aggregateInfo.Name)
+    }
+    
+    return nil
+}
+
+// Utility functions
+func getAggregateNames() []string {
+    names := make([]string, len(DiscoveredAggregates))
+    for i, agg := range DiscoveredAggregates {
+        names[i] = agg.Name
+    }
+    return names
+}
+```
+
+### 15.2 Aggregate Discovery Script
+
+**DDD Structure Analysis Script**:
+```bash
+#!/bin/bash
+# scripts/discover-aggregates-from-ddd.sh
+
+echo "🔍 Discovering aggregates from DDD structure..."
+
+# Initialize aggregate discovery arrays
+AGGREGATE_NAMES=()
+CONTEXT_NAMES=()
+AGGREGATE_IMPORTS=()
+
+# Scan DDD bounded contexts for aggregates
+for context_dir in ../../docs/bounded-contexts/*/; do
+    if [ -d "$context_dir" ]; then
+        context_name=$(basename "$context_dir")
+        echo "  📋 Scanning context: $context_name"
+        
+        # Find aggregates in this context
+        for aggregate_file in "$context_dir/aggregates/"*.md; do
+            if [ -f "$aggregate_file" ]; then
+                aggregate_name=$(basename "$aggregate_file" .md | sed 's/[^a-zA-Z0-9]//g')
+                
+                # Add to discovery arrays
+                AGGREGATE_NAMES+=("$aggregate_name")
+                CONTEXT_NAMES+=("$context_name")
+                
+                echo "    🏗️  Found aggregate: $aggregate_name in context: $context_name"
+                
+                # Generate import statements
+                AGGREGATE_IMPORTS+=("\"github.com/{project}/{service}/proto/${context_name,,}/v1\"")
+                AGGREGATE_IMPORTS+=("\"github.com/{project}/{service}/internal/application/service\"")
+                AGGREGATE_IMPORTS+=("\"github.com/{project}/{service}/internal/infrastructure/grpc/server\"")
+                AGGREGATE_IMPORTS+=("\"github.com/{project}/{service}/internal/infrastructure/persistence\"")
+            fi
+        done
+    fi
+done
+
+# Generate main.go with discovered aggregates
+echo "📝 Generating main.go with ${#AGGREGATE_NAMES[@]} aggregates..."
+
+# Generate dynamic sections for main.go
+generate_aggregate_info() {
+    local info_entries=""
+    for i in "${!AGGREGATE_NAMES[@]}"; do
+        local aggregate_name="${AGGREGATE_NAMES[$i]}"
+        local context_name="${CONTEXT_NAMES[$i]}"
+        
+        info_entries+="{
+            Name:           \"$aggregate_name\",
+            ContextName:    \"$context_name\", 
+            ProtoPackage:   \"${context_name,,}v1\",
+            ServerType:     \"*server.${aggregate_name}Server\",
+            ServiceType:    \"*service.${aggregate_name}Service\",
+            RepositoryType: \"*persistence.${aggregate_name}RepositoryImpl\",
+        },
+        "
+    done
+    echo "$info_entries"
+}
+
+generate_repository_cases() {
+    local cases=""
+    for i in "${!AGGREGATE_NAMES[@]}"; do
+        local aggregate_name="${AGGREGATE_NAMES[$i]}"
+        local context_name="${CONTEXT_NAMES[$i]}"
+        
+        cases+="case \"$aggregate_name\":
+        return persistence.New${aggregate_name}Repository(infraDeps.Database, infraDeps.Logger), nil
+        "
+    done
+    echo "$cases"
+}
+
+generate_service_cases() {
+    local cases=""
+    for i in "${!AGGREGATE_NAMES[@]}"; do
+        local aggregate_name="${AGGREGATE_NAMES[$i]}"
+        
+        cases+="case \"$aggregate_name\":
+        repo := repository.(repository.${aggregate_name}Repository)
+        return service.New${aggregate_name}Service(repo, infraDeps.EventPublisher, infraDeps.Logger), nil
+        "
+    done
+    echo "$cases"
+}
+
+generate_server_cases() {
+    local cases=""
+    for i in "${!AGGREGATE_NAMES[@]}"; do
+        local aggregate_name="${AGGREGATE_NAMES[$i]}"
+        
+        cases+="case \"$aggregate_name\":
+        svc := service.(primary.${aggregate_name}UseCase)
+        return server.New${aggregate_name}Server(svc, infraDeps.Logger), nil
+        "
+    done
+    echo "$cases"
+}
+
+generate_registration_cases() {
+    local cases=""
+    for i in "${!AGGREGATE_NAMES[@]}"; do
+        local aggregate_name="${AGGREGATE_NAMES[$i]}"
+        local context_name="${CONTEXT_NAMES[$i]}"
+        
+        cases+="case \"$aggregate_name\":
+        srv := aggregateServer.(*server.${aggregate_name}Server)
+        ${context_name,,}v1.Register${aggregate_name}ServiceServer(server, srv)
+        "
+    done
+    echo "$cases"
+}
+
+# Replace placeholders in main.go template
+sed -i.bak \
+    -e "s/{DYNAMIC_IMPORTS_GENERATED_FROM_DDD_SCAN}/$(printf '%s\n' "${AGGREGATE_IMPORTS[@]}" | sort -u | tr '\n' ' ')/" \
+    -e "s/{DYNAMIC_AGGREGATE_INFO_GENERATED_FROM_DDD_SCAN}/$(generate_aggregate_info)/" \
+    -e "s/{DYNAMIC_REPOSITORY_INITIALIZATION_CASES}/$(generate_repository_cases)/" \
+    -e "s/{DYNAMIC_SERVICE_INITIALIZATION_CASES}/$(generate_service_cases)/" \
+    -e "s/{DYNAMIC_SERVER_INITIALIZATION_CASES}/$(generate_server_cases)/" \
+    -e "s/{DYNAMIC_SERVICE_REGISTRATION_CASES}/$(generate_registration_cases)/" \
+    cmd/{service}/main.go
+
+echo "✅ Multi-aggregate main.go generated with ${#AGGREGATE_NAMES[@]} aggregates!"
+echo "   Aggregates: ${AGGREGATE_NAMES[*]}"
+```
+
+### 15.3 Benefits of Multi-Aggregate Support
+
+#### **Scalability and Modularity**:
+- **Single Service, Multiple Domains**: Support complex business domains in one service
+- **Dynamic Registration**: Automatically discover and register all aggregates
+- **Consistent Architecture**: All aggregates follow the same hexagonal architecture patterns
+- **Shared Infrastructure**: Efficient resource usage with shared database and event publisher
+
+#### **Development Efficiency**:
+- **Automatic Discovery**: No manual registration of new aggregates
+- **Consistent Patterns**: All aggregates use the same dependency injection and middleware
+- **Easy Extension**: Adding new aggregates requires minimal main.go changes
+- **Type Safety**: Compile-time verification of all aggregate dependencies
+
+#### **Operational Benefits**:
+- **Single Deployment Unit**: Simplified deployment with multiple business capabilities
+- **Shared Monitoring**: Consistent observability across all aggregates
+- **Unified Configuration**: Single configuration for all aggregates
+- **Event Coordination**: Efficient cross-aggregate event publishing
+    "net"
+    "os"
+    "os/signal"
+    "syscall"
+    "time"
+
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/reflection"
+    "go.uber.org/zap"
+    
+    // Generated imports based on bounded contexts
+    {context_name}v1 "github.com/{project}/{service}/proto/{context_name}/v1"
+    "github.com/{project}/{service}/internal/application/service"
+    "github.com/{project}/{service}/internal/infrastructure/grpc/server"
+    "github.com/{project}/{service}/internal/infrastructure/persistence"
+    "github.com/{project}/{service}/pkg/logger"
+    "github.com/{project}/{service}/pkg/telemetry"
+)
+
+func main() {
+    // Initialize logger
+    zapLogger, err := logger.NewLogger()
+    if err != nil {
+        log.Fatalf("Failed to initialize logger: %v", err)
+    }
+    defer zapLogger.Sync()
+
+    // Initialize telemetry
+    shutdown, err := telemetry.InitTelemetry(context.Background(), "{service-name}")
+    if err != nil {
+        zapLogger.Fatal("Failed to initialize telemetry", zap.Error(err))
+    }
+    defer shutdown()
+
+    // Initialize dependencies (hexagonal architecture - outer to inner)
+    deps, err := initializeDependencies(zapLogger)
+    if err != nil {
+        zapLogger.Fatal("Failed to initialize dependencies", zap.Error(err))
+    }
+    defer deps.Close()
+
+    // Create gRPC server with standard configuration
+    grpcServer := NewGRPCServer(deps, zapLogger)
+
+    // Start server
+    port := os.Getenv("GRPC_PORT")
+    if port == "" {
+        port = "50051"
+    }
+
+    listener, err := net.Listen("tcp", ":"+port)
+    if err != nil {
+        zapLogger.Fatal("Failed to listen", zap.String("port", port), zap.Error(err))
+    }
+
+    // Graceful shutdown
+    go func() {
+        zapLogger.Info("Starting gRPC server", zap.String("port", port))
+        if err := grpcServer.Serve(listener); err != nil {
+            zapLogger.Fatal("Failed to serve", zap.Error(err))
+        }
+    }()
+
+    // Wait for interrupt signal
+    sigCh := make(chan os.Signal, 1)
+    signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+    <-sigCh
+
+    zapLogger.Info("Shutting down server...")
+    grpcServer.GracefulStop()
+}
+
+// Dependency injection following hexagonal architecture principles
+type Dependencies struct {
+    // Repositories (secondary ports)
+    {aggregate_name}Repository repository.{AggregateName}Repository
+    
+    // External services (secondary ports)
+    externalService service.ExternalService
+    
+    // Application services (orchestration layer)
+    {aggregate_name}Service *service.{AggregateName}Service
+    
+    // Infrastructure dependencies
+    database *persistence.Database
+}
+
+func (d *Dependencies) Close() error {
+    if d.database != nil {
+        return d.database.Close()
+    }
+    return nil
+}
+
+func initializeDependencies(logger *zap.Logger) (*Dependencies, error) {
+    // Initialize database (outermost layer)
+    db, err := persistence.NewDatabase()
+    if err != nil {
+        return nil, fmt.Errorf("failed to initialize database: %w", err)
+    }
+
+    // Initialize repositories (adapters for secondary ports)
+    {aggregate_name}Repo := persistence.New{AggregateName}Repository(db)
+
+    // Initialize external services (adapters for secondary ports)
+    externalSvc := service.NewExternalService()
+
+    // Initialize application services (application layer)
+    {aggregate_name}Service := service.New{AggregateName}Service(
+        {aggregate_name}Repo,     // dependency injection - outer depends on inner
+        externalSvc,
+        logger,
+    )
+
+    return &Dependencies{
+        {aggregate_name}Repository: {aggregate_name}Repo,
+        externalService:           externalSvc,
+        {aggregate_name}Service:   {aggregate_name}Service,
+        database:                 db,
+    }, nil
+}
+
+func NewGRPCServer(deps *Dependencies, logger *zap.Logger) *grpc.Server {
+    // Standard interceptor chain configuration
+    unaryInterceptors := []grpc.UnaryServerInterceptor{
+        LoggingInterceptor(logger),
+        MetricsInterceptor(),
+        TracingInterceptor(),
+        AuthenticationInterceptor(),
+        ValidationInterceptor(),
+        RecoveryInterceptor(),
+    }
+    
+    streamInterceptors := []grpc.StreamServerInterceptor{
+        StreamLoggingInterceptor(logger),
+        StreamTracingInterceptor(),
+        StreamAuthenticationInterceptor(),
+    }
+    
+    // Standard gRPC server options
+    opts := []grpc.ServerOption{
+        grpc.ChainUnaryInterceptor(unaryInterceptors...),
+        grpc.ChainStreamInterceptor(streamInterceptors...),
+        grpc.MaxRecvMsgSize(4 * 1024 * 1024), // 4MB
+        grpc.MaxSendMsgSize(4 * 1024 * 1024), // 4MB
+        grpc.ConnectionTimeout(30 * time.Second),
+    }
+    
+    server := grpc.NewServer(opts...)
+    
+    // Register services based on bounded contexts
+    {aggregate_name}Server := server.New{AggregateName}Server(deps.{aggregate_name}Service)
+    {context_name}v1.Register{AggregateName}ServiceServer(server, {aggregate_name}Server)
+    
+    // Enable reflection in development environments
+    if os.Getenv("ENVIRONMENT") == "development" {
+        reflection.Register(server)
+    }
+    
+    return server
+}
+```
+
+## 6. Service Discovery & Load Balancing
+
+### 6.1 Service Registration
+```go
+import (
+    "github.com/hashicorp/consul/api"
+)
+
+type ServiceRegistry struct {
+    client *api.Client
+}
+
+func NewServiceRegistry() (*ServiceRegistry, error) {
+    client, err := api.NewClient(api.DefaultConfig())
+    if err != nil {
+        return nil, err
+    }
+    
+    return &ServiceRegistry{client: client}, nil
+}
+
+func (sr *ServiceRegistry) RegisterService(name, address string, port int) error {
+    registration := &api.AgentServiceRegistration{
+        ID:      fmt.Sprintf("%s-%s-%d", name, address, port),
+        Name:    name,
+        Tags:    []string{"grpc", "v1"},
+        Port:    port,
+        Address: address,
+        Check: &api.AgentServiceCheck{
+            GRPC:     fmt.Sprintf("%s:%d", address, port),
+            Interval: "10s",
+        },
+    }
+    
+    return sr.client.Agent().ServiceRegister(registration)
+}
+```
+
+### 6.2 Client Load Balancing
+```go
+import (
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/resolver"
+    _ "google.golang.org/grpc/resolver/dns" // Register DNS resolver
+)
+
+func NewUserServiceClient() (userv1.UserServiceClient, error) {
+    // Service discovery resolver
+    resolver.Register(&consulResolver{})
+    
+    conn, err := grpc.Dial(
+        "consul://user-service",
+        grpc.WithInsecure(),
+        grpc.WithDefaultServiceConfig(`{
+            "loadBalancingPolicy": "round_robin",
+            "healthCheckConfig": {
+                "serviceName": "user-service"
+            }
+        }`),
+        grpc.WithUnaryInterceptor(clientTracingInterceptor()),
+    )
+    if err != nil {
+        return nil, err
+    }
+    
+    return userv1.NewUserServiceClient(conn), nil
+}
+```
+
+## 7. Security
+
+### 7.1 TLS Configuration
+```go
+import (
+    "crypto/tls"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials"
+)
+
+func NewTLSServer(certFile, keyFile string) (*grpc.Server, error) {
+    cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+    if err != nil {
+        return nil, err
+    }
+    
+    creds := credentials.NewServerTLSFromCert(&cert)
+    
+    opts := []grpc.ServerOption{
+        grpc.Creds(creds),
+        grpc.UnaryInterceptor(AuthenticationInterceptor()),
+    }
+    
+    return grpc.NewServer(opts...), nil
+}
+
+func NewTLSClient(serverName string) (*grpc.ClientConn, error) {
+    config := &tls.Config{
+        ServerName: serverName,
+    }
+    
+    return grpc.Dial(
+        "user-service:443",
+        grpc.WithTransportCredentials(credentials.NewTLS(config)),
+    )
+}
+```
+
+### 7.2 Authentication Interceptor
+```go
+import (
+    "google.golang.org/grpc/metadata"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+)
+
+func AuthenticationInterceptor() grpc.UnaryServerInterceptor {
+    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+        // Skip auth for health checks
+        if info.FullMethod == "/grpc.health.v1.Health/Check" {
+            return handler(ctx, req)
+        }
+        
+        md, ok := metadata.FromIncomingContext(ctx)
+        if !ok {
+            return nil, status.Error(codes.Unauthenticated, "missing metadata")
+        }
+        
+        tokens := md.Get("authorization")
+        if len(tokens) == 0 {
+            return nil, status.Error(codes.Unauthenticated, "missing authorization token")
+        }
+        
+        token := tokens[0]
+        claims, err := validateJWT(token)
+        if err != nil {
+            return nil, status.Error(codes.Unauthenticated, "invalid token")
+        }
+        
+        // Add user info to context
+        ctx = context.WithValue(ctx, "user_id", claims.UserID)
+        ctx = context.WithValue(ctx, "user_role", claims.Role)
+        
+        return handler(ctx, req)
+    }
+}
+```
+
+## 8. Streaming
+
+### 8.1 Server Streaming
+```go
+func (s *UserServer) StreamUsers(req *userv1.StreamUsersRequest, stream userv1.UserService_StreamUsersServer) error {
+    // Get users from database
+    users, err := s.userService.GetUsers(stream.Context(), req.Filter)
+    if err != nil {
+        return handleDomainError(err)
+    }
+    
+    for _, user := range users {
+        select {
+        case <-stream.Context().Done():
+            return stream.Context().Err()
+        default:
+            if err := stream.Send(convertUserToProto(user)); err != nil {
+                return status.Error(codes.Internal, "failed to send user")
+            }
+        }
+    }
+    
+    return nil
+}
+```
+
+### 8.2 Client Streaming
+```go
+func (s *UserServer) CreateUsers(stream userv1.UserService_CreateUsersServer) error {
+    var users []*domain.User
+    
+    for {
+        req, err := stream.Recv()
+        if err == io.EOF {
+            // Process all received users
+            created, err := s.userService.CreateUsers(stream.Context(), users)
+            if err != nil {
+                return handleDomainError(err)
+            }
+            
+            return stream.SendAndClose(&userv1.CreateUsersResponse{
+                Users: convertUsersToProto(created),
+                Count: int32(len(created)),
+            })
+        }
+        if err != nil {
+            return status.Error(codes.Internal, "failed to receive user")
+        }
+        
+        users = append(users, convertProtoToUser(req.User))
+    }
+}
+```
+
+### 8.3 Bidirectional Streaming
+```go
+func (s *UserServer) ProcessUsers(stream userv1.UserService_ProcessUsersServer) error {
+    for {
+        req, err := stream.Recv()
+        if err == io.EOF {
+            return nil
+        }
+        if err != nil {
+            return status.Error(codes.Internal, "failed to receive request")
+        }
+        
+        // Process user
+        processed, err := s.userService.ProcessUser(stream.Context(), req.User)
+        if err != nil {
+            continue // Skip invalid users
+        }
+        
+        // Send response
+        if err := stream.Send(&userv1.ProcessUserResponse{
+            User:   convertUserToProto(processed),
+            Status: "processed",
+        }); err != nil {
+            return status.Error(codes.Internal, "failed to send response")
+        }
+    }
+}
+```
+
+## 9. Protocol Buffer Management
+
+### 9.1 Buf Configuration
+```yaml
+# buf.yaml
+version: v1
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+build:
+  roots:
+    - proto
+```
+
+### 9.2 Complete Generation Workflow
+
+#### Enhanced proto-gen.sh Script:
+```bash
+#!/bin/bash
+# scripts/proto-gen.sh - Enhanced generation script
+
+set -e
+
+echo "🔄 Starting Protocol Buffer generation workflow..."
+
+# 1. Analyze DDD artifacts for aggregate definitions
+echo "📋 Analyzing DDD aggregates from docs/bounded-contexts/*/aggregates/"
+
+# 2. Validate DDD source files exist
+if [ ! -d "docs/bounded-contexts" ]; then
+    echo "❌ Error: DDD documentation not found at docs/bounded-contexts/"
+    exit 1
+fi
+
+# 3. Create proto file structure based on bounded contexts
+for context_dir in docs/bounded-contexts/*/; do
+    if [ -d "$context_dir" ]; then
+        context_name=$(basename "$context_dir")
+        echo "📁 Creating proto structure for context: $context_name"
+        mkdir -p "proto/$context_name/v1/"
+    fi
+done
+
+# 4. Generate Go code from proto files
+echo "🔨 Generating Go code from Protocol Buffers..."
+for proto_file in proto/**/*/*.proto; do
+    if [ -f "$proto_file" ]; then
+        echo "   Processing: $proto_file"
+        protoc --go_out=. --go_opt=paths=source_relative \
+            --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+            "$proto_file"
+    fi
+done
+
+# 5. Generate API documentation
+echo "📖 Generating API documentation..."
+mkdir -p docs/api
+protoc --doc_out=docs/api --doc_opt=html,index.html \
+    proto/**/*/*.proto
+
+# 6. Validate with buf
+echo "✅ Validating Protocol Buffers with buf..."
+buf lint
+buf breaking --against '.git#branch=main'
+
+echo "✨ Protocol Buffer generation completed successfully!"
+```
+
+#### Domain Layer Generation Script:
+```bash
+#!/bin/bash
+# scripts/domain-gen.sh - Generate domain layer from DDD artifacts
+
+set -e
+
+echo "🔄 Starting Domain layer generation from DDD artifacts..."
+
+# 1. Analyze DDD documentation structure
+echo "📋 Analyzing DDD structure..."
+
+# 2. Generate domain entities from aggregates
+for context_dir in docs/bounded-contexts/*/; do
+    if [ -d "$context_dir" ]; then
+        context_name=$(basename "$context_dir")
+        echo "🏗️  Generating domain files for context: $context_name"
+        
+        # Create domain structure
+        mkdir -p "internal/domain/$context_name"
+        mkdir -p "internal/domain/$context_name/entity"
+        mkdir -p "internal/domain/$context_name/repository"
+        mkdir -p "internal/domain/$context_name/service"
+        
+        # Process aggregate files
+        for aggregate_file in "$context_dir/aggregates/"*.md; do
+            if [ -f "$aggregate_file" ]; then
+                aggregate_name=$(basename "$aggregate_file" .md)
+                echo "   📄 Processing aggregate: $aggregate_name"
+                
+                # Generate entity files (template-based)
+                echo "// Generated from: $aggregate_file" > "internal/domain/$context_name/entity/${aggregate_name,,}.go"
+                echo "package entity" >> "internal/domain/$context_name/entity/${aggregate_name,,}.go"
+                
+                # Generate repository interface
+                echo "// Generated from: $aggregate_file" > "internal/domain/$context_name/repository/${aggregate_name,,}_repository.go"
+                echo "package repository" >> "internal/domain/$context_name/repository/${aggregate_name,,}_repository.go"
+            fi
+        done
+    fi
+done
+
+echo "✨ Domain layer generation completed!"
+```
+
+## 13. Persistence Layer Generation from Domain Models
+
+### 13.1 Database Schema Generation from Domain Models
+
+**Problem Solved**: Generate complete persistence layer implementations from domain/model.md analysis, including database schema and CRUD operations.
+
+**Source Analysis for Persistence Layer**:
+1. **Analyze domain/model.md** for entity attributes and relationships
+2. **Extract database constraints** from business invariants and validation rules
+3. **Map aggregate boundaries** to database transaction boundaries
+4. **Generate repository implementations** with proper error handling
+
+**Database Schema Generation Process**:
+```sql
+-- Generated from: ../04-functional-requirements/features/*/domain/model.md
+-- Database schema for {AggregateName} aggregate
+
+-- Main aggregate table generated from entity analysis
+CREATE TABLE {aggregate_name}s (
+    -- Primary key generated from aggregate ID
+    id VARCHAR(255) PRIMARY KEY,
+    
+    -- Entity attributes generated from domain model
+    name VARCHAR(100) NOT NULL CHECK (length(name) >= 1),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    age INTEGER CHECK (age >= 18 AND age <= 120),
+    priority VARCHAR(20) CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+    
+    -- JSON fields for complex value objects
+    metadata JSONB DEFAULT '{}',
+    tags TEXT[] DEFAULT ARRAY[]::TEXT[],
+    config JSONB NOT NULL,
+    
+    -- Audit fields generated from aggregate requirements
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    version INTEGER NOT NULL DEFAULT 1,
+    
+    -- Business constraints from domain invariants
+    CONSTRAINT {aggregate_name}_name_length CHECK (length(name) BETWEEN 1 AND 100),
+    CONSTRAINT {aggregate_name}_email_format CHECK (email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
+    CONSTRAINT {aggregate_name}_tags_limit CHECK (array_length(tags, 1) <= 5)
+);
+
+-- Indexes generated from query patterns in user stories
+CREATE INDEX idx_{aggregate_name}s_email ON {aggregate_name}s(email);
+CREATE INDEX idx_{aggregate_name}s_priority ON {aggregate_name}s(priority);
+CREATE INDEX idx_{aggregate_name}s_created_at ON {aggregate_name}s(created_at);
+CREATE INDEX idx_{aggregate_name}s_tags ON {aggregate_name}s USING GIN(tags);
+CREATE INDEX idx_{aggregate_name}s_metadata ON {aggregate_name}s USING GIN(metadata);
+
+-- Trigger for updated_at timestamp
+CREATE OR REPLACE FUNCTION update_{aggregate_name}_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    NEW.version = OLD.version + 1;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_{aggregate_name}_updated_at
+    BEFORE UPDATE ON {aggregate_name}s
+    FOR EACH ROW
+    EXECUTE FUNCTION update_{aggregate_name}_updated_at();
+
+-- Event store table for domain events (if domain events are used)
+CREATE TABLE {aggregate_name}_events (
+    id BIGSERIAL PRIMARY KEY,
+    aggregate_id VARCHAR(255) NOT NULL REFERENCES {aggregate_name}s(id),
+    event_type VARCHAR(255) NOT NULL,
+    event_data JSONB NOT NULL,
+    event_version INTEGER NOT NULL,
+    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    
+    UNIQUE(aggregate_id, event_version)
+);
+
+CREATE INDEX idx_{aggregate_name}_events_aggregate_id ON {aggregate_name}_events(aggregate_id);
+CREATE INDEX idx_{aggregate_name}_events_type ON {aggregate_name}_events(event_type);
+CREATE INDEX idx_{aggregate_name}_events_occurred_at ON {aggregate_name}_events(occurred_at);
+```
+
+### 13.2 Repository Implementation Generation
+
+**Repository Implementation with sqlx**:
+```go
+// Generated from: domain model analysis and database schema
+package persistence
+
+import (
+    "context"
+    "database/sql"
+    "encoding/json"
+    "fmt"
+    "time"
+    
+    "github.com/jmoiron/sqlx"
+    "github.com/lib/pq"
+    "go.uber.org/zap"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/entity"
+    "github.com/{project}/{service}/internal/domain/{context_name}/repository"
+    "github.com/{project}/{service}/internal/domain/{context_name}/event"
+)
+
+// {AggregateName}RepositoryImpl implements the repository interface
+// Generated from aggregate boundary analysis and database schema
+type {AggregateName}RepositoryImpl struct {
+    db     *sqlx.DB
+    logger *zap.Logger
+}
+
+// New{AggregateName}Repository creates a new repository implementation
+func New{AggregateName}Repository(db *sqlx.DB, logger *zap.Logger) repository.{AggregateName}Repository {
+    return &{AggregateName}RepositoryImpl{
+        db:     db,
+        logger: logger,
+    }
+}
+
+// Database model struct generated from entity attributes
+type {aggregate_name}DB struct {
+    ID        string          `db:"id"`
+    Name      string          `db:"name"`
+    Email     string          `db:"email"`
+    Age       int             `db:"age"`
+    Priority  string          `db:"priority"`
+    Metadata  json.RawMessage `db:"metadata"`
+    Tags      pq.StringArray  `db:"tags"`
+    Config    json.RawMessage `db:"config"`
+    CreatedAt time.Time       `db:"created_at"`
+    UpdatedAt time.Time       `db:"updated_at"`
+    Version   int             `db:"version"`
+}
+
+// Save implements repository.{AggregateName}Repository.Save
+// Generated from aggregate persistence requirements
+func (r *{AggregateName}RepositoryImpl) Save(ctx context.Context, {aggregate_name} *entity.{AggregateName}) error {
+    r.logger.Debug("Saving {aggregate_name}", 
+        zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+    )
+    
+    // Begin transaction for aggregate consistency
+    tx, err := r.db.BeginTxx(ctx, nil)
+    if err != nil {
+        return fmt.Errorf("failed to begin transaction: %w", err)
+    }
+    defer tx.Rollback()
+    
+    // Convert entity to database model
+    dbModel, err := r.entityToDBModel({aggregate_name})
+    if err != nil {
+        return fmt.Errorf("failed to convert entity: %w", err)
+    }
+    
+    // Insert aggregate
+    query := `
+        INSERT INTO {aggregate_name}s (
+            id, name, email, age, priority, metadata, tags, config,
+            created_at, updated_at, version
+        ) VALUES (
+            :id, :name, :email, :age, :priority, :metadata, :tags, :config,
+            :created_at, :updated_at, :version
+        )`
+    
+    _, err = tx.NamedExecContext(ctx, query, dbModel)
+    if err != nil {
+        return fmt.Errorf("failed to insert {aggregate_name}: %w", err)
+    }
+    
+    // Save domain events if any
+    if err := r.saveDomainEvents(ctx, tx, {aggregate_name}); err != nil {
+        return fmt.Errorf("failed to save domain events: %w", err)
+    }
+    
+    // Commit transaction
+    if err := tx.Commit(); err != nil {
+        return fmt.Errorf("failed to commit transaction: %w", err)
+    }
+    
+    r.logger.Info("{AggregateName} saved successfully", 
+        zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+    )
+    
+    return nil
+}
+
+// GetByID implements repository.{AggregateName}Repository.GetByID
+// Generated from query patterns and business requirements
+func (r *{AggregateName}RepositoryImpl) GetByID(ctx context.Context, id entity.{AggregateName}ID) (*entity.{AggregateName}, error) {
+    r.logger.Debug("Getting {aggregate_name} by ID", 
+        zap.String("{aggregate_name}_id", string(id)),
+    )
+    
+    query := `
+        SELECT id, name, email, age, priority, metadata, tags, config,
+               created_at, updated_at, version
+        FROM {aggregate_name}s 
+        WHERE id = $1`
+    
+    var dbModel {aggregate_name}DB
+    err := r.db.GetContext(ctx, &dbModel, query, string(id))
+    if err != nil {
+        if err == sql.ErrNoRows {
+            return nil, repository.Err{AggregateName}NotFound
+        }
+        return nil, fmt.Errorf("failed to get {aggregate_name}: %w", err)
+    }
+    
+    // Convert database model to entity
+    entity, err := r.dbModelToEntity(&dbModel)
+    if err != nil {
+        return nil, fmt.Errorf("failed to convert database model: %w", err)
+    }
+    
+    return entity, nil
+}
+
+// Update implements repository.{AggregateName}Repository.Update
+// Generated with optimistic concurrency control
+func (r *{AggregateName}RepositoryImpl) Update(ctx context.Context, {aggregate_name} *entity.{AggregateName}) error {
+    r.logger.Debug("Updating {aggregate_name}", 
+        zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+        zap.Int("version", {aggregate_name}.Version()),
+    )
+    
+    // Begin transaction
+    tx, err := r.db.BeginTxx(ctx, nil)
+    if err != nil {
+        return fmt.Errorf("failed to begin transaction: %w", err)
+    }
+    defer tx.Rollback()
+    
+    // Convert entity to database model
+    dbModel, err := r.entityToDBModel({aggregate_name})
+    if err != nil {
+        return fmt.Errorf("failed to convert entity: %w", err)
+    }
+    
+    // Update with optimistic concurrency control
+    query := `
+        UPDATE {aggregate_name}s 
+        SET name = :name, email = :email, age = :age, priority = :priority,
+            metadata = :metadata, tags = :tags, config = :config,
+            updated_at = :updated_at, version = :version
+        WHERE id = :id AND version = :version - 1`
+    
+    result, err := tx.NamedExecContext(ctx, query, dbModel)
+    if err != nil {
+        return fmt.Errorf("failed to update {aggregate_name}: %w", err)
+    }
+    
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return fmt.Errorf("failed to get rows affected: %w", err)
+    }
+    
+    if rowsAffected == 0 {
+        return repository.ErrConcurrencyConflict
+    }
+    
+    // Save domain events
+    if err := r.saveDomainEvents(ctx, tx, {aggregate_name}); err != nil {
+        return fmt.Errorf("failed to save domain events: %w", err)
+    }
+    
+    // Commit transaction
+    if err := tx.Commit(); err != nil {
+        return fmt.Errorf("failed to commit transaction: %w", err)
+    }
+    
+    return nil
+}
+
+// Delete implements repository.{AggregateName}Repository.Delete
+// Generated from business deletion requirements
+func (r *{AggregateName}RepositoryImpl) Delete(ctx context.Context, id entity.{AggregateName}ID) error {
+    r.logger.Debug("Deleting {aggregate_name}", 
+        zap.String("{aggregate_name}_id", string(id)),
+    )
+    
+    query := `DELETE FROM {aggregate_name}s WHERE id = $1`
+    
+    result, err := r.db.ExecContext(ctx, query, string(id))
+    if err != nil {
+        return fmt.Errorf("failed to delete {aggregate_name}: %w", err)
+    }
+    
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return fmt.Errorf("failed to get rows affected: %w", err)
+    }
+    
+    if rowsAffected == 0 {
+        return repository.Err{AggregateName}NotFound
+    }
+    
+    return nil
+}
+
+// List implements repository.{AggregateName}Repository.List
+// Generated from query patterns in user stories
+func (r *{AggregateName}RepositoryImpl) List(ctx context.Context, params *repository.List{AggregateName}Params) ([]*entity.{AggregateName}, error) {
+    r.logger.Debug("Listing {aggregate_name}s", 
+        zap.Any("params", params),
+    )
+    
+    // Build dynamic query based on parameters
+    query := `
+        SELECT id, name, email, age, priority, metadata, tags, config,
+               created_at, updated_at, version
+        FROM {aggregate_name}s`
+    
+    args := []interface{}{}
+    conditions := []string{}
+    
+    // Add filter conditions based on business requirements
+    if params.Filter != "" {
+        conditions = append(conditions, "name ILIKE $" + fmt.Sprintf("%d", len(args)+1))
+        args = append(args, "%"+params.Filter+"%")
+    }
+    
+    if params.Priority != "" {
+        conditions = append(conditions, "priority = $" + fmt.Sprintf("%d", len(args)+1))
+        args = append(args, params.Priority)
+    }
+    
+    if len(conditions) > 0 {
+        query += " WHERE " + strings.Join(conditions, " AND ")
+    }
+    
+    // Add sorting
+    query += " ORDER BY created_at DESC"
+    
+    // Add pagination
+    if params.PageSize > 0 {
+        offset := (params.Page - 1) * params.PageSize
+        query += fmt.Sprintf(" LIMIT %d OFFSET %d", params.PageSize, offset)
+    }
+    
+    var dbModels []*{aggregate_name}DB
+    err := r.db.SelectContext(ctx, &dbModels, query, args...)
+    if err != nil {
+        return nil, fmt.Errorf("failed to list {aggregate_name}s: %w", err)
+    }
+    
+    // Convert database models to entities
+    entities := make([]*entity.{AggregateName}, len(dbModels))
+    for i, dbModel := range dbModels {
+        entity, err := r.dbModelToEntity(dbModel)
+        if err != nil {
+            return nil, fmt.Errorf("failed to convert database model: %w", err)
+        }
+        entities[i] = entity
+    }
+    
+    return entities, nil
+}
+
+// Entity/Database model conversion methods
+func (r *{AggregateName}RepositoryImpl) entityToDBModel({aggregate_name} *entity.{AggregateName}) (*{aggregate_name}DB, error) {
+    // Convert metadata to JSON
+    metadataJSON, err := json.Marshal({aggregate_name}.Metadata())
+    if err != nil {
+        return nil, fmt.Errorf("failed to marshal metadata: %w", err)
+    }
+    
+    // Convert config to JSON
+    configJSON, err := json.Marshal({aggregate_name}.Config())
+    if err != nil {
+        return nil, fmt.Errorf("failed to marshal config: %w", err)
+    }
+    
+    return &{aggregate_name}DB{
+        ID:        string({aggregate_name}.ID()),
+        Name:      {aggregate_name}.Name(),
+        Email:     {aggregate_name}.Email(),
+        Age:       {aggregate_name}.Age(),
+        Priority:  string({aggregate_name}.Priority()),
+        Metadata:  metadataJSON,
+        Tags:      pq.StringArray({aggregate_name}.Tags()),
+        Config:    configJSON,
+        CreatedAt: {aggregate_name}.CreatedAt(),
+        UpdatedAt: {aggregate_name}.UpdatedAt(),
+        Version:   {aggregate_name}.Version(),
+    }, nil
+}
+
+func (r *{AggregateName}RepositoryImpl) dbModelToEntity(dbModel *{aggregate_name}DB) (*entity.{AggregateName}, error) {
+    // Convert JSON fields back to Go types
+    var metadata map[string]string
+    if err := json.Unmarshal(dbModel.Metadata, &metadata); err != nil {
+        return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+    }
+    
+    var config *entity.{AggregateName}Config
+    if err := json.Unmarshal(dbModel.Config, &config); err != nil {
+        return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+    }
+    
+    // Reconstruct entity from database data
+    return entity.Reconstruct{AggregateName}(&entity.Reconstruct{AggregateName}Params{
+        ID:        entity.{AggregateName}ID(dbModel.ID),
+        Name:      dbModel.Name,
+        Email:     dbModel.Email,
+        Age:       dbModel.Age,
+        Priority:  entity.Priority(dbModel.Priority),
+        Metadata:  metadata,
+        Tags:      []string(dbModel.Tags),
+        Config:    config,
+        CreatedAt: dbModel.CreatedAt,
+        UpdatedAt: dbModel.UpdatedAt,
+        Version:   dbModel.Version,
+    })
+}
+
+// Domain events persistence
+func (r *{AggregateName}RepositoryImpl) saveDomainEvents(ctx context.Context, tx *sqlx.Tx, {aggregate_name} *entity.{AggregateName}) error {
+    events := {aggregate_name}.GetDomainEvents()
+    
+    for _, domainEvent := range events {
+        eventData, err := json.Marshal(domainEvent)
+        if err != nil {
+            return fmt.Errorf("failed to marshal event: %w", err)
+        }
+        
+        query := `
+            INSERT INTO {aggregate_name}_events (aggregate_id, event_type, event_data, event_version)
+            VALUES ($1, $2, $3, $4)`
+        
+        _, err = tx.ExecContext(ctx, query, 
+            string({aggregate_name}.ID()), 
+            domainEvent.EventType(), 
+            eventData, 
+            domainEvent.Version(),
+        )
+        if err != nil {
+            return fmt.Errorf("failed to save domain event: %w", err)
+        }
+    }
+    
+    return nil
+}
+```
+
+### 13.3 Database Migration Generation
+
+**Migration Generation Script**:
+```bash
+#!/bin/bash
+# scripts/generate-database-migrations.sh
+
+echo "📊 Generating database migrations from domain models..."
+
+# Create migrations directory
+mkdir -p migrations
+
+# Process each bounded context for database schema
+for context_dir in ../../docs/bounded-contexts/*/; do
+    if [ -d "$context_dir" ]; then
+        context_name=$(basename "$context_dir")
+        echo "  📋 Processing context: $context_name"
+        
+        # Generate migration for each aggregate
+        for aggregate_file in "$context_dir/aggregates/"*.md; do
+            if [ -f "$aggregate_file" ]; then
+                aggregate_name=$(basename "$aggregate_file" .md | sed 's/[^a-zA-Z0-9]//g')
+                timestamp=$(date +%Y%m%d%H%M%S)
+                
+                # Generate up migration
+                cat > "migrations/${timestamp}_create_${aggregate_name,,}_tables.up.sql" << EOF
+-- Migration generated from: $aggregate_file
+-- Create tables for $aggregate_name aggregate
+
+-- [Generated SQL schema here based on domain model analysis]
+EOF
+                
+                # Generate down migration
+                cat > "migrations/${timestamp}_create_${aggregate_name,,}_tables.down.sql" << EOF
+-- Rollback migration for $aggregate_name aggregate
+DROP TABLE IF EXISTS ${aggregate_name,,}_events;
+DROP TABLE IF EXISTS ${aggregate_name,,}s;
+DROP FUNCTION IF EXISTS update_${aggregate_name,,}_updated_at();
+EOF
+            fi
+        done
+    fi
+done
+
+echo "✅ Database migrations generated successfully!"
+```
+
+## 14. Domain Event Handling with Message Broker Integration
+
+### 14.1 Domain Event Publishing to NATS
+
+**Problem Solved**: Complete domain event lifecycle from aggregate operations to message broker publishing, ensuring reliable event-driven architecture.
+
+**Domain Event Analysis Process**:
+1. **Extract Domain Events** from DDD documentation and aggregate operations
+2. **Map Event Triggers** to aggregate method calls and state changes
+3. **Generate Event Publisher interfaces** (ports) for clean architecture
+4. **Implement NATS infrastructure adapters** for event publishing
+5. **Handle Event Ordering and Reliability** with proper error handling
+
+**Event Publisher Port Interface Generation**:
+```go
+// Generated from: domain events analysis in DDD documentation
+package secondary
+
+import (
+    "context"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/event"
+)
+
+// EventPublisher defines the secondary port for domain event publishing
+// This interface maintains clean architecture by abstracting the message broker
+type EventPublisher interface {
+    // Publish single domain event
+    PublishEvent(ctx context.Context, event event.DomainEvent) error
+    
+    // Publish multiple events in order (for aggregate consistency)
+    PublishEvents(ctx context.Context, events []event.DomainEvent) error
+    
+    // Publish event with custom routing key for different subscribers
+    PublishEventWithRouting(ctx context.Context, event event.DomainEvent, routingKey string) error
+    
+    // Health check for event publisher
+    HealthCheck(ctx context.Context) error
+}
+
+// EventSubscriber defines the secondary port for consuming domain events
+// Used when this service needs to react to events from other bounded contexts
+type EventSubscriber interface {
+    // Subscribe to specific event types
+    Subscribe(ctx context.Context, eventType string, handler EventHandler) error
+    
+    // Subscribe to multiple event types with pattern matching
+    SubscribeToPattern(ctx context.Context, pattern string, handler EventHandler) error
+    
+    // Unsubscribe from event types
+    Unsubscribe(ctx context.Context, eventType string) error
+    
+    // Start consuming events
+    Start(ctx context.Context) error
+    
+    // Stop consuming events gracefully
+    Stop(ctx context.Context) error
+}
+
+// EventHandler defines how to handle consumed events
+type EventHandler interface {
+    Handle(ctx context.Context, event event.DomainEvent) error
+    EventType() string
+}
+
+// EventMetadata contains metadata for event publishing
+type EventMetadata struct {
+    CorrelationID string
+    CausationID   string
+    UserID        string
+    Source        string
+    Version       int
+}
+```
+
+**NATS Event Publisher Implementation**:
+```go
+// Generated from: NATS message broker requirements and domain events
+package external
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "time"
+    
+    "github.com/nats-io/nats.go"
+    "go.uber.org/zap"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/event"
+    "github.com/{project}/{service}/internal/ports/secondary"
+)
+
+// NATSEventPublisher implements EventPublisher interface using NATS
+// Generated for reliable domain event publishing
+type NATSEventPublisher struct {
+    conn            *nats.Conn
+    jetStream       nats.JetStreamContext
+    logger          *zap.Logger
+    serviceName     string
+    eventStream     string
+    retryAttempts   int
+    retryDelay      time.Duration
+}
+
+// NewNATSEventPublisher creates a new NATS-based event publisher
+func NewNATSEventPublisher(natsURL, serviceName, eventStream string, logger *zap.Logger) (*NATSEventPublisher, error) {
+    // Connect to NATS server
+    conn, err := nats.Connect(natsURL, 
+        nats.ReconnectWait(2*time.Second),
+        nats.MaxReconnects(-1),
+        nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
+            logger.Error("NATS disconnected", zap.Error(err))
+        }),
+        nats.ReconnectHandler(func(nc *nats.Conn) {
+            logger.Info("NATS reconnected", zap.String("url", nc.ConnectedUrl()))
+        }),
+    )
+    if err != nil {
+        return nil, fmt.Errorf("failed to connect to NATS: %w", err)
+    }
+    
+    // Create JetStream context for guaranteed delivery
+    js, err := conn.JetStream()
+    if err != nil {
+        return nil, fmt.Errorf("failed to create JetStream context: %w", err)
+    }
+    
+    // Create or update event stream
+    if err := createEventStream(js, eventStream); err != nil {
+        return nil, fmt.Errorf("failed to create event stream: %w", err)
+    }
+    
+    return &NATSEventPublisher{
+        conn:            conn,
+        jetStream:       js,
+        logger:          logger,
+        serviceName:     serviceName,
+        eventStream:     eventStream,
+        retryAttempts:   3,
+        retryDelay:      100 * time.Millisecond,
+    }, nil
+}
+
+// PublishEvent implements secondary.EventPublisher.PublishEvent
+// Generated with retry logic and error handling
+func (p *NATSEventPublisher) PublishEvent(ctx context.Context, domainEvent event.DomainEvent) error {
+    p.logger.Debug("Publishing domain event",
+        zap.String("event_type", domainEvent.EventType()),
+        zap.String("aggregate_id", domainEvent.GetAggregateID()),
+    )
+    
+    // Create event message with metadata
+    eventMessage := &EventMessage{
+        EventID:       generateEventID(),
+        EventType:     domainEvent.EventType(),
+        AggregateID:   domainEvent.GetAggregateID(),
+        AggregateType: domainEvent.GetAggregateType(),
+        EventData:     domainEvent,
+        Metadata: EventMetadata{
+            Source:        p.serviceName,
+            Version:       domainEvent.GetVersion(),
+            OccurredAt:    domainEvent.GetOccurredAt(),
+            CorrelationID: getCorrelationID(ctx),
+            CausationID:   getCausationID(ctx),
+            UserID:        getUserID(ctx),
+        },
+        PublishedAt: time.Now(),
+    }
+    
+    // Serialize event message
+    eventJSON, err := json.Marshal(eventMessage)
+    if err != nil {
+        return fmt.Errorf("failed to marshal event: %w", err)
+    }
+    
+    // Create NATS message with proper subject
+    subject := fmt.Sprintf("%s.%s.%s", 
+        p.eventStream, 
+        domainEvent.GetAggregateType(), 
+        domainEvent.EventType(),
+    )
+    
+    // Publish with retry logic
+    var publishErr error
+    for attempt := 0; attempt < p.retryAttempts; attempt++ {
+        if attempt > 0 {
+            select {
+            case <-ctx.Done():
+                return ctx.Err()
+            case <-time.After(p.retryDelay * time.Duration(attempt)):
+                // Continue with retry
+            }
+        }
+        
+        // Publish to JetStream for guaranteed delivery
+        pubAck, err := p.jetStream.PublishAsync(subject, eventJSON)
+        if err != nil {
+            publishErr = err
+            p.logger.Warn("Failed to publish event, retrying",
+                zap.Error(err),
+                zap.Int("attempt", attempt+1),
+                zap.String("event_type", domainEvent.EventType()),
+            )
+            continue
+        }
+        
+        // Wait for acknowledgment
+        select {
+        case <-pubAck.Ok():
+            p.logger.Info("Domain event published successfully",
+                zap.String("event_type", domainEvent.EventType()),
+                zap.String("aggregate_id", domainEvent.GetAggregateID()),
+                zap.String("subject", subject),
+            )
+            return nil
+        case err := <-pubAck.Err():
+            publishErr = err
+            p.logger.Warn("Failed to get publish acknowledgment, retrying",
+                zap.Error(err),
+                zap.Int("attempt", attempt+1),
+            )
+        case <-ctx.Done():
+            return ctx.Err()
+        case <-time.After(5 * time.Second):
+            publishErr = fmt.Errorf("publish acknowledgment timeout")
+        }
+    }
+    
+    p.logger.Error("Failed to publish event after retries",
+        zap.Error(publishErr),
+        zap.String("event_type", domainEvent.EventType()),
+        zap.Int("max_attempts", p.retryAttempts),
+    )
+    
+    return fmt.Errorf("failed to publish event after %d attempts: %w", p.retryAttempts, publishErr)
+}
+
+// PublishEvents implements secondary.EventPublisher.PublishEvents
+// Ensures ordered publishing of multiple events from the same aggregate
+func (p *NATSEventPublisher) PublishEvents(ctx context.Context, events []event.DomainEvent) error {
+    if len(events) == 0 {
+        return nil
+    }
+    
+    p.logger.Debug("Publishing multiple domain events",
+        zap.Int("event_count", len(events)),
+        zap.String("aggregate_id", events[0].GetAggregateID()),
+    )
+    
+    // Publish events in order to maintain causality
+    for i, domainEvent := range events {
+        if err := p.PublishEvent(ctx, domainEvent); err != nil {
+            return fmt.Errorf("failed to publish event %d/%d: %w", i+1, len(events), err)
+        }
+    }
+    
+    return nil
+}
+
+// PublishEventWithRouting implements secondary.EventPublisher.PublishEventWithRouting
+func (p *NATSEventPublisher) PublishEventWithRouting(ctx context.Context, domainEvent event.DomainEvent, routingKey string) error {
+    // Similar to PublishEvent but with custom subject routing
+    subject := fmt.Sprintf("%s.%s", p.eventStream, routingKey)
+    
+    eventMessage := &EventMessage{
+        EventID:       generateEventID(),
+        EventType:     domainEvent.EventType(),
+        AggregateID:   domainEvent.GetAggregateID(),
+        AggregateType: domainEvent.GetAggregateType(),
+        EventData:     domainEvent,
+        Metadata: EventMetadata{
+            Source:        p.serviceName,
+            Version:       domainEvent.GetVersion(),
+            OccurredAt:    domainEvent.GetOccurredAt(),
+            CorrelationID: getCorrelationID(ctx),
+            RoutingKey:    routingKey,
+        },
+        PublishedAt: time.Now(),
+    }
+    
+    eventJSON, err := json.Marshal(eventMessage)
+    if err != nil {
+        return fmt.Errorf("failed to marshal event: %w", err)
+    }
+    
+    _, err = p.jetStream.Publish(subject, eventJSON)
+    return err
+}
+
+// HealthCheck implements secondary.EventPublisher.HealthCheck
+func (p *NATSEventPublisher) HealthCheck(ctx context.Context) error {
+    if !p.conn.IsConnected() {
+        return fmt.Errorf("NATS connection is not active")
+    }
+    
+    // Test JetStream connectivity
+    _, err := p.jetStream.AccountInfo()
+    if err != nil {
+        return fmt.Errorf("JetStream not available: %w", err)
+    }
+    
+    return nil
+}
+
+// Close gracefully closes the NATS connection
+func (p *NATSEventPublisher) Close() error {
+    if p.conn != nil {
+        p.conn.Close()
+    }
+    return nil
+}
+
+// EventMessage represents the structure of events published to NATS
+type EventMessage struct {
+    EventID       string        `json:"event_id"`
+    EventType     string        `json:"event_type"`
+    AggregateID   string        `json:"aggregate_id"`
+    AggregateType string        `json:"aggregate_type"`
+    EventData     interface{}   `json:"event_data"`
+    Metadata      EventMetadata `json:"metadata"`
+    PublishedAt   time.Time     `json:"published_at"`
+}
+
+// createEventStream creates or updates the JetStream event stream
+func createEventStream(js nats.JetStreamContext, streamName string) error {
+    streamConfig := &nats.StreamConfig{
+        Name:        streamName,
+        Description: "Domain events stream for microservice communication",
+        Subjects:    []string{streamName + ".*.*"}, // {stream}.{aggregate}.{event_type}
+        Retention:   nats.WorkQueuePolicy,
+        MaxAge:      24 * time.Hour, // Retain events for 24 hours
+        Storage:     nats.FileStorage,
+        Replicas:    1,
+        Discard:     nats.DiscardOld,
+    }
+    
+    _, err := js.AddStream(streamConfig)
+    if err != nil {
+        // Stream might already exist, try to update it
+        _, err = js.UpdateStream(streamConfig)
+    }
+    
+    return err
+}
+
+// Utility functions for event metadata
+func generateEventID() string {
+    // Generate unique event ID (UUID)
+    return fmt.Sprintf("evt-%d", time.Now().UnixNano())
+}
+
+func getCorrelationID(ctx context.Context) string {
+    if id, ok := ctx.Value("correlation_id").(string); ok {
+        return id
+    }
+    return ""
+}
+
+func getCausationID(ctx context.Context) string {
+    if id, ok := ctx.Value("causation_id").(string); ok {
+        return id
+    }
+    return ""
+}
+
+func getUserID(ctx context.Context) string {
+    if id, ok := ctx.Value("user_id").(string); ok {
+        return id
+    }
+    return ""
+}
+```
+
+### 14.2 Event-Driven Application Service Integration
+
+**Enhanced Application Service with Event Publishing**:
+```go
+// Generated application service with integrated event publishing
+package service
+
+import (
+    "context"
+    "fmt"
+    
+    "go.uber.org/zap"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/entity"
+    "github.com/{project}/{service}/internal/domain/{context_name}/repository"
+    "github.com/{project}/{service}/internal/ports/secondary"
+)
+
+// {AggregateName}Service with event publishing capabilities
+type {AggregateName}Service struct {
+    // Repository for persistence
+    {aggregate_name}Repository repository.{AggregateName}Repository
+    
+    // Event publisher for domain events
+    eventPublisher secondary.EventPublisher
+    
+    // Cross-cutting concerns
+    logger *zap.Logger
+}
+
+// New{AggregateName}Service creates application service with event publishing
+func New{AggregateName}Service(
+    {aggregate_name}Repo repository.{AggregateName}Repository,
+    eventPublisher secondary.EventPublisher,
+    logger *zap.Logger,
+) *{AggregateName}Service {
+    return &{AggregateName}Service{
+        {aggregate_name}Repository: {aggregate_name}Repo,
+        eventPublisher:            eventPublisher,
+        logger:                    logger,
+    }
+}
+
+// Create{AggregateName} with complete event lifecycle
+func (s *{AggregateName}Service) Create{AggregateName}(ctx context.Context, params *Create{AggregateName}Params) (*entity.{AggregateName}, error) {
+    s.logger.Info("Creating {aggregate_name} with event publishing", 
+        zap.String("operation", "create_{aggregate_name}"),
+    )
+    
+    // 1. Create domain entity (generates domain events)
+    {aggregate_name}, err := entity.New{AggregateName}(params.ToEntityParams())
+    if err != nil {
+        return nil, fmt.Errorf("failed to create entity: %w", err)
+    }
+    
+    // 2. Begin outbox pattern transaction
+    tx, err := s.{aggregate_name}Repository.BeginTransaction(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("failed to begin transaction: %w", err)
+    }
+    defer tx.Rollback()
+    
+    // 3. Persist aggregate (saves events to outbox)
+    if err := s.{aggregate_name}Repository.SaveWithEvents(ctx, tx, {aggregate_name}); err != nil {
+        return nil, fmt.Errorf("failed to save {aggregate_name}: %w", err)
+    }
+    
+    // 4. Commit transaction
+    if err := tx.Commit(); err != nil {
+        return nil, fmt.Errorf("failed to commit transaction: %w", err)
+    }
+    
+    // 5. Publish domain events (after successful persistence)
+    events := {aggregate_name}.GetDomainEvents()
+    if len(events) > 0 {
+        if err := s.eventPublisher.PublishEvents(ctx, events); err != nil {
+            // Log error but don't fail the operation
+            // Events will be retried by outbox pattern processor
+            s.logger.Error("Failed to publish domain events", 
+                zap.Error(err),
+                zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+                zap.Int("event_count", len(events)),
+            )
+        } else {
+            // Mark events as published
+            {aggregate_name}.MarkEventsAsCommitted()
+            s.logger.Info("Domain events published successfully", 
+                zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+                zap.Int("event_count", len(events)),
+            )
+        }
+    }
+    
+    return {aggregate_name}, nil
+}
+```
+
+### 14.3 Event Processing and Saga Integration
+
+**Event-Driven Saga Pattern Implementation**:
+```go
+// Generated saga for distributed business processes
+package saga
+
+import (
+    "context"
+    "fmt"
+    "time"
+    
+    "go.uber.org/zap"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/event"
+    "github.com/{project}/{service}/internal/ports/secondary"
+)
+
+// {ProcessName}Saga handles distributed business process
+// Generated from dependencies.md indicating distributed transactions
+type {ProcessName}Saga struct {
+    eventPublisher   secondary.EventPublisher
+    eventSubscriber  secondary.EventSubscriber
+    logger          *zap.Logger
+    sagaRepository  SagaRepository
+}
+
+// New{ProcessName}Saga creates a new saga instance
+func New{ProcessName}Saga(
+    eventPublisher secondary.EventPublisher,
+    eventSubscriber secondary.EventSubscriber,
+    sagaRepo SagaRepository,
+    logger *zap.Logger,
+) *{ProcessName}Saga {
+    return &{ProcessName}Saga{
+        eventPublisher:  eventPublisher,
+        eventSubscriber: eventSubscriber,
+        sagaRepository:  sagaRepo,
+        logger:         logger,
+    }
+}
+
+// Start begins the saga orchestration
+func (s *{ProcessName}Saga) Start(ctx context.Context) error {
+    // Subscribe to relevant domain events
+    if err := s.eventSubscriber.Subscribe(ctx, "{AggregateName}Created", s); err != nil {
+        return fmt.Errorf("failed to subscribe to events: %w", err)
+    }
+    
+    if err := s.eventSubscriber.Subscribe(ctx, "{AggregateName}Updated", s); err != nil {
+        return fmt.Errorf("failed to subscribe to events: %w", err)
+    }
+    
+    return s.eventSubscriber.Start(ctx)
+}
+
+// Handle implements secondary.EventHandler for saga orchestration
+func (s *{ProcessName}Saga) Handle(ctx context.Context, domainEvent event.DomainEvent) error {
+    s.logger.Info("Processing event in saga",
+        zap.String("event_type", domainEvent.EventType()),
+        zap.String("aggregate_id", domainEvent.GetAggregateID()),
+    )
+    
+    switch domainEvent.EventType() {
+    case "{AggregateName}Created":
+        return s.handle{AggregateName}Created(ctx, domainEvent)
+    case "{AggregateName}Updated":
+        return s.handle{AggregateName}Updated(ctx, domainEvent)
+    default:
+        return fmt.Errorf("unhandled event type: %s", domainEvent.EventType())
+    }
+}
+
+// handle{AggregateName}Created processes aggregate creation events
+func (s *{ProcessName}Saga) handle{AggregateName}Created(ctx context.Context, domainEvent event.DomainEvent) error {
+    // Extract event data
+    createdEvent, ok := domainEvent.(*event.{AggregateName}Created)
+    if !ok {
+        return fmt.Errorf("invalid event type for {AggregateName}Created")
+    }
+    
+    // Start saga instance
+    sagaInstance := &SagaInstance{
+        ID:          generateSagaID(),
+        Type:        "{ProcessName}",
+        AggregateID: createdEvent.AggregateID,
+        Status:      SagaStatusStarted,
+        StartedAt:   time.Now(),
+        Steps:       make([]SagaStep, 0),
+    }
+    
+    // Save saga instance
+    if err := s.sagaRepository.Save(ctx, sagaInstance); err != nil {
+        return fmt.Errorf("failed to save saga instance: %w", err)
+    }
+    
+    // Execute first step
+    return s.executeNextStep(ctx, sagaInstance)
+}
+
+// executeNextStep executes the next step in the saga
+func (s *{ProcessName}Saga) executeNextStep(ctx context.Context, saga *SagaInstance) error {
+    // Determine next step based on saga state
+    nextStep := s.getNextStep(saga)
+    if nextStep == nil {
+        // Saga completed
+        saga.Status = SagaStatusCompleted
+        saga.CompletedAt = time.Now()
+        return s.sagaRepository.Update(ctx, saga)
+    }
+    
+    // Execute step and publish command
+    stepEvent := &event.SagaStepExecuted{
+        SagaID:      saga.ID,
+        StepName:    nextStep.Name,
+        StepData:    nextStep.Data,
+        ExecutedAt:  time.Now(),
+    }
+    
+    return s.eventPublisher.PublishEvent(ctx, stepEvent)
+}
+
+// EventType returns the event type this handler supports
+func (s *{ProcessName}Saga) EventType() string {
+    return "{AggregateName}.*" // Pattern matching for all aggregate events
+}
+```
+
+## 10. Health Checks
+
+### 10.1 gRPC Health Check
+```go
+import (
+    "google.golang.org/grpc/health"
+    healthpb "google.golang.org/grpc/health/grpc_health_v1"
+)
+
+func setupHealthCheck(server *grpc.Server, deps *Dependencies) {
+    healthServer := health.NewServer()
+    healthpb.RegisterHealthServer(server, healthServer)
+    
+    // Set service status
+    healthServer.SetServingStatus("user-service", healthpb.HealthCheckResponse_SERVING)
+    
+    // Monitor dependencies
+    go func() {
+        for {
+            if deps.database.Ping() != nil {
+                healthServer.SetServingStatus("user-service", healthpb.HealthCheckResponse_NOT_SERVING)
+            } else {
+                healthServer.SetServingStatus("user-service", healthpb.HealthCheckResponse_SERVING)
+            }
+            time.Sleep(10 * time.Second)
+        }
+    }()
+}
+```
+
+### 10.2 Custom Health Checks
+```go
+func (s *UserServer) HealthCheck(ctx context.Context, req *userv1.HealthCheckRequest) (*userv1.HealthCheckResponse, error) {
+    checks := make(map[string]string)
+    
+    // Database check
+    if err := s.db.Ping(); err != nil {
+        checks["database"] = "unhealthy: " + err.Error()
+    } else {
+        checks["database"] = "healthy"
+    }
+    
+    // Redis check
+    if err := s.redis.Ping(ctx).Err(); err != nil {
+        checks["redis"] = "unhealthy: " + err.Error()
+    } else {
+        checks["redis"] = "healthy"
+    }
+    
+    return &userv1.HealthCheckResponse{
+        Status: "healthy",
+        Checks: checks,
+        Timestamp: timestamppb.Now(),
+    }, nil
+}
+```
+
+## 11. Application Layer Components and Ports Generation
+
+### 11.1 Application Layer Generation from DDD
+
+**Problem Solved**: Complete the use case lifecycle by generating application services that orchestrate domain logic.
+
+**Source Analysis for Application Services**:
+1. **Analyze Domain Services** from `docs/bounded-contexts/*/domain-model.md`:
+   - Extract domain service interfaces and methods
+   - Map domain operations to application use cases
+   - Identify orchestration patterns from user stories
+
+2. **Generate Application Services** that are called from gRPC server:
+   - Create service layer that coordinates domain objects
+   - Implement transaction boundaries around aggregate operations
+   - Handle cross-cutting concerns (logging, metrics, events)
+
+**Application Service Generation Template**:
+```go
+// Generated from: docs/bounded-contexts/{context-name}/domain-model.md
+package service
+
+import (
+    "context"
+    "fmt"
+
+    "go.uber.org/zap"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/entity"
+    "github.com/{project}/{service}/internal/domain/{context_name}/repository"
+    "github.com/{project}/{service}/internal/domain/{context_name}/service"
+    "github.com/{project}/{service}/internal/ports/secondary"
+)
+
+// {AggregateName}Service orchestrates domain logic for {aggregate_name} aggregate
+// Generated from domain services and user stories analysis
+type {AggregateName}Service struct {
+    // Repositories (secondary ports) - dependency injection
+    {aggregate_name}Repository repository.{AggregateName}Repository
+    
+    // External services (secondary ports)
+    externalService secondary.ExternalService
+    
+    // Domain services
+    {aggregate_name}DomainService service.{AggregateName}DomainService
+    
+    // Infrastructure dependencies
+    logger *zap.Logger
+}
+
+// New{AggregateName}Service creates a new application service with dependencies
+// Follows hexagonal architecture: outer layers depend on inner layers
+func New{AggregateName}Service(
+    {aggregate_name}Repo repository.{AggregateName}Repository,
+    externalSvc secondary.ExternalService,
+    domainSvc service.{AggregateName}DomainService,
+    logger *zap.Logger,
+) *{AggregateName}Service {
+    return &{AggregateName}Service{
+        {aggregate_name}Repository:    {aggregate_name}Repo,
+        externalService:              externalSvc,
+        {aggregate_name}DomainService: domainSvc,
+        logger:                       logger,
+    }
+}
+
+// Create{AggregateName} implements use case from user stories
+// Generated from: user story US-001 and acceptance criteria AC-001
+// Business Rule: {business_rule_from_acceptance_criteria}
+func (s *{AggregateName}Service) Create{AggregateName}(ctx context.Context, params *Create{AggregateName}Params) (*entity.{AggregateName}, error) {
+    s.logger.Info("Creating {aggregate_name}", 
+        zap.String("operation", "create_{aggregate_name}"),
+        zap.Any("params", params),
+    )
+
+    // 1. Domain validation using domain service
+    if err := s.{aggregate_name}DomainService.Validate{AggregateName}Creation(ctx, params); err != nil {
+        s.logger.Error("Domain validation failed", 
+            zap.Error(err),
+            zap.String("operation", "create_{aggregate_name}"),
+        )
+        return nil, fmt.Errorf("validation failed: %w", err)
+    }
+
+    // 2. Create domain entity (aggregate root)
+    {aggregate_name}, err := entity.New{AggregateName}(params.ToEntityParams())
+    if err != nil {
+        s.logger.Error("Failed to create {aggregate_name} entity", 
+            zap.Error(err),
+            zap.String("operation", "create_{aggregate_name}"),
+        )
+        return nil, fmt.Errorf("failed to create entity: %w", err)
+    }
+
+    // 3. Persist using repository (transaction boundary)
+    if err := s.{aggregate_name}Repository.Save(ctx, {aggregate_name}); err != nil {
+        s.logger.Error("Failed to save {aggregate_name}", 
+            zap.Error(err),
+            zap.String("operation", "create_{aggregate_name}"),
+            zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+        )
+        return nil, fmt.Errorf("failed to save: %w", err)
+    }
+
+    // 4. Publish domain events (if any)
+    if err := s.publishDomainEvents(ctx, {aggregate_name}.GetDomainEvents()); err != nil {
+        s.logger.Warn("Failed to publish domain events", 
+            zap.Error(err),
+            zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+        )
+        // Note: Don't fail the operation for event publishing errors
+    }
+
+    s.logger.Info("{AggregateName} created successfully", 
+        zap.String("{aggregate_name}_id", string({aggregate_name}.ID())),
+        zap.String("operation", "create_{aggregate_name}"),
+    )
+
+    return {aggregate_name}, nil
+}
+
+// Get{AggregateName}ByID implements query use case
+// Generated from: repository query patterns and access control requirements
+func (s *{AggregateName}Service) Get{AggregateName}ByID(ctx context.Context, id string) (*entity.{AggregateName}, error) {
+    s.logger.Debug("Getting {aggregate_name} by ID", 
+        zap.String("{aggregate_name}_id", id),
+        zap.String("operation", "get_{aggregate_name}_by_id"),
+    )
+
+    {aggregate_name}, err := s.{aggregate_name}Repository.GetByID(ctx, entity.{AggregateName}ID(id))
+    if err != nil {
+        s.logger.Error("Failed to get {aggregate_name}", 
+            zap.Error(err),
+            zap.String("{aggregate_name}_id", id),
+            zap.String("operation", "get_{aggregate_name}_by_id"),
+        )
+        return nil, fmt.Errorf("failed to get {aggregate_name}: %w", err)
+    }
+
+    return {aggregate_name}, nil
+}
+
+// publishDomainEvents publishes domain events to event bus
+func (s *{AggregateName}Service) publishDomainEvents(ctx context.Context, events []entity.DomainEvent) error {
+    for _, event := range events {
+        if err := s.externalService.PublishEvent(ctx, event); err != nil {
+            return fmt.Errorf("failed to publish event %T: %w", event, err)
+        }
+    }
+    return nil
+}
+
+// Create{AggregateName}Params represents parameters for creating a {aggregate_name}
+// Generated from aggregate constructor requirements and validation rules
+type Create{AggregateName}Params struct {
+    // Fields based on aggregate attributes from domain model
+    Name        string `validate:"required,min=1,max=100"`
+    Description string `validate:"max=500"`
+    // Add more fields based on domain model analysis
+}
+
+// ToEntityParams converts application params to domain entity params
+func (p *Create{AggregateName}Params) ToEntityParams() *entity.Create{AggregateName}Params {
+    return &entity.Create{AggregateName}Params{
+        Name:        p.Name,
+        Description: p.Description,
+        // Map additional fields
+    }
+}
+```
+
+### 11.2 Ports (Interfaces) Generation
+
+**Problem Solved**: Generate interfaces for ports to maintain separation of responsibilities in hexagonal architecture.
+
+**Primary Ports (Driving Adapters) - Used by gRPC**:
+```go
+// Generated from: application service analysis and use case requirements  
+package primary
+
+import (
+    "context"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/entity"
+)
+
+// {AggregateName}UseCase defines the primary port for {aggregate_name} operations
+// This interface is implemented by the application service layer
+// and used by the gRPC adapter (driving adapter)
+type {AggregateName}UseCase interface {
+    // Commands (write operations)
+    Create{AggregateName}(ctx context.Context, params *Create{AggregateName}Params) (*entity.{AggregateName}, error)
+    Update{AggregateName}(ctx context.Context, id string, params *Update{AggregateName}Params) (*entity.{AggregateName}, error)
+    Delete{AggregateName}(ctx context.Context, id string) error
+    
+    // Queries (read operations)
+    Get{AggregateName}ByID(ctx context.Context, id string) (*entity.{AggregateName}, error)
+    List{AggregateName}s(ctx context.Context, params *List{AggregateName}Params) ([]*entity.{AggregateName}, error)
+}
+```
+
+**Secondary Ports (Driven Adapters) - Repository Interfaces**:
+```go
+// Generated from: aggregate boundaries and data access patterns
+package secondary
+
+import (
+    "context"
+    
+    "github.com/{project}/{service}/internal/domain/{context_name}/entity"
+)
+
+// {AggregateName}Repository defines the secondary port for {aggregate_name} persistence
+// This interface is implemented by the infrastructure layer (database adapter)
+// and used by the application service layer
+type {AggregateName}Repository interface {
+    // Aggregate persistence operations
+    Save(ctx context.Context, {aggregate_name} *entity.{AggregateName}) error
+    GetByID(ctx context.Context, id entity.{AggregateName}ID) (*entity.{AggregateName}, error)
+    Update(ctx context.Context, {aggregate_name} *entity.{AggregateName}) error
+    Delete(ctx context.Context, id entity.{AggregateName}ID) error
+    
+    // Query operations based on business requirements
+    FindByName(ctx context.Context, name string) (*entity.{AggregateName}, error)
+    List(ctx context.Context, params *List{AggregateName}Params) ([]*entity.{AggregateName}, error)
+    Count(ctx context.Context, params *Count{AggregateName}Params) (int64, error)
+    
+    // Business-specific queries from user stories
+    FindActive{AggregateName}s(ctx context.Context) ([]*entity.{AggregateName}, error)
+    FindBy{BusinessCriteria}(ctx context.Context, criteria string) ([]*entity.{AggregateName}, error)
+}
+
+// ExternalService defines the secondary port for external service integration
+// Generated from: dependencies.md analysis and external system requirements
+type ExternalService interface {
+    // Event publishing (for domain events)
+    PublishEvent(ctx context.Context, event entity.DomainEvent) error
+    
+    // External API calls based on dependencies.md
+    NotifyExternalSystem(ctx context.Context, data *NotificationData) error
+    ValidateWithExternalService(ctx context.Context, params *ValidationParams) (*ValidationResult, error)
+    
+    // Integration patterns from strategic design
+    SyncWith{ExternalSystem}(ctx context.Context, data *SyncData) error
+}
+```
+
+### 11.3 Complete Hexagonal Architecture Wiring
+
+**Dependency Injection Container**:
+```go
+// Generated from: hexagonal architecture principles and dependency analysis
+package container
+
+import (
+    "context"
+    "fmt"
+
+    "go.uber.org/zap"
+    
+    // Application layer
+    "github.com/{project}/{service}/internal/application/service"
+    
+    // Domain layer
+    domainService "github.com/{project}/{service}/internal/domain/{context_name}/service"
+    
+    // Infrastructure layer (adapters)
+    "github.com/{project}/{service}/internal/infrastructure/persistence"
+    "github.com/{project}/{service}/internal/infrastructure/grpc/server"
+    "github.com/{project}/{service}/internal/infrastructure/external"
+    
+    // Ports
+    "github.com/{project}/{service}/internal/ports/primary"
+    "github.com/{project}/{service}/internal/ports/secondary"
+)
+
+// Container holds all dependencies for dependency injection
+type Container struct {
+    // Infrastructure dependencies (outermost layer)
+    database *persistence.Database
+    
+    // Secondary adapters (driven)
+    {aggregate_name}Repository secondary.{AggregateName}Repository
+    externalService          secondary.ExternalService
+    
+    // Domain services (core layer)
+    {aggregate_name}DomainService domainService.{AggregateName}DomainService
+    
+    // Application services (orchestration layer)
+    {aggregate_name}UseCase primary.{AggregateName}UseCase
+    
+    // Primary adapters (driving)
+    grpcServer *server.GRPCServer
+    
+    // Cross-cutting concerns
+    logger *zap.Logger
+}
+
+// NewContainer creates and wires all dependencies following hexagonal architecture
+func NewContainer(ctx context.Context, logger *zap.Logger) (*Container, error) {
+    // 1. Initialize infrastructure dependencies (outermost layer)
+    database, err := persistence.NewDatabase(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("failed to initialize database: %w", err)
+    }
+
+    // 2. Initialize secondary adapters (driven adapters)
+    {aggregate_name}Repository := persistence.New{AggregateName}Repository(database, logger)
+    externalService := external.NewExternalService(logger)
+
+    // 3. Initialize domain services (core domain layer)
+    {aggregate_name}DomainService := domainService.New{AggregateName}DomainService()
+
+    // 4. Initialize application services (application layer)
+    // Application layer depends on domain and secondary ports
+    {aggregate_name}UseCase := service.New{AggregateName}Service(
+        {aggregate_name}Repository,    // secondary port implementation
+        externalService,              // secondary port implementation  
+        {aggregate_name}DomainService, // domain service
+        logger,
+    )
+
+    // 5. Initialize primary adapters (driving adapters)
+    grpcServer := server.NewGRPCServer({aggregate_name}UseCase, logger)
+
+    return &Container{
+        database:                    database,
+        {aggregate_name}Repository:  {aggregate_name}Repository,
+        externalService:            externalService,
+        {aggregate_name}DomainService: {aggregate_name}DomainService,
+        {aggregate_name}UseCase:     {aggregate_name}UseCase,
+        grpcServer:                 grpcServer,
+        logger:                     logger,
+    }, nil
+}
+
+// Close properly shuts down all resources
+func (c *Container) Close() error {
+    if c.database != nil {
+        return c.database.Close()
+    }
+    return nil
+}
+
+// GetGRPCServer returns the configured gRPC server
+func (c *Container) GetGRPCServer() *server.GRPCServer {
+    return c.grpcServer
+}
+```
+
+### 11.4 Complete Generation Summary
+
+**Generated Components from PRD/DDD Analysis**:
+
+1. **Protocol Buffers** (from DDD aggregates):
+   - `proto/{context}/v1/{aggregate}.proto`
+   - Generated Go bindings in `api/grpc/generated/`
+
+2. **Domain Layer** (from DDD domain models):
+   - `internal/domain/{context}/entity/{aggregate}.go`
+   - `internal/domain/{context}/service/{domain_service}.go`
+   - `internal/domain/{context}/repository/{repository_interface}.go`
+
+3. **Application Layer** (from use cases and user stories):
+   - `internal/application/service/{aggregate}_service.go`
+   - Transaction boundaries and orchestration logic
+
+4. **Ports/Interfaces** (from hexagonal architecture requirements):
+   - `internal/ports/primary/{usecase}_interface.go`
+   - `internal/ports/secondary/{repository}_interface.go`
+
+5. **Infrastructure Layer** (adapter implementations):
+   - `internal/infrastructure/grpc/server/{aggregate}_server.go`
+   - `internal/infrastructure/persistence/{aggregate}_repository.go`
+
+6. **Configuration and Wiring**:
+   - `cmd/{service}/main.go` with complete dependency injection
+   - `internal/container/container.go` for hexagonal architecture wiring
+
+## 12. Complete gRPC Microservice Generation Workflow
+
+### 12.1 Project Generation Workflow Rules
+
+**Problem Solved**: Define step-by-step workflow for creating complete gRPC microservices from PRD/DDD documentation.
+
+#### **Complete Generation Workflow**:
+```bash
+#!/bin/bash
+# complete-generation-workflow.sh - Complete gRPC microservice generation
+
+echo "🚀 Starting Complete gRPC Microservice Generation from PRD/DDD..."
+
+# Step 1: Generate project skeleton
+echo "📁 Step 1: Generating project skeleton in project/{service-name}/"
+mkdir -p project/{service-name}/{cmd,internal,proto,api,pkg,scripts,deployments,docs,test}
+
+# Step 2: Generate Protocol Buffers from DDD analysis  
+echo "🔨 Step 2: Generating Protocol Buffers from DDD aggregates..."
+./scripts/generate-proto-from-ddd.sh
+
+# Step 3: Generate domain layer from DDD models
+echo "🏗️ Step 3: Generating domain layer from DDD models..."
+./scripts/generate-domain-from-ddd.sh
+
+# Step 4: Generate application services from use cases
+echo "⚙️ Step 4: Generating application services from user stories..."
+./scripts/generate-application-services.sh
+
+# Step 5: Generate gRPC server from commands/queries
+echo "🌐 Step 5: Generating gRPC server from aggregate commands/queries..."
+./scripts/generate-grpc-server.sh
+
+# Step 6: Generate middleware from NFR requirements
+echo "🛡️ Step 6: Generating middleware from NFR analysis..."
+./scripts/generate-middleware-stack.sh
+
+# Step 7: Generate main.go with dependency injection
+echo "🎯 Step 7: Generating main.go with complete dependency injection..."
+./scripts/generate-main-with-di.sh
+
+echo "✅ Complete gRPC microservice generation completed successfully!"
+```
+
+### 12.2 API Documentation Generation
+
+**Problem Solved**: Generate comprehensive API documentation that stays synchronized with generated code.
+
+#### **gRPC API Documentation Generation**:
+```bash
+#!/bin/bash  
+# scripts/generate-api-documentation.sh
+
+echo "📖 Generating gRPC API documentation..."
+
+# Generate API documentation from proto files
+mkdir -p docs/api/grpc
+
+# Generate HTML documentation
+protoc --doc_out=docs/api/grpc --doc_opt=html,index.html proto/**/*/*.proto
+
+# Generate Markdown documentation  
+protoc --doc_out=docs/api/grpc --doc_opt=markdown,api.md proto/**/*/*.proto
+
+echo "✅ API documentation generated successfully!"
+```
+
+### 12.3 Benefits of Complete Generation Approach
+
+#### **Development Speed**:
+- **Rapid Prototyping**: Complete microservice generated in minutes from PRD/DDD
+- **Consistency**: All services follow identical patterns and standards  
+- **Best Practices**: Automatic adherence to hexagonal architecture and DDD principles
+
+#### **Quality Assurance**:
+- **Business Alignment**: Generated code directly reflects domain model
+- **Traceability**: Every component references its source documentation
+- **Testing**: Complete test structure generated with business context
+
+#### **Maintainability**:
+- **Clean Architecture**: Clear separation of concerns across all layers
+- **Documentation Sync**: API docs automatically updated with code changes
+- **Evolution Support**: Easy to regenerate components as requirements change
+
+#### **Enterprise Readiness**:
+- **Observability**: Built-in logging, metrics, and tracing
+- **Security**: NFR-based security middleware generation
+- **Scalability**: Hexagonal architecture supports easy scaling and modification

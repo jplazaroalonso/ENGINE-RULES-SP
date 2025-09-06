@@ -1,0 +1,491 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description:
+globs:
+alwaysApply: true
+---
+# Documentation Standards
+
+## Table of Contents
+1. [Overview](mdc:#overview)
+2. [Document Structure](mdc:#document-structure)
+3. [Markdown Guidelines](mdc:#markdown-guidelines)
+4. [Visual Documentation](mdc:#visual-documentation)
+5. [Language and Style](mdc:#language-and-style)
+6. [Code Documentation](mdc:#code-documentation)
+7. [Best Practices](mdc:#best-practices)
+8. [Validation Rules](mdc:#validation-rules)
+9. [Required Tools](mdc:#required-tools)
+
+## Overview
+This document outlines the standards and best practices for creating and maintaining documentation in our projects. It emphasizes the use of Markdown for all documentation, Mermaid for diagrams with native preview support, and provides guidelines for clear, structured, and maintainable documentation.
+
+## Document Structure
+
+### Required Sections
+1. **Title**
+   - Clear, descriptive title
+   - Version number (if applicable)
+   - Last updated date
+
+2. **Table of Contents**
+   - Auto-generated using Markdown headers
+   - Links to all major sections
+   - Maximum depth of 3 levels
+
+3. **Introduction**
+   - Purpose of the document
+   - Scope and context
+   - Target audience
+   - Prerequisites (if any)
+
+4. **Main Content**
+   - Logical section organization
+   - Progressive disclosure of information
+   - Clear hierarchy of information
+
+5. **References**
+   - Links to related documents
+   - External resources
+   - Citations
+
+### Section Formatting
+```markdown
+# Main Title
+
+## Section Title
+
+### Subsection Title
+
+#### Minor Section (if needed)
+```
+
+## Markdown Guidelines
+
+### Text Formatting
+1. **Headers**
+   - Use `#` for main title
+   - Use `##` for sections
+   - Use `###` for subsections
+   - Maximum of 4 levels deep
+
+2. **Lists**
+   - Use `-` for unordered lists
+   - Use `1.` for ordered lists
+   - Indent nested lists with 2 spaces
+
+3. **Code Blocks**
+   - Use triple backticks with language specification
+   - Include syntax highlighting
+   - Example:
+     ```python
+     def example_function():
+         return "Hello, World!"
+     ```
+
+4. **Tables**
+   - Use standard Markdown table syntax
+   - Include header row
+   - Align columns appropriately
+   - Example:
+     | Header 1 | Header 2 |
+     |----------|----------|
+     | Content  | Content  |
+
+5. **Links**
+   - Use descriptive link text
+   - Include title attribute for tooltips
+   - Example: `[Link Text](mdc:url "tooltip")`
+
+## Visual Documentation
+
+### Mermaid Diagrams
+1. **Required Format**
+   ```markdown
+   ```mermaid
+   graph TD
+       A[Start] --> B{Decision}
+       B -->|Yes| C[Process]
+       B -->|No| D[End]
+       C --> D
+   ```
+   ```
+
+2. **Diagram Organization Structure**
+   ```
+   project/
+   ├── docs/
+   │   ├── README.md
+   │   └── technical/
+   └── diagrams/
+       ├── source/           # Source .mmd files
+       │   ├── architecture/
+       │   ├── flows/
+       │   └── sequences/
+       ├── generated/        # Auto-generated images
+       │   ├── svg/          # High-resolution SVG files
+       │   └── png/          # High-resolution PNG files
+       └── scripts/          # Generation scripts
+   ```
+
+3. **Mermaid Source Management**
+   - Store all source diagrams as `.mmd` files in `/diagrams/source/`
+   - Organize by category (architecture, flows, sequences, etc.)
+   - Use descriptive names: `user-authentication-flow.mmd`
+   - Maintain version control for source files
+
+4. **Image Generation Process**
+   ```bash
+   # Generate both SVG and PNG from source
+   mmdc -i diagrams/source/flow.mmd -o diagrams/generated/svg/flow.svg
+   mmdc -i diagrams/source/flow.mmd -o diagrams/generated/png/flow.png --scale 2
+   ```
+
+5. **Flowcharts**
+   ```markdown
+   ```mermaid
+   graph TD
+       A[Start] --> B{Decision}
+       B -->|Yes| C[Process]
+       B -->|No| D[End]
+       C --> D
+   ```
+   ```
+
+6. **Sequence Diagrams**
+   ```markdown
+   ```mermaid
+   sequenceDiagram
+       participant A as User
+       participant B as System
+       A->>B: Request
+       B->>A: Response
+   ```
+   ```
+
+7. **Class Diagrams**
+   ```markdown
+   ```mermaid
+   classDiagram
+       class Animal {
+           +String name
+           +makeSound()
+       }
+       class Dog {
+           +bark()
+       }
+       Animal <|-- Dog
+   ```
+   ```
+
+8. **State Diagrams**
+   ```markdown
+   ```mermaid
+   stateDiagram-v2
+       [*] --> Idle
+       Idle --> Processing: Start
+       Processing --> Idle: Complete
+   ```
+   ```
+
+### Diagram Guidelines
+1. **Native Mermaid Preview**
+   - Use Mermaid code blocks directly in markdown
+   - Leverage editor's built-in Mermaid preview
+   - No external image references required
+   - Real-time rendering in compatible editors
+
+2. **Source File Management**
+   - Create duplicate `.mmd` files in `/diagrams/source/`
+   - Organize by functional areas
+   - Use clear, descriptive naming conventions
+   - Maintain consistency across diagram types
+
+3. **Image Generation for External Use**
+   - Generate both SVG and PNG formats
+   - Use high resolution (scale 2x for PNG)
+   - Store in organized directory structure
+   - Automate generation with scripts
+
+4. **Best Practices**
+   - Use clear, descriptive node names
+   - Maintain consistent styling
+   - Include legends for complex diagrams
+   - Keep diagrams focused and uncluttered
+   - Use appropriate diagram type for the information
+   - Include alt text for accessibility
+
+## Language and Style
+
+### Writing Guidelines
+1. **Clarity**
+   - Use active voice
+   - Write in present tense
+   - Be concise and direct
+   - Avoid jargon unless necessary
+
+2. **Consistency**
+   - Use consistent terminology
+   - Follow style guide
+   - Maintain consistent formatting
+   - Use standard abbreviations
+
+3. **Accessibility**
+   - Use alt text for images
+   - Provide text alternatives for diagrams
+   - Use semantic HTML elements
+   - Ensure proper contrast
+
+### Content Organization
+1. **Progressive Disclosure**
+   - Start with overview
+   - Provide detailed information
+   - Include examples
+   - Add troubleshooting section
+
+2. **Information Hierarchy**
+   - Most important information first
+   - Logical flow of information
+   - Clear section relationships
+   - Proper use of headers
+
+## Code Documentation
+
+### Inline Documentation
+1. **Comments**
+   - Use clear, concise comments
+   - Explain why, not what
+   - Keep comments up to date
+   - Use appropriate comment style
+
+2. **Function Documentation**
+   ```python
+   def example_function(param1: str, param2: int) -> bool:
+       """
+       Brief description of the function.
+
+       Args:
+           param1 (str): Description of param1
+           param2 (int): Description of param2
+
+       Returns:
+           bool: Description of return value
+
+       Raises:
+           ValueError: Description of when this error occurs
+       """
+   ```
+
+### API Documentation
+1. **Endpoint Documentation**
+   ```markdown
+   ## Endpoint Name
+
+   **Method:** GET/POST/PUT/DELETE
+   **URL:** `/api/v1/resource`
+   **Description:** Brief description of the endpoint
+
+   ### Parameters
+   | Name | Type | Required | Description |
+   |------|------|----------|-------------|
+   | param1 | string | Yes | Description |
+
+   ### Response
+   ```json
+   {
+     "status": "success",
+     "data": {}
+   }
+   ```
+   ```
+
+## Best Practices
+
+### Documentation Maintenance
+1. **Version Control**
+   - Track changes in version control
+   - Include change history
+   - Maintain version compatibility
+   - Document breaking changes
+
+2. **Review Process**
+   - Peer review documentation
+   - Technical accuracy check
+   - Style consistency review
+   - Accessibility review
+
+3. **Updates**
+   - Regular documentation audits
+   - Update outdated information
+   - Remove deprecated content
+   - Add new features documentation
+
+### Documentation Tools
+1. **Required Tools**
+   - Markdown editor with Mermaid preview
+   - Mermaid renderer
+   - Documentation generator
+   - Link checker
+
+2. **Recommended Tools**
+   - Spell checker
+   - Grammar checker
+   - Diagram editor
+   - Version control
+
+## Validation Rules
+
+### Content Validation
+1. **Required Elements**
+   - Title
+   - Table of Contents
+   - Introduction
+   - Main content sections
+   - References
+   - Mermaid source code directly in markdown
+   - Source `.mmd` files in designated directory
+
+2. **Formatting Rules**
+   - Proper header hierarchy
+   - Consistent list formatting
+   - Valid Markdown syntax
+   - Proper code block formatting
+   - Mermaid syntax validation
+
+3. **Visual Elements**
+   - Valid Mermaid syntax
+   - Native markdown mermaid blocks
+   - Accessible diagrams
+   - Consistent styling
+
+### Diagram Testing and Generation
+1. **Source File Requirements**
+   - All diagrams must have corresponding `.mmd` files
+   - Files stored in `/diagrams/source/` with proper organization
+   - Descriptive naming convention followed
+   - Valid Mermaid syntax
+
+2. **Image Generation Testing**
+   - Test SVG generation: `mmdc -i source.mmd -o output.svg`
+   - Test PNG generation: `mmdc -i source.mmd -o output.png --scale 2`
+   - Verify high-resolution output quality
+   - Ensure proper file organization
+
+3. **Automation Scripts**
+   - Create batch processing scripts for all diagrams
+   - Implement validation checks for diagram syntax
+   - Generate reports for missing or invalid diagrams
+   - Automate directory structure creation
+
+### Quality Checks
+1. **Language**
+   - Grammar and spelling
+   - Consistent terminology
+   - Clear and concise
+   - Professional tone
+
+2. **Structure**
+   - Logical organization
+   - Proper section hierarchy
+   - Consistent formatting
+   - Complete information
+   - Native Mermaid presence
+
+3. **Technical Accuracy**
+   - Up-to-date information
+   - Accurate code examples
+   - Valid links
+   - Correct syntax
+   - Working Mermaid diagrams
+   - Validated source files
+
+4. **Preview and Rendering**
+   - Mermaid preview functionality enabled
+   - Proper rendering in markdown editors
+   - Cross-platform compatibility
+   - Real-time preview validation
+
+## Required Tools
+
+### Mermaid CLI Installation
+1. **Installation Requirements**
+   ```bash
+   # macOS
+   brew install mermaid-cli
+
+   # Linux (Ubuntu/Debian)
+   sudo apt-get install nodejs npm
+   sudo npm install -g @mermaid-js/mermaid-cli
+
+   # Linux (RHEL/CentOS)
+   sudo yum install nodejs npm
+   sudo npm install -g @mermaid-js/mermaid-cli
+
+   # Windows (PowerShell)
+   winget install Mermaid.MermaidCLI
+   ```
+
+2. **Image Generation Commands**
+   ```bash
+   # Generate high-resolution SVG
+   mmdc -i input.mmd -o output.svg --backgroundColor white
+
+   # Generate high-resolution PNG (2x scale)
+   mmdc -i input.mmd -o output.png --scale 2 --backgroundColor white
+
+   # Batch generation script
+   for file in diagrams/source/**/*.mmd; do
+     name=$(basename "$file" .mmd)
+     mmdc -i "$file" -o "diagrams/generated/svg/$name.svg" --backgroundColor white
+     mmdc -i "$file" -o "diagrams/generated/png/$name.png" --scale 2 --backgroundColor white
+   done
+   ```
+
+### Editor Configuration
+1. **Mermaid Preview Requirements**
+   - Install Mermaid preview extension
+   - Enable real-time rendering
+   - Configure syntax highlighting
+   - Set up live preview mode
+
+2. **File Organization Setup**
+   ```bash
+   # Create required directory structure
+   mkdir -p diagrams/{source/{architecture,flows,sequences},generated/{svg,png},scripts}
+   
+   # Initialize with basic files
+   touch diagrams/source/.gitkeep
+   touch diagrams/generated/svg/.gitkeep
+   touch diagrams/generated/png/.gitkeep
+   ```
+
+3. **Automated Testing**
+   ```bash
+   # Validation script for all mermaid files
+   #!/bin/bash
+   find diagrams/source -name "*.mmd" -exec mmdc -i {} -o /tmp/test.svg \; -print
+   echo "All diagrams validated successfully"
+   ```
+
+### Integration Guidelines
+1. **Version Control**
+   - Track source `.mmd` files
+   - Ignore generated images (optional)
+   - Include generation scripts
+   - Document diagram dependencies
+
+2. **CI/CD Integration**
+   - Automate diagram generation
+   - Validate Mermaid syntax
+   - Generate both formats
+   - Update documentation sites
+
+3. **Documentation Workflow**
+   - Create diagrams as Mermaid code blocks
+   - Duplicate as `.mmd` files for external use
+   - Generate images for presentations/reports
+   - Maintain source files as single source of truth

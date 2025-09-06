@@ -1,0 +1,128 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Main Context Document (MCD) - Bazel for Monorepo Management
+
+## 1. Introduction
+
+This document outlines the strategy and guidelines for using Bazel as the build and test system within a monorepo. Bazel is an open-source build and test tool that offers speed, correctness, and scalability, making it well-suited for large codebases and multi-language projects often found in monorepos.
+
+### 1.1 Why Bazel for Monorepos?
+
+Bazel provides several advantages for monorepo environments:
+
+-   **Speed and Efficiency**: Bazel rebuilds only what is necessary through advanced caching (local and distributed), optimized dependency analysis, and parallel execution. This significantly speeds up build and test times, especially in large monorepos.
+-   **Correctness and Reproducibility**: Bazel ensures builds are hermetic and reproducible. This means builds are insensitive to the local environment and produce consistent outputs, which is crucial for reliable CI/CD pipelines.
+-   **Scalability**: Bazel is designed to handle codebases of any size, from small projects to massive monorepos like those at Google. It scales with your organization and codebase.
+-   **Multi-Language and Multi-Platform Support**: Bazel can build and test projects written in various languages (Java, C++, Go, JavaScript/TypeScript, Python, etc.) and target multiple platforms (Linux, macOS, Windows).
+-   **Extensibility**: Bazel's Starlark language allows for the creation of custom build rules, enabling support for new languages, platforms, and custom build logic.
+-   **Clear Dependency Management**: Bazel requires explicit dependency declarations, leading to a well-defined and understandable dependency graph across the entire monorepo.
+
+(Reference: [Bazel Website](https://bazel.build/))
+
+## 2. Core Bazel Concepts
+
+Understanding these concepts is key to working effectively with Bazel:
+
+-   **Workspace**: A directory дерева that contains the source code for your software and a `WORKSPACE` file at its root. This file identifies the directory as a Bazel workspace and can define external dependencies.
+-   **Packages**: A collection of related files and a specification of their dependencies. A package is a directory within the workspace that contains a `BUILD` (or `BUILD.bazel`) file.
+-   **Targets**: Objects defined in `BUILD` files. Targets can be files (source files, generated files) or rules.
+-   **Rules**: Define a set of actions Bazel performs to produce outputs from inputs. For example, a `go_binary` rule builds a Go executable, and a `js_library` rule might process JavaScript files.
+-   **`BUILD` files**: Text files that declare build targets by invoking rules. Every package has one `BUILD` file.
+-   **`WORKSPACE` file**: Located at the root of the monorepo, this file manages external dependencies and workspace-wide configurations.
+
+## 3. Bazel Strategy in a Monorepo
+### 3.1 Granular Dependencies and Targets
+-   Define fine-grained targets to maximize parallelism and caching benefits.
+-   Each library, binary, or test suite should typically be its own target.
+
+### 3.2 Visibility
+-   Use Bazel's visibility controls (`//visibility:public`, `//visibility:private`, `//some/package:__pkg__`, `//some/package:__subpackages__`) to manage which targets can depend on others. This helps enforce modularity and API boundaries within the monorepo.
+
+### 3.3 Code Organization
+-   Organize code into packages (directories with `BUILD` files) based on logical components or services.
+-   Example structure:
+    ```
+    /monorepo
+    ├── WORKSPACE
+    ├── tools/
+    │   └── build_rules/
+    ├── libs/
+    │   ├── go/
+    │   │   └── common/
+    │   │       └── BUILD
+    │   └── js/
+    │       └── ui-components/
+    │           └── BUILD
+    ├── services/
+    │   ├── service-a/
+    │   │   ├── BUILD
+    │   │   └── main.go
+    │   └── service-b/
+    │       ├── BUILD
+    │       └── index.ts
+    └── web/
+        └── app/
+            ├── BUILD
+            └── main.ts
+    ```
+
+### 3.4 Managing External Dependencies
+-   External dependencies (e.g., Go modules, npm packages) are declared and managed in the `WORKSPACE` file using appropriate repository rules (e.g., `go_repository`, `npm_install`).
+
+## 4. Key Bazel Features for Monorepos
+
+-   **Hermeticity**: Builds are sandboxed and only have access to explicitly declared inputs, ensuring reproducibility.
+-   **Caching**: Bazel caches build and test results locally and can be configured to use a shared remote cache for distributed teams.
+-   **Dependency Analysis**: Bazel understands the precise dependency graph, enabling it to rebuild only the affected targets when changes occur.
+-   **Parallel Execution**: Bazel can execute independent build steps and tests in parallel, utilizing multi-core processors effectively.
+-   **Bazel Query Language**: Tools like `bazel query`, `bazel cquery`, and `bazel aquery` allow introspection of the build graph, dependencies, and build actions. This is invaluable for debugging and understanding the build.
+    -   `bazel query "deps(//services/service-a)"`: Shows all dependencies of `service-a`.
+    -   `bazel query "rdeps(//libs/go/common, //...)"`: Shows all reverse dependencies of `//libs/go/common` within the workspace.
+
+## 5. Build and Test Process
+
+-   **Building Artifacts**: Use `bazel build //path/to:target`.
+    -   Example: `bazel build //services/service-a:service-a_image` (if a container image rule is defined).
+-   **Running Tests**: Use `bazel test //path/to:test_target` or `bazel test //...` to run all tests.
+    -   Example: `bazel test //services/service-a:unit_tests`.
+-   **Test Caching**: Test results are also cached. Bazel will only re-run tests if their sources or dependencies have changed.
+
+## 6. CI/CD Integration
+
+Bazel is highly effective in CI/CD pipelines:
+
+-   **Efficient CI Builds**: Only changed components and their dependents are rebuilt and retested.
+-   **Remote Caching and Execution**: Utilizing remote caching and remote build execution (RBE) can drastically reduce CI times by sharing build artifacts across CI agents and developers.
+-   **Reliability**: Hermetic builds reduce flakiness in CI.
+-   **Workflow**:
+    1.  Code changes are pushed.
+    2.  CI server triggers `bazel build //...` and `bazel test //...` (or more targeted commands based on changes).
+    3.  Bazel utilizes remote cache (if configured) to speed up the process.
+    4.  Artifacts are built and deployed.
+
+## 7. Tooling and Ecosystem
+
+-   **Buildifier**: A tool for formatting `BUILD` and `.bzl` files, ensuring consistency.
+-   **Gazelle (for Go)**: Can automatically generate and update Go `BUILD` files based on source code and dependencies.
+-   **Language-Specific Rules**: A rich ecosystem of rules for various languages (e.g., `rules_go`, `rules_nodejs`, `rules_docker`) is available from the Bazel community.
+-   **IDE Integration**: Plugins and tools are available for integrating Bazel with IDEs like VS Code, IntelliJ (e.g., Bazel IntelliJ Plugin).
+
+## 8. Best Practices
+
+-   **Keep `BUILD` files simple**: Avoid complex logic in `BUILD` files. Move complexity into custom Starlark rules (`.bzl` files) if necessary.
+-   **Define fine-grained targets**: Smaller targets lead to better parallelism and more effective caching.
+-   **Strictly manage visibility**: Enforce modularity and clear API boundaries.
+-   **Use remote caching/execution**: For larger teams and monorepos, this is essential for performance.
+-   **Regularly update Bazel and rulesets**: Stay current with Bazel releases and rule updates to get bug fixes and new features.
+
+## 9. Migration Considerations (Brief)
+
+-   Start small: Migrate a single service or library first.
+-   Automate `BUILD` file generation where possible (e.g., using Gazelle for Go).
+-   Integrate with CI early in the migration process.
+-   Provide training and documentation for developers.
+
+This document serves as a starting point and should be updated as the Bazel implementation and monorepo evolve.

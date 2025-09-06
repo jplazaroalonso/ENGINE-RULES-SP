@@ -1,0 +1,161 @@
+sequenceDiagram
+    participant BA as Business Analyst
+    participant UI as Rules Management UI
+    participant RM as Rules Management
+    participant TS as Template Service
+    participant VS as Validation Service
+    participant RE as Rules Evaluation
+    participant WF as Approval Workflow
+    participant AP as Approver
+    participant RC as Rules Calculation
+    participant ES as Event Store
+    participant NS as Notification Service
+    participant AUDIT as Audit Service
+    
+    Note over BA,AUDIT: Rule Creation and Lifecycle Flow (US-0001, US-0002, US-0003, US-0008)
+    
+    %% Rule Creation Phase
+    rect rgb(230, 255, 230)
+        Note over BA,TS: Phase 1: Rule Creation (AC-01, AC-02)
+        BA->>UI: Navigate to rule creation
+        UI->>TS: Request available templates
+        TS-->>UI: Return template catalog
+        UI-->>BA: Display templates by category
+        
+        BA->>UI: Select template (US-0003)
+        UI->>TS: Get template details
+        TS-->>UI: Template structure + parameters
+        UI-->>BA: Show template editor
+        
+        BA->>UI: Define rule using DSL (AC-02)
+        UI->>VS: Real-time syntax validation
+        VS-->>UI: Validation feedback
+        UI-->>BA: Display validation results
+    end
+    
+    %% Validation and Testing Phase
+    rect rgb(255, 230, 230)
+        Note over BA,RE: Phase 2: Validation and Testing (AC-03, AC-04)
+        BA->>UI: Submit for validation
+        UI->>VS: Comprehensive validation request
+        VS->>VS: Syntax + semantic validation
+        VS->>RC: Performance impact analysis
+        RC-->>VS: Performance assessment
+        VS-->>UI: Complete validation results
+        UI-->>BA: Show validation feedback
+        
+        BA->>UI: Test rule with sample data (US-0006)
+        UI->>RE: Rule testing request
+        RE->>RC: Execute rule with test data
+        RC-->>RE: Execution results
+        RE-->>UI: Test results + metrics
+        UI-->>BA: Display test results
+    end
+    
+    %% Draft Save and Submission Phase
+    rect rgb(230, 230, 255)
+        Note over BA,ES: Phase 3: Save and Submit (AC-05, US-0007, US-0008)
+        BA->>UI: Save as draft (US-0007)
+        UI->>RM: Create rule in DRAFT status
+        RM->>RM: Generate RuleCreated event
+        RM->>ES: Persist rule + publish event
+        ES->>AUDIT: Log rule creation
+        ES->>NS: Send creation notification
+        RM-->>UI: Rule saved confirmation
+        UI-->>BA: Show draft saved
+        
+        BA->>UI: Submit for approval (US-0008)
+        UI->>RM: Submit rule for approval
+        RM->>RM: Change status to UNDER_REVIEW
+        RM->>WF: Initiate approval workflow
+        RM->>ES: Publish RuleSubmittedForApproval event
+        ES->>AUDIT: Log submission
+        ES->>NS: Notify approvers
+        WF-->>RM: Workflow initiated
+        RM-->>UI: Submission confirmation
+        UI-->>BA: Show submission status
+    end
+    
+    %% Approval Process Phase
+    rect rgb(255, 255, 230)
+        Note over AP,ES: Phase 4: Approval Process
+        NS->>AP: Approval notification
+        AP->>UI: Review rule for approval
+        UI->>RM: Get rule details + impact analysis
+        RM-->>UI: Rule data + analytics
+        UI-->>AP: Show approval interface
+        
+        AP->>UI: Approve rule
+        UI->>WF: Record approval decision
+        WF->>RM: Update rule to APPROVED status
+        RM->>RM: Generate RuleApproved event
+        RM->>ES: Persist approval + publish event
+        ES->>AUDIT: Log approval decision
+        ES->>NS: Notify stakeholders
+        WF-->>UI: Approval recorded
+        UI-->>AP: Show approval confirmation
+    end
+    
+    %% Activation Phase
+    rect rgb(255, 230, 255)
+        Note over RM,RC: Phase 5: Rule Activation
+        RM->>RM: Schedule rule activation
+        RM->>RM: Change status to ACTIVE
+        RM->>RM: Generate RuleActivated event
+        RM->>ES: Publish activation event
+        ES->>RC: Notify rule engine
+        RC->>RC: Load rule into evaluation engine
+        RC->>RC: Update rule cache
+        RC->>RC: Run conflict detection
+        ES->>AUDIT: Log activation
+        ES->>NS: Notify operations team
+    end
+    
+    %% Ongoing Operations
+    rect rgb(240, 240, 240)
+        Note over BA,AUDIT: Phase 6: Ongoing Operations
+        loop Rule Evaluation Requests
+            Note over RE,RC: External systems use activated rule
+            RE->>RC: Evaluation request
+            RC->>RC: Execute rule + conflict resolution
+            RC-->>RE: Evaluation results
+            RC->>ES: Publish evaluation metrics
+            ES->>AUDIT: Log evaluation events
+        end
+        
+        BA->>UI: Monitor rule performance (US-0009)
+        UI->>RM: Request rule history
+        RM-->>UI: Rule version history
+        UI->>RC: Request performance metrics
+        RC-->>UI: Performance data
+        UI-->>BA: Show rule analytics
+    end
+    
+    %% Error Handling Flows
+    rect rgb(255, 200, 200)
+        Note over VS,AUDIT: Error Handling Scenarios
+        alt Validation Failure
+            VS->>UI: Validation errors
+            UI-->>BA: Show error details + suggestions
+            BA->>UI: Correct and resubmit
+        else Approval Rejection
+            AP->>WF: Reject with comments
+            WF->>RM: Update to REJECTED status
+            RM->>ES: Publish RuleRejected event
+            ES->>NS: Notify rule creator
+            ES->>AUDIT: Log rejection
+        else Performance Issue
+            RC->>ES: Publish PerformanceThresholdExceeded
+            ES->>NS: Alert administrators
+            ES->>AUDIT: Log performance issue
+        else Conflict Detection
+            RC->>ES: Publish ConflictDetected event
+            ES->>NS: Alert rule management team
+            ES->>AUDIT: Log conflict details
+        end
+    end
+    
+    %% Timeline Annotations
+    Note over BA,AUDIT: Timeline: Rule creation (2-5 min) → Validation (2 sec) → Testing (3 sec) → Approval (hours/days) → Activation (seconds)
+    Note over BA,AUDIT: SLA: Validation <2s, Testing <3s, Evaluation <500ms (AC-03, AC-04, Performance Requirements)
+    Note over BA,AUDIT: Events: All actions logged for SOX/GDPR compliance with complete audit trail

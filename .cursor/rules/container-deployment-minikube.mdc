@@ -1,0 +1,1531 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Container Deployment with Minikube - Cursor Rules
+
+## Table of Contents
+1. [Overview](mdc:#overview)
+2. [Software Requirements Verification](mdc:#software-requirements-verification)
+3. [Project Structure Standards](mdc:#project-structure-standards)
+4. [Docker Container Rules](mdc:#docker-container-rules)
+5. [Kubernetes Manifest Standards](mdc:#kubernetes-manifest-standards)
+6. [Deployment Automation](mdc:#deployment-automation)
+7. [Platform-Specific Guidelines](mdc:#platform-specific-guidelines)
+8. [Validation and Testing](mdc:#validation-and-testing)
+
+## Overview
+
+This rule set governs container-based deployments using Minikube for local development. It ensures consistent project structure, proper software verification, and automated deployment processes across Windows, macOS, and Linux platforms.
+
+### Core Principles
+- **Verification First**: Always verify required software before proceeding
+- **Structured Organization**: Maintain consistent folder structure for all deployments
+- **Multi-stage Builds**: Use previous containers as builders in Dockerfiles
+- **Automation**: Single-command deployment capability
+- **Cross-platform**: Support for Windows, macOS, and Linux
+
+## Software Requirements Verification
+
+### Required Software Stack
+```yaml
+required_software:
+  container_runtime:
+    - Docker Desktop (Windows/macOS) or Docker Engine (Linux)
+    - Minimum version: 20.10.0
+    - Status: Must be running before deployment
+  
+  kubernetes_tools:
+    - Minikube: >= 1.25.0
+    - kubectl: >= 1.24.0
+    - Helm: >= 3.8.0 (optional but recommended)
+  
+  build_tools:
+    - Git: >= 2.30.0
+    - Make: Available on all platforms
+    - jq: For JSON processing in scripts
+    - curl: For health endpoint testing
+    - netcat (nc): For port connectivity testing
+  
+  validation_requirements:
+    - All services must have health checks
+    - Database migrations must complete successfully
+    - Port forwarding must be testable
+    - All pods must reach Running state
+    - Container images must build without errors
+    - Kubernetes manifests must be valid
+```
+
+### Verification Scripts Structure
+```bash
+# Always create verification scripts in deploy-local/scripts/verify/
+deploy-local/
+├── scripts/
+│   ├── verify/
+│   │   ├── verify-windows.ps1
+│   │   ├── verify-macos.sh
+│   │   ├── verify-linux.sh
+│   │   └── verify-common.sh
+│   └── deploy/
+```
+
+### Platform-Specific Verification Rules
+
+#### Windows Verification (PowerShell)
+```powershell
+# deploy-local/scripts/verify/verify-windows.ps1
+function Verify-Software {
+    param([string]$Software, [string]$MinVersion, [string]$Command)
+    
+    Write-Host "Verifying $Software..." -ForegroundColor Yellow
+    
+    try {
+        $version = & $Command 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ $Software found: $version" -ForegroundColor Green
+            return $true
+        }
+    } catch {
+        Write-Host "✗ $Software not found or not in PATH" -ForegroundColor Red
+        return $false
+    }
+}
+
+# Required checks:
+# - Docker Desktop running
+# - Minikube available
+# - kubectl available
+# - Git available
+```
+
+#### macOS Verification (Bash)
+```bash
+# deploy-local/scripts/verify/verify-macos.sh
+#!/bin/bash
+
+verify_software() {
+    local software=$1
+    local command=$2
+    local min_version=$3
+    
+    echo "Verifying $software..."
+    
+    if command -v $command >/dev/null 2>&1; then
+        version=$($command --version 2>/dev/null | head -n1)
+        echo "✓ $software found: $version"
+        return 0
+    else
+        echo "✗ $software not found"
+        echo "Install with: brew install $software"
+        return 1
+    fi
+}
+
+# Required checks with Homebrew installation suggestions
+```
+
+#### Linux Verification (Bash)
+```bash
+# deploy-local/scripts/verify/verify-linux.sh
+#!/bin/bash
+
+verify_software() {
+    local software=$1
+    local command=$2
+    local package_manager=$3
+    local package_name=$4
+    
+    echo "Verifying $software..."
+    
+    if command -v $command >/dev/null 2>&1; then
+        version=$($command --version 2>/dev/null | head -n1)
+        echo "✓ $software found: $version"
+        return 0
+    else
+        echo "✗ $software not found"
+        case $package_manager in
+            "apt")
+                echo "Install with: sudo apt-get install $package_name"
+                ;;
+            "yum")
+                echo "Install with: sudo yum install $package_name"
+                ;;
+            "dnf")
+                echo "Install with: sudo dnf install $package_name"
+                ;;
+        esac
+        return 1
+    fi
+}
+```
+
+## Project Structure Standards
+
+### Mandatory Folder Structure
+```
+deploy/ (or deploy-local/)
+├── containers/
+│   ├── [service-name]/
+│   │   ├── Dockerfile
+│   │   ├── .dockerignore
+│   │   ├── main.go (or equivalent entry point)
+│   │   └── build-context/
+│   ├── [database-service]/
+│   │   ├── Dockerfile
+│   │   ├── .dockerignore
+│   │   └── init-scripts/
+│   └── [additional-services]/
+├── k8s/
+│   ├── namespace.yaml
+│   ├── configmap.yaml
+│   ├── [service]-deployment.yaml
+│   ├── [service]-service.yaml
+│   ├── [database]-deployment.yaml
+│   ├── [database]-service.yaml
+│   ├── [database]-storage.yaml
+│   ├── [database]-secret.yaml
+│   └── [database]-init-config.yaml
+├── scripts/
+│   ├── setup-minikube.sh
+│   ├── build-images.sh
+│   ├── deploy-local.sh
+│   ├── port-forward.sh
+│   ├── teardown.sh
+│   ├── stop-port-forward.sh
+│   ├── validate/
+│   │   └── validate-deployment.sh
+│   ├── test/
+│   │   └── test-deployment.sh
+│   └── troubleshoot/
+│       └── diagnose-issues.sh
+├── config/
+│   ├── service-ports.yaml
+│   ├── local-config.yaml
+│   └── [environment].env
+└── docs/
+    ├── README.md
+    └── DEPLOYMENT_STATUS.md
+```
+
+### Container Organization Rules
+1. **One container per subfolder** in `deploy/containers/`
+2. **Descriptive naming**: Use `[service-name]` format matching your application services
+3. **Multi-stage builds**: Use previous containers as builders when applicable
+4. **Build context isolation**: Keep build context in dedicated subfolder
+5. **Migration files**: Ensure database migration files are copied to containers
+6. **Health endpoints**: Include both gRPC and HTTP health check endpoints
+7. **Security**: Use non-root users and proper file permissions
+
+### Container Organization Rules
+1. **One container per subfolder** in `deploy-local/containers/`
+2. **Descriptive naming**: Use `app-[component]` or `service-[name]` format
+3. **Multi-stage builds**: Use previous containers as builders when applicable
+4. **Build context isolation**: Keep build context in dedicated subfolder
+
+## Docker Container Rules
+
+### Dockerfile Standards
+```dockerfile
+# Example multi-stage Dockerfile structure
+# Stage 1: Base builder (can be used by other containers)
+FROM node:18-alpine AS base-builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Stage 2: Development dependencies
+FROM base-builder AS dev-builder
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 3: Production image
+FROM nginx:alpine AS production
+COPY --from=dev-builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### Multi-stage Build Rules
+1. **Builder Reuse**: Reference previous containers as builders using `--from=container-name`
+2. **Stage Naming**: Use descriptive stage names (base-builder, dev-builder, production)
+3. **Optimization**: Minimize final image size by copying only necessary artifacts
+4. **Security**: Use non-root users in production stages
+
+### .dockerignore Standards
+```dockerignore
+# Always include in every container
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.nyc_output
+.coverage
+.vscode
+.idea
+*.swp
+*.swo
+*~
+```
+
+## Kubernetes Manifest Standards
+
+### ConfigMap Rules
+```yaml
+# deploy-local/k8s/configmaps/app-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: default
+  labels:
+    app: myapp
+    component: config
+    environment: local
+data:
+  database_host: "database-service"
+  database_port: "5432"
+  redis_host: "redis-service"
+  redis_port: "6379"
+  log_level: "debug"
+```
+
+### Deployment Rules
+```yaml
+# deploy-local/k8s/deployments/app-backend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-backend
+  namespace: default
+  labels:
+    app: myapp
+    component: backend
+    environment: local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: myapp
+        component: backend
+        environment: local
+    spec:
+      containers:
+      - name: backend
+        image: myapp-backend:local
+        imagePullPolicy: Never  # For local Minikube images
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DATABASE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: database_host
+        envFrom:
+        - secretRef:
+            name: app-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+```
+
+### Secret Management Rules
+```yaml
+# deploy-local/k8s/secrets/app-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: default
+  labels:
+    app: myapp
+    component: secrets
+    environment: local
+type: Opaque
+data:
+  database_password: <base64-encoded-password>
+  jwt_secret: <base64-encoded-jwt-secret>
+  api_key: <base64-encoded-api-key>
+```
+
+### Service Rules
+```yaml
+# deploy-local/k8s/services/app-backend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-backend-service
+  namespace: default
+  labels:
+    app: myapp
+    component: backend
+    environment: local
+spec:
+  selector:
+    app: myapp
+    component: backend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+```
+
+### Manifest Organization Rules
+1. **Separate files** for each resource type
+2. **Consistent naming**: `[component]-[resource-type].yaml`
+3. **Proper labeling**: Include app, component, and environment labels
+4. **Resource limits**: Always define requests and limits
+5. **Health checks**: Include liveness and readiness probes
+6. **ConfigMap/Secret refs**: Use references instead of hardcoded values
+
+## Deployment Automation
+
+### Master Deployment Script
+```bash
+#!/bin/bash
+# deploy-local/scripts/deploy/deploy.sh
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Step 1: Verify software requirements
+log_info "Step 1: Verifying software requirements..."
+if ! "$SCRIPT_DIR/../verify/verify-common.sh"; then
+    log_error "Software verification failed. Please install missing dependencies."
+    exit 1
+fi
+
+# Step 2: Start Minikube if not running
+log_info "Step 2: Checking Minikube status..."
+if ! minikube status >/dev/null 2>&1; then
+    log_info "Starting Minikube..."
+    minikube start --driver=docker --memory=4096 --cpus=2
+fi
+
+# Step 3: Configure Docker environment
+log_info "Step 3: Configuring Docker environment..."
+eval $(minikube docker-env)
+
+# Step 4: Build all containers
+log_info "Step 4: Building containers..."
+"$SCRIPT_DIR/../build/build-all.sh"
+
+# Step 5: Deploy Kubernetes manifests
+log_info "Step 5: Deploying to Kubernetes..."
+"$SCRIPT_DIR/deploy-k8s.sh"
+
+# Step 6: Wait for deployments
+log_info "Step 6: Waiting for deployments to be ready..."
+kubectl wait --for=condition=available --timeout=300s deployment --all
+
+# Step 7: Display access information
+log_info "Step 7: Deployment complete!"
+"$SCRIPT_DIR/show-access-info.sh"
+```
+
+### Container Build Script
+```bash
+#!/bin/bash
+# deploy-local/scripts/build/build-all.sh
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTAINERS_DIR="$(cd "$SCRIPT_DIR/../../containers" && pwd)"
+
+log_info() {
+    echo -e "\033[0;32m[INFO]\033[0m $1"
+}
+
+# Configure Docker to use Minikube's Docker daemon
+eval $(minikube docker-env)
+
+# Build containers in dependency order
+containers=(
+    "app-database"
+    "app-backend"
+    "app-frontend"
+)
+
+for container in "${containers[@]}"; do
+    if [ -d "$CONTAINERS_DIR/$container" ]; then
+        log_info "Building $container..."
+        cd "$CONTAINERS_DIR/$container"
+        
+        # Build with local tag for Minikube
+        docker build -t "${container}:local" .
+        
+        log_info "✓ Built $container:local"
+    else
+        log_info "⚠ Container directory $container not found, skipping..."
+    fi
+done
+
+log_info "All containers built successfully!"
+```
+
+### Kubernetes Deployment Script
+```bash
+#!/bin/bash
+# deploy-local/scripts/deploy/deploy-k8s.sh
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+K8S_DIR="$(cd "$SCRIPT_DIR/../../k8s" && pwd)"
+
+log_info() {
+    echo -e "\033[0;32m[INFO]\033[0m $1"
+}
+
+# Deploy in correct order
+resource_order=(
+    "configmaps"
+    "secrets"
+    "volumes"
+    "deployments"
+    "services"
+    "ingress"
+)
+
+for resource_type in "${resource_order[@]}"; do
+    resource_dir="$K8S_DIR/$resource_type"
+    
+    if [ -d "$resource_dir" ] && [ "$(ls -A $resource_dir 2>/dev/null)" ]; then
+        log_info "Deploying $resource_type..."
+        kubectl apply -f "$resource_dir/"
+    else
+        log_info "No $resource_type found, skipping..."
+    fi
+done
+
+log_info "Kubernetes resources deployed successfully!"
+```
+
+### Access Information Script
+```bash
+#!/bin/bash
+# deploy-local/scripts/deploy/show-access-info.sh
+
+set -e
+
+log_info() {
+    echo -e "\033[0;32m[INFO]\033[0m $1"
+}
+
+log_info "=== Deployment Access Information ==="
+
+# Show Minikube IP
+MINIKUBE_IP=$(minikube ip)
+log_info "Minikube IP: $MINIKUBE_IP"
+
+# Show service URLs
+log_info "Service URLs:"
+minikube service list
+
+# Show pod status
+log_info "Pod Status:"
+kubectl get pods -o wide
+
+# Show service endpoints
+log_info "Service Endpoints:"
+kubectl get svc
+
+log_info "=== Access your application ==="
+log_info "Run 'minikube service <service-name>' to access services"
+log_info "Run 'kubectl port-forward svc/<service-name> <local-port>:<service-port>' for port forwarding"
+```
+
+## Platform-Specific Guidelines
+
+### Windows-Specific Rules
+1. **PowerShell Scripts**: Use `.ps1` extension for Windows-specific scripts
+2. **Docker Desktop**: Ensure Docker Desktop is running before deployment
+3. **WSL2**: Recommend WSL2 backend for better performance
+4. **Path Handling**: Use PowerShell path resolution methods
+
+### macOS-Specific Rules
+1. **Homebrew Integration**: Provide Homebrew installation commands
+2. **Docker Desktop**: Ensure sufficient memory allocation (4GB minimum)
+3. **Hyperkit Driver**: Prefer hyperkit driver for Minikube on macOS
+4. **File Permissions**: Handle Unix permissions correctly
+
+### Linux-Specific Rules
+1. **Package Managers**: Support apt, yum, and dnf package managers
+2. **Docker Engine**: Use Docker Engine instead of Docker Desktop
+3. **User Groups**: Ensure user is in docker group
+4. **Systemd**: Handle systemd service management
+
+## Validation and Testing
+
+### Comprehensive Deployment Validation Framework
+
+#### Pre-deployment Validation
+```bash
+# deploy/scripts/validate/validate-deployment.sh
+#!/bin/bash
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# 1. Validate Software Prerequisites
+validate_prerequisites() {
+    log_info "🔍 Validating software prerequisites..."
+    
+    # Check Docker
+    if ! command -v docker >/dev/null 2>&1; then
+        log_error "Docker not found. Please install Docker."
+        return 1
+    fi
+    
+    if ! docker info >/dev/null 2>&1; then
+        log_error "Docker daemon not running. Please start Docker."
+        return 1
+    fi
+    
+    # Check Minikube
+    if ! command -v minikube >/dev/null 2>&1; then
+        log_error "Minikube not found. Please install Minikube."
+        return 1
+    fi
+    
+    # Check kubectl
+    if ! command -v kubectl >/dev/null 2>&1; then
+        log_error "kubectl not found. Please install kubectl."
+        return 1
+    fi
+    
+    # Check curl for health testing
+    if ! command -v curl >/dev/null 2>&1; then
+        log_error "curl not found. Required for health endpoint testing."
+        return 1
+    fi
+    
+    # Check netcat for connectivity testing
+    if ! command -v nc >/dev/null 2>&1; then
+        log_error "netcat (nc) not found. Required for port connectivity testing."
+        return 1
+    fi
+    
+    log_info "✅ All prerequisites validated"
+}
+
+# 2. Validate Project Structure
+validate_project_structure() {
+    log_info "🏗️ Validating project structure..."
+    
+    local required_dirs=(
+        "deploy/containers"
+        "deploy/k8s"
+        "deploy/scripts"
+        "deploy/config"
+    )
+    
+    for dir in "${required_dirs[@]}"; do
+        if [ ! -d "$dir" ]; then
+            log_error "Required directory missing: $dir"
+            return 1
+        fi
+    done
+    
+    # Check for required scripts
+    local required_scripts=(
+        "deploy/scripts/setup-minikube.sh"
+        "deploy/scripts/build-images.sh"
+        "deploy/scripts/deploy-local.sh"
+        "deploy/scripts/port-forward.sh"
+        "deploy/scripts/teardown.sh"
+    )
+    
+    for script in "${required_scripts[@]}"; do
+        if [ ! -f "$script" ]; then
+            log_error "Required script missing: $script"
+            return 1
+        fi
+        
+        if [ ! -x "$script" ]; then
+            log_warn "Script not executable: $script (fixing...)"
+            chmod +x "$script"
+        fi
+    done
+    
+    log_info "✅ Project structure validated"
+}
+
+# 3. Validate Docker Images and Dockerfiles
+validate_docker_setup() {
+    log_info "🐳 Validating Docker setup..."
+    
+    # Find all Dockerfiles
+    local dockerfiles=($(find deploy/containers -name "Dockerfile" -type f))
+    
+    if [ ${#dockerfiles[@]} -eq 0 ]; then
+        log_error "No Dockerfiles found in deploy/containers"
+        return 1
+    fi
+    
+    # Validate each Dockerfile
+    for dockerfile in "${dockerfiles[@]}"; do
+        local container_dir=$(dirname "$dockerfile")
+        local container_name=$(basename "$container_dir")
+        
+        log_info "Validating Dockerfile for $container_name..."
+        
+        # Check for .dockerignore
+        if [ ! -f "$container_dir/.dockerignore" ]; then
+            log_warn "Missing .dockerignore in $container_dir"
+        fi
+        
+        # Check for multi-stage build patterns
+        if ! grep -q "FROM.*AS" "$dockerfile"; then
+            log_warn "Dockerfile $dockerfile doesn't use multi-stage build"
+        fi
+        
+        # Check for security best practices
+        if ! grep -q "USER" "$dockerfile"; then
+            log_warn "Dockerfile $dockerfile doesn't specify non-root user"
+        fi
+        
+        # Check for health checks
+        if ! grep -q "HEALTHCHECK" "$dockerfile"; then
+            log_warn "Dockerfile $dockerfile doesn't include health check"
+        fi
+    done
+    
+    log_info "✅ Docker setup validated"
+}
+
+# 4. Validate Kubernetes Manifests
+validate_k8s_manifests() {
+    log_info "☸️ Validating Kubernetes manifests..."
+    
+    local k8s_files=($(find deploy/k8s -name "*.yaml" -o -name "*.yml"))
+    
+    if [ ${#k8s_files[@]} -eq 0 ]; then
+        log_error "No Kubernetes manifests found in deploy/k8s"
+        return 1
+    fi
+    
+    # Validate YAML syntax
+    for file in "${k8s_files[@]}"; do
+        if ! kubectl apply --dry-run=client -f "$file" >/dev/null 2>&1; then
+            log_error "Invalid Kubernetes manifest: $file"
+            return 1
+        fi
+    done
+    
+    # Check for required manifest types
+    local required_types=("Deployment" "Service" "ConfigMap")
+    for type in "${required_types[@]}"; do
+        if ! grep -r "kind: $type" deploy/k8s/ >/dev/null 2>&1; then
+            log_warn "No $type manifests found"
+        fi
+    done
+    
+    # Check for namespace consistency
+    local namespaces=($(grep -r "namespace:" deploy/k8s/ | awk '{print $2}' | sort -u))
+    if [ ${#namespaces[@]} -gt 1 ]; then
+        log_warn "Multiple namespaces found: ${namespaces[*]}"
+    fi
+    
+    log_info "✅ Kubernetes manifests validated"
+}
+
+# 5. Validate Minikube Setup
+validate_minikube() {
+    log_info "🎯 Validating Minikube setup..."
+    
+    if ! minikube status >/dev/null 2>&1; then
+        log_error "Minikube is not running"
+        return 1
+    fi
+    
+    # Check resource allocation
+    local memory=$(minikube config get memory 2>/dev/null || echo "2048")
+    if [ "$memory" -lt 4096 ]; then
+        log_warn "Minikube memory is set to ${memory}MB. Recommend 4096MB or higher."
+    fi
+    
+    local cpus=$(minikube config get cpus 2>/dev/null || echo "2")
+    if [ "$cpus" -lt 2 ]; then
+        log_warn "Minikube CPUs set to $cpus. Recommend 2 or higher."
+    fi
+    
+    # Check Docker environment
+    if ! eval $(minikube docker-env) 2>/dev/null; then
+        log_error "Failed to configure Docker environment for Minikube"
+        return 1
+    fi
+    
+    log_info "✅ Minikube setup validated"
+}
+
+# Main validation function
+main() {
+    log_info "🚀 Starting comprehensive deployment validation..."
+    
+    validate_prerequisites || exit 1
+    validate_project_structure || exit 1
+    validate_docker_setup || exit 1
+    validate_k8s_manifests || exit 1
+    validate_minikube || exit 1
+    
+    log_info "🎉 All validations passed! Ready for deployment."
+}
+
+main "$@"
+```
+
+#### Post-deployment Testing
+```bash
+# deploy/scripts/test/test-deployment.sh
+#!/bin/bash
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# Get namespace from manifests or use default
+NAMESPACE=$(grep -r "namespace:" deploy/k8s/ | head -1 | awk '{print $2}' | tr -d '"' || echo "default")
+
+# 1. Test Pod Health and Readiness
+test_pod_health() {
+    log_info "🏥 Testing pod health and readiness..."
+    
+    # Wait for all pods to be ready with timeout
+    log_info "Waiting for all pods to be ready (timeout: 300s)..."
+    if ! kubectl wait --for=condition=ready pod --all -n "$NAMESPACE" --timeout=300s; then
+        log_error "Some pods failed to become ready within timeout"
+        kubectl get pods -n "$NAMESPACE"
+        return 1
+    fi
+    
+    # Check for any failed pods
+    local failed_pods=$(kubectl get pods -n "$NAMESPACE" --field-selector=status.phase!=Running --no-headers 2>/dev/null | wc -l)
+    
+    if [ "$failed_pods" -gt 0 ]; then
+        log_error "$failed_pods pods are not running"
+        kubectl get pods -n "$NAMESPACE" --field-selector=status.phase!=Running
+        return 1
+    fi
+    
+    # Check restart counts
+    local high_restart_pods=$(kubectl get pods -n "$NAMESPACE" --no-headers | awk '$4 > 2 {print $1}')
+    if [ -n "$high_restart_pods" ]; then
+        log_warn "Pods with high restart counts detected:"
+        echo "$high_restart_pods"
+    fi
+    
+    log_info "✅ All pods are healthy and ready"
+}
+
+# 2. Test Service Connectivity
+test_service_connectivity() {
+    log_info "🌐 Testing service connectivity..."
+    
+    # Get all services except kubernetes default
+    local services=$(kubectl get svc -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name" | grep -v kubernetes)
+    
+    if [ -z "$services" ]; then
+        log_warn "No services found in namespace $NAMESPACE"
+        return 0
+    fi
+    
+    for service in $services; do
+        log_info "Testing connectivity to service: $service"
+        
+        # Test DNS resolution
+        if kubectl run test-connectivity-$$-$RANDOM --image=busybox --rm -i --restart=Never -n "$NAMESPACE" -- nslookup "$service" >/dev/null 2>&1; then
+            log_info "✅ Service $service is reachable via DNS"
+        else
+            log_error "❌ Service $service is not reachable via DNS"
+            return 1
+        fi
+    done
+    
+    log_info "✅ All services are reachable"
+}
+
+# 3. Test Database Connectivity and Migrations
+test_database_health() {
+    log_info "🗄️ Testing database health..."
+    
+    # Find database pods (common patterns)
+    local db_pods=$(kubectl get pods -n "$NAMESPACE" --no-headers | grep -E "(postgres|mysql|mongo|redis)" | awk '{print $1}')
+    
+    if [ -z "$db_pods" ]; then
+        log_info "No database pods detected, skipping database tests"
+        return 0
+    fi
+    
+    for pod in $db_pods; do
+        log_info "Testing database pod: $pod"
+        
+        # Check if pod is running
+        local pod_status=$(kubectl get pod "$pod" -n "$NAMESPACE" -o jsonpath='{.status.phase}')
+        if [ "$pod_status" != "Running" ]; then
+            log_error "Database pod $pod is not running (status: $pod_status)"
+            return 1
+        fi
+        
+        # Check logs for migration success (common patterns)
+        if kubectl logs "$pod" -n "$NAMESPACE" | grep -i -E "(migration.*complete|migration.*success|ready to accept connections)" >/dev/null 2>&1; then
+            log_info "✅ Database $pod appears healthy with successful migrations"
+        else
+            log_warn "⚠️ Could not verify migration status for $pod"
+        fi
+    done
+}
+
+# 4. Test Application Health Endpoints
+test_health_endpoints() {
+    log_info "🩺 Testing application health endpoints..."
+    
+    # Get all services with their ports
+    local services_info=$(kubectl get svc -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}:{.spec.ports[0].port} {end}')
+    
+    for service_info in $services_info; do
+        local service_name=$(echo "$service_info" | cut -d: -f1)
+        local service_port=$(echo "$service_info" | cut -d: -f2)
+        
+        # Skip kubernetes service
+        if [ "$service_name" = "kubernetes" ]; then
+            continue
+        fi
+        
+        log_info "Testing health endpoint for $service_name on port $service_port"
+        
+        # Try common health endpoint paths
+        local health_paths=("/health" "/healthz" "/ready" "/ping")
+        local health_found=false
+        
+        for path in "${health_paths[@]}"; do
+            # Use a temporary pod to test the endpoint
+            if kubectl run health-test-$$-$RANDOM --image=curlimages/curl --rm -i --restart=Never -n "$NAMESPACE" -- \
+                curl -s --connect-timeout 5 "http://$service_name:$service_port$path" >/dev/null 2>&1; then
+                log_info "✅ Health endpoint found: $service_name:$service_port$path"
+                health_found=true
+                break
+            fi
+        done
+        
+        if [ "$health_found" = false ]; then
+            log_warn "⚠️ No health endpoint found for $service_name"
+        fi
+    done
+}
+
+# 5. Test Port Forwarding Capability
+test_port_forwarding() {
+    log_info "🔌 Testing port forwarding capability..."
+    
+    # Get first non-database service for testing
+    local test_service=$(kubectl get svc -n "$NAMESPACE" --no-headers | grep -v -E "(kubernetes|postgres|mysql|mongo|redis)" | head -1 | awk '{print $1}')
+    
+    if [ -z "$test_service" ]; then
+        log_warn "No suitable service found for port forwarding test"
+        return 0
+    fi
+    
+    local test_port=$(kubectl get svc "$test_service" -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].port}')
+    local local_port=$((8000 + RANDOM % 1000))
+    
+    log_info "Testing port forwarding for $test_service:$test_port -> localhost:$local_port"
+    
+    # Start port forwarding in background
+    kubectl port-forward -n "$NAMESPACE" "svc/$test_service" "$local_port:$test_port" >/dev/null 2>&1 &
+    local pf_pid=$!
+    
+    # Wait a moment for port forwarding to establish
+    sleep 3
+    
+    # Test connectivity
+    if nc -z localhost "$local_port" 2>/dev/null; then
+        log_info "✅ Port forwarding is working"
+        kill $pf_pid 2>/dev/null || true
+    else
+        log_warn "⚠️ Port forwarding test failed"
+        kill $pf_pid 2>/dev/null || true
+        return 1
+    fi
+}
+
+# 6. Test Resource Usage
+test_resource_usage() {
+    log_info "📊 Testing resource usage..."
+    
+    # Check node resources
+    log_info "Node resource usage:"
+    kubectl top nodes 2>/dev/null || log_warn "Metrics server not available for node stats"
+    
+    # Check pod resources
+    log_info "Pod resource usage in namespace $NAMESPACE:"
+    kubectl top pods -n "$NAMESPACE" 2>/dev/null || log_warn "Metrics server not available for pod stats"
+    
+    # Check for pods with resource limits
+    local pods_without_limits=$(kubectl get pods -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[0].resources.limits}{"\n"}{end}' | grep -c "null" || echo "0")
+    
+    if [ "$pods_without_limits" -gt 0 ]; then
+        log_warn "$pods_without_limits pods are running without resource limits"
+    else
+        log_info "✅ All pods have resource limits defined"
+    fi
+}
+
+# 7. Test Deployment Rollout Status
+test_deployment_status() {
+    log_info "🚀 Testing deployment rollout status..."
+    
+    local deployments=$(kubectl get deployments -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name")
+    
+    for deployment in $deployments; do
+        log_info "Checking rollout status for deployment: $deployment"
+        
+        if kubectl rollout status deployment/"$deployment" -n "$NAMESPACE" --timeout=60s >/dev/null 2>&1; then
+            log_info "✅ Deployment $deployment is successfully rolled out"
+        else
+            log_error "❌ Deployment $deployment rollout failed or timed out"
+            return 1
+        fi
+    done
+}
+
+# Main testing function
+main() {
+    log_info "🧪 Starting comprehensive post-deployment testing..."
+    
+    # Run all tests
+    test_pod_health || exit 1
+    test_service_connectivity || exit 1
+    test_database_health || exit 1
+    test_health_endpoints || exit 1
+    test_port_forwarding || exit 1
+    test_resource_usage || exit 1
+    test_deployment_status || exit 1
+    
+    log_info "🎉 All post-deployment tests passed!"
+    log_info "📋 Deployment Summary:"
+    kubectl get all -n "$NAMESPACE"
+}
+
+main "$@"
+```
+
+### Cleanup Scripts
+```bash
+# deploy-local/scripts/cleanup/cleanup.sh
+#!/bin/bash
+
+cleanup_deployment() {
+    log_info "Cleaning up deployment..."
+    
+    # Delete all resources
+    kubectl delete -f "$K8S_DIR/" --recursive --ignore-not-found=true
+    
+    # Remove Docker images
+    docker images --format "table {{.Repository}}:{{.Tag}}" | grep ":local" | awk '{print $1":"$2}' | xargs -r docker rmi
+    
+    log_info "Cleanup completed"
+}
+
+cleanup_minikube() {
+    log_info "Stopping Minikube..."
+    minikube stop
+    
+    if [ "$1" = "--delete" ]; then
+        log_info "Deleting Minikube cluster..."
+        minikube delete
+    fi
+}
+```
+
+## Usage Examples
+
+### Basic Deployment
+```bash
+# Navigate to project root
+cd /path/to/your/project
+
+# Run single-command deployment
+./deploy-local/scripts/deploy/deploy.sh
+```
+
+### Development Workflow
+```bash
+# 1. Verify environment
+./deploy-local/scripts/verify/verify-common.sh
+
+# 2. Build specific container
+cd deploy-local/containers/app-backend
+docker build -t app-backend:local .
+
+# 3. Deploy changes
+kubectl apply -f deploy-local/k8s/deployments/app-backend.yaml
+
+# 4. Test changes
+./deploy-local/scripts/test/test-deployment.sh
+```
+
+### Cleanup
+```bash
+# Clean deployment only
+./deploy-local/scripts/cleanup/cleanup.sh
+
+# Clean everything including Minikube
+./deploy-local/scripts/cleanup/cleanup.sh --delete
+```
+
+## Best Practices
+
+1. **Version Control**: Always commit the entire `deploy-local` folder structure
+2. **Environment Variables**: Use ConfigMaps and Secrets, never hardcode values
+3. **Resource Limits**: Always define CPU and memory limits
+4. **Health Checks**: Implement proper liveness and readiness probes
+5. **Logging**: Use structured logging with appropriate log levels
+6. **Security**: Follow least-privilege principle for container users
+7. **Documentation**: Maintain up-to-date README in deploy-local folder
+8. **Testing**: Always test deployment scripts on clean environment
+
+## Troubleshooting and Issue Resolution
+
+### Automated Issue Detection and Resolution
+
+#### Common Deployment Issues and Solutions
+
+1. **PostgreSQL/Database Permission Issues**
+   ```bash
+   # Issue: Database fails with permission errors
+   # Solution: Fix PGDATA path configuration
+   
+   # Check logs for permission errors
+   kubectl logs -n "$NAMESPACE" deployment/postgresql | grep -i "permission"
+   
+   # Fix: Update PGDATA to subdirectory
+   # In postgresql-deployment.yaml:
+   # env:
+   # - name: PGDATA
+   #   value: /var/lib/postgresql/data/pgdata  # Not /var/lib/postgresql/data
+   ```
+
+2. **Container Build Failures**
+   ```bash
+   # Issue: Docker build fails with syntax errors
+   # Common causes: Heredoc syntax, shell commands in RUN
+   
+   # Check for heredoc issues
+   grep -r "<<" deploy/containers/*/Dockerfile
+   
+   # Fix: Use simple COPY instead of complex shell scripts
+   # Replace: RUN << 'EOF'
+   # With: COPY script.sh /tmp/ && RUN /tmp/script.sh
+   ```
+
+3. **Migration File Missing Errors**
+   ```bash
+   # Issue: Services fail with "migration files not found"
+   # Solution: Ensure migration files are copied to containers
+   
+   # Check if migration files exist in containers
+   kubectl exec -n "$NAMESPACE" deployment/service-name -- ls -la /app/migrations
+   
+   # Fix: Add to Dockerfile
+   # COPY --from=builder /workspace/services/[service]/migrations /app/migrations
+   ```
+
+4. **Service Port Mismatch**
+   ```bash
+   # Issue: Health checks fail, port forwarding doesn't work
+   # Solution: Ensure service ports match container ports
+   
+   # Check container ports
+   kubectl exec -n "$NAMESPACE" deployment/service-name -- netstat -tlnp
+   
+   # Fix: Update service.yaml to expose all required ports
+   # ports:
+   # - name: grpc
+   #   port: 8080
+   #   targetPort: 8080
+   # - name: health
+   #   port: 8081
+   #   targetPort: 8081
+   ```
+
+5. **CrashLoopBackOff Issues**
+   ```bash
+   # Issue: Pods keep restarting
+   # Solution: Check logs and fix application startup
+   
+   # Get detailed pod information
+   kubectl describe pod -n "$NAMESPACE" <pod-name>
+   
+   # Check recent logs
+   kubectl logs -n "$NAMESPACE" <pod-name> --previous
+   
+   # Common fixes:
+   # - Fix database connection strings
+   # - Ensure dependencies are available
+   # - Check resource limits
+   # - Verify environment variables
+   ```
+
+### Automated Troubleshooting Script
+
+```bash
+# deploy/scripts/troubleshoot/diagnose-issues.sh
+#!/bin/bash
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+NAMESPACE=$(grep -r "namespace:" deploy/k8s/ | head -1 | awk '{print $2}' | tr -d '"' || echo "default")
+
+# 1. Diagnose Pod Issues
+diagnose_pods() {
+    log_info "🔍 Diagnosing pod issues..."
+    
+    # Get problematic pods
+    local failed_pods=$(kubectl get pods -n "$NAMESPACE" --field-selector=status.phase!=Running --no-headers 2>/dev/null)
+    local crashloop_pods=$(kubectl get pods -n "$NAMESPACE" --no-headers | grep -E "(CrashLoopBackOff|Error|ImagePullBackOff)" || true)
+    
+    if [ -n "$failed_pods" ]; then
+        log_error "Failed pods detected:"
+        echo "$failed_pods"
+        
+        # Analyze each failed pod
+        echo "$failed_pods" | while read pod_line; do
+            local pod_name=$(echo "$pod_line" | awk '{print $1}')
+            log_info "Analyzing pod: $pod_name"
+            
+            # Get pod events
+            kubectl describe pod "$pod_name" -n "$NAMESPACE" | grep -A 10 "Events:"
+            
+            # Get recent logs
+            log_info "Recent logs for $pod_name:"
+            kubectl logs "$pod_name" -n "$NAMESPACE" --tail=20 || true
+            kubectl logs "$pod_name" -n "$NAMESPACE" --previous --tail=20 2>/dev/null || true
+        done
+    fi
+    
+    if [ -n "$crashloop_pods" ]; then
+        log_error "CrashLoopBackOff pods detected:"
+        echo "$crashloop_pods"
+        
+        # Provide specific guidance
+        log_info "Common CrashLoopBackOff fixes:"
+        echo "1. Check application logs for startup errors"
+        echo "2. Verify database connectivity"
+        echo "3. Check environment variables and secrets"
+        echo "4. Ensure migration files are present"
+        echo "5. Verify resource limits are sufficient"
+    fi
+}
+
+# 2. Diagnose Service Issues
+diagnose_services() {
+    log_info "🌐 Diagnosing service issues..."
+    
+    # Check services without endpoints
+    local services=$(kubectl get svc -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name")
+    
+    for service in $services; do
+        if [ "$service" = "kubernetes" ]; then
+            continue
+        fi
+        
+        local endpoints=$(kubectl get endpoints "$service" -n "$NAMESPACE" -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null || echo "")
+        
+        if [ -z "$endpoints" ]; then
+            log_warn "Service $service has no endpoints"
+            
+            # Check selector match
+            local service_selector=$(kubectl get svc "$service" -n "$NAMESPACE" -o jsonpath='{.spec.selector}')
+            log_info "Service selector: $service_selector"
+            
+            # Find matching pods
+            local matching_pods=$(kubectl get pods -n "$NAMESPACE" --selector="$(echo "$service_selector" | tr ' ' ',')" --no-headers 2>/dev/null || echo "")
+            
+            if [ -z "$matching_pods" ]; then
+                log_error "No pods match service selector for $service"
+            else
+                log_info "Matching pods found but not ready"
+            fi
+        fi
+    done
+}
+
+# 3. Diagnose Database Issues
+diagnose_database() {
+    log_info "🗄️ Diagnosing database issues..."
+    
+    local db_pods=$(kubectl get pods -n "$NAMESPACE" --no-headers | grep -E "(postgres|mysql|mongo|redis)" | awk '{print $1}')
+    
+    for pod in $db_pods; do
+        log_info "Checking database pod: $pod"
+        
+        # Check for common database issues
+        local logs=$(kubectl logs "$pod" -n "$NAMESPACE" --tail=50)
+        
+        # PostgreSQL specific checks
+        if echo "$pod" | grep -q "postgres"; then
+            if echo "$logs" | grep -q "permission denied"; then
+                log_error "PostgreSQL permission issue detected in $pod"
+                log_info "Fix: Update PGDATA to /var/lib/postgresql/data/pgdata"
+            fi
+            
+            if echo "$logs" | grep -q "ready to accept connections"; then
+                log_info "✅ PostgreSQL $pod is ready"
+            else
+                log_warn "PostgreSQL $pod may not be ready yet"
+            fi
+        fi
+        
+        # Check for migration issues
+        if echo "$logs" | grep -q -i "migration.*fail"; then
+            log_error "Database migration failure detected in $pod"
+            log_info "Check migration files and database connectivity"
+        fi
+    done
+}
+
+# 4. Diagnose Image Issues
+diagnose_images() {
+    log_info "🐳 Diagnosing image issues..."
+    
+    # Check for ImagePullBackOff
+    local image_pull_errors=$(kubectl get pods -n "$NAMESPACE" --no-headers | grep "ImagePullBackOff" || true)
+    
+    if [ -n "$image_pull_errors" ]; then
+        log_error "ImagePullBackOff detected:"
+        echo "$image_pull_errors"
+        
+        log_info "Common fixes:"
+        echo "1. Ensure Docker environment is configured: eval \$(minikube docker-env)"
+        echo "2. Rebuild images: ./deploy/scripts/build-images.sh"
+        echo "3. Check imagePullPolicy is set to 'Never' for local images"
+    fi
+    
+    # Check if images exist in Minikube
+    log_info "Checking if required images exist in Minikube..."
+    eval $(minikube docker-env) 2>/dev/null || true
+    
+    # Get required images from deployments
+    local required_images=$(grep -r "image:" deploy/k8s/ | grep -v "#" | awk '{print $2}' | sort -u)
+    
+    for image in $required_images; do
+        if docker images --format "table {{.Repository}}:{{.Tag}}" | grep -q "$image"; then
+            log_info "✅ Image found: $image"
+        else
+            log_warn "❌ Image missing: $image"
+        fi
+    done
+}
+
+# 5. Diagnose Resource Issues
+diagnose_resources() {
+    log_info "📊 Diagnosing resource issues..."
+    
+    # Check node resources
+    local node_info=$(kubectl describe nodes | grep -A 5 "Allocated resources" || true)
+    
+    if [ -n "$node_info" ]; then
+        log_info "Node resource allocation:"
+        echo "$node_info"
+    fi
+    
+    # Check for pending pods due to resources
+    local pending_pods=$(kubectl get pods -n "$NAMESPACE" --field-selector=status.phase=Pending --no-headers || true)
+    
+    if [ -n "$pending_pods" ]; then
+        log_warn "Pending pods detected (possible resource constraints):"
+        echo "$pending_pods"
+        
+        # Get detailed information
+        echo "$pending_pods" | while read pod_line; do
+            local pod_name=$(echo "$pod_line" | awk '{print $1}')
+            kubectl describe pod "$pod_name" -n "$NAMESPACE" | grep -A 5 "Events:"
+        done
+    fi
+}
+
+# Main diagnostic function
+main() {
+    log_info "🔧 Starting comprehensive deployment diagnosis..."
+    
+    diagnose_pods
+    diagnose_services
+    diagnose_database
+    diagnose_images
+    diagnose_resources
+    
+    log_info "🏁 Diagnosis complete. Check the output above for specific issues and solutions."
+}
+
+main "$@"
+```
+
+### Quick Fix Commands
+
+```bash
+# Quick fixes for common issues
+
+# 1. Restart all deployments
+kubectl rollout restart deployment -n "$NAMESPACE" --all
+
+# 2. Force rebuild and redeploy
+eval $(minikube docker-env)
+./deploy/scripts/build-images.sh
+kubectl rollout restart deployment -n "$NAMESPACE" --all
+
+# 3. Reset Minikube completely
+minikube delete
+minikube start --memory=4096 --cpus=2
+./deploy/scripts/deploy-local.sh
+
+# 4. Check and fix port forwarding
+pkill -f "kubectl.*port-forward" || true
+./deploy/scripts/port-forward.sh
+
+# 5. Clean up failed pods
+kubectl delete pods -n "$NAMESPACE" --field-selector=status.phase=Failed
+
+# 6. Get comprehensive status
+kubectl get all,pv,pvc,secrets,configmaps -n "$NAMESPACE"
+```
+
+## Deployment Validation Checklist
+
+### Pre-Deployment Checklist
+- [ ] All required software installed and running (Docker, Minikube, kubectl, curl, nc)
+- [ ] Project structure follows mandatory folder layout
+- [ ] All Dockerfiles include multi-stage builds and security best practices
+- [ ] All containers have .dockerignore files
+- [ ] Migration files are properly copied to containers
+- [ ] Kubernetes manifests are valid (dry-run passes)
+- [ ] Services expose all required ports (gRPC + health endpoints)
+- [ ] Resource limits are defined for all containers
+- [ ] Health checks are implemented in Dockerfiles
+- [ ] Database PGDATA path is correctly configured
+- [ ] All scripts are executable
+
+### Deployment Process Checklist
+- [ ] Minikube is running with sufficient resources (4GB+ memory, 2+ CPUs)
+- [ ] Docker environment is configured for Minikube
+- [ ] All container images build successfully
+- [ ] Database starts without permission errors
+- [ ] All pods reach Running state within timeout
+- [ ] Database migrations complete successfully
+- [ ] Services have valid endpoints
+- [ ] Port forwarding works for all services
+- [ ] Health endpoints return successful responses
+
+### Post-Deployment Validation Checklist
+- [ ] All pods are in Running state with 0 restarts
+- [ ] All services have endpoints
+- [ ] Database connectivity is verified
+- [ ] Application health endpoints respond correctly
+- [ ] Port forwarding enables external access
+- [ ] Resource usage is within acceptable limits
+- [ ] No CrashLoopBackOff or ImagePullBackOff errors
+- [ ] Deployment rollout status is successful
+- [ ] All tests pass in test suite
+
+### Troubleshooting Checklist
+- [ ] Run comprehensive diagnosis script
+- [ ] Check pod logs for errors
+- [ ] Verify service selectors match pod labels
+- [ ] Confirm image availability in Minikube
+- [ ] Validate resource constraints
+- [ ] Test database connectivity and migrations
+- [ ] Verify port configurations match between services and containers
+- [ ] Check for permission issues in database pods
+- [ ] Validate environment variables and secrets
+
+### Success Criteria
+- [ ] All services accessible via port forwarding
+- [ ] Database operations work correctly
+- [ ] Health endpoints return 200 OK
+- [ ] No error logs in any pods
+- [ ] Resource usage is stable
+- [ ] Deployment can be torn down and recreated successfully
+- [ ] Documentation is complete and accurate
+
+This cursor rule ensures consistent, automated, and reliable container deployments with Minikube across all platforms while maintaining proper project structure and following Kubernetes best practices. It incorporates real-world deployment experience and provides comprehensive validation, testing, and troubleshooting capabilities.

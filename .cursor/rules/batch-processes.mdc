@@ -1,0 +1,1398 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Batch Processing - Context Document
+
+## 1. Architecture Overview
+
+### 1.1 Batch Processing Architecture
+- **Processor Layer**
+  - Data ingestion and validation
+  - Business logic processing
+  - Data transformation and enrichment
+
+- **Storage Layer**
+  - Input data sources (files, databases, queues)
+  - Intermediate processing storage
+  - Output data destinations
+
+- **Orchestration Layer**
+  - Job scheduling and coordination
+  - Workflow management
+  - Error handling and retry logic
+
+- **Monitoring Layer**
+  - Progress tracking
+  - Performance metrics
+  - Error reporting and alerting
+
+### 1.2 Technology Stack
+- **Backend**
+  - Language: Go 1.21+
+  - Scheduler: Cron, Temporal, or Kubernetes CronJobs
+  - Queue: RabbitMQ, Apache Kafka, or Redis
+  - Database: PostgreSQL, MongoDB
+  - File Storage: S3, GCS, or local filesystem
+  - Monitoring: Prometheus, Grafana, OpenTelemetry
+
+## 2. Batch Job Design Patterns
+
+### 2.1 Simple Batch Processor
+```go
+package batch
+
+import (
+    "context"
+    "fmt"
+    "time"
+)
+
+type BatchProcessor struct {
+    name        string
+    batchSize   int
+    maxRetries  int
+    timeout     time.Duration
+    dataSource  DataSource
+    processor   DataProcessor
+    destination DataDestination
+    logger      Logger
+    metrics     MetricsCollector
+}
+
+type BatchConfig struct {
+    Name       string        `yaml:"name"`
+    BatchSize  int           `yaml:"batch_size"`
+    MaxRetries int           `yaml:"max_retries"`
+    Timeout    time.Duration `yaml:"timeout"`
+}
+
+func NewBatchProcessor(config BatchConfig, deps Dependencies) *BatchProcessor {
+    return &BatchProcessor{
+        name:        config.Name,
+        batchSize:   config.BatchSize,
+        maxRetries:  config.MaxRetries,
+        timeout:     config.Timeout,
+        dataSource:  deps.DataSource,
+        processor:   deps.Processor,
+        destination: deps.Destination,
+        logger:      deps.Logger,
+        metrics:     deps.Metrics,
+    }
+}
+
+func (bp *BatchProcessor) Process(ctx context.Context) error {
+    ctx, cancel := context.WithTimeout(ctx, bp.timeout)
+    defer cancel()
+    
+    bp.logger.Info("Starting batch processing", map[string]interface{}{
+        "job_name":   bp.name,
+        "batch_size": bp.batchSize,
+    })
+    
+    totalProcessed := 0
+    totalErrors := 0
+    
+    for {
+        batch, err := bp.dataSource.GetBatch(ctx, bp.batchSize)
+        if err != nil {
+            return fmt.Errorf("failed to get batch: %w", err)
+        }
+        
+        if len(batch) == 0 {
+            break // No more data to process
+        }
+        
+        processedBatch, batchErrors := bp.processBatch(ctx, batch)
+        
+        if err := bp.destination.SaveBatch(ctx, processedBatch); err != nil {
+            bp.logger.Error("Failed to save batch", map[string]interface{}{
+                "error": err.Error(),
+                "batch_size": len(processedBatch),
+            })
+            return fmt.Errorf("failed to save batch: %w", err)
+        }
+        
+        totalProcessed += len(processedBatch)
+        totalErrors += len(batchErrors)
+        
+        bp.metrics.RecordBatchProcessed(len(processedBatch))
+        bp.metrics.RecordBatchErrors(len(batchErrors))
+        
+        bp.logger.Info("Batch processed", map[string]interface{}{
+            "processed": len(processedBatch),
+            "errors":    len(batchErrors),
+        })
+    }
+    
+    bp.logger.Info("Batch processing completed", map[string]interface{}{
+        "total_processed": totalProcessed,
+        "total_errors":    totalErrors,
+    })
+    
+    return nil
+}
+
+func (bp *BatchProcessor) processBatch(ctx context.Context, batch []DataItem) ([]ProcessedItem, []error) {
+    var processed []ProcessedItem
+    var errors []error
+    
+    for _, item := range batch {
+        processedItem, err := bp.processor.Process(ctx, item)
+        if err != nil {
+            bp.logger.Error("Failed to process item", map[string]interface{}{
+                "item_id": item.ID,
+                "error":   err.Error(),
+            })
+            errors = append(errors, err)
+            continue
+        }
+        
+        processed = append(processed, processedItem)
+    }
+    
+    return processed, errors
+}
+```
+
+### 2.2 ETL Pipeline
+```go
+package etl
+
+type ETLPipeline struct {
+    name       string
+    extractor  Extractor
+    transformer Transformer
+    loader     Loader
+    stages     []PipelineStage
+    config     ETLConfig
+}
+
+type ETLConfig struct {
+    Name           string                 `yaml:"name"`
+    ChunkSize      int                    `yaml:"chunk_size"`
+    ParallelWorkers int                   `yaml:"parallel_workers"`
+    RetryPolicy    RetryPolicy            `yaml:"retry_policy"`
+    Transformations []TransformationConfig `yaml:"transformations"`
+}
+
+type PipelineStage struct {
+    Name        string
+    Processor   StageProcessor
+    InputType   reflect.Type
+    OutputType  reflect.Type
+    Parallel    bool
+    MaxRetries  int
+}
+
+func NewETLPipeline(config ETLConfig, deps ETLDependencies) *ETLPipeline {
+    pipeline := &ETLPipeline{
+        name:        config.Name,
+        extractor:   deps.Extractor,
+        transformer: deps.Transformer,
+        loader:      deps.Loader,
+        config:      config,
+    }
+    
+    // Build pipeline stages
+    pipeline.buildStages(config.Transformations)
+    
+    return pipeline
+}
+
+func (p *ETLPipeline) Execute(ctx context.Context) error {
+    // Extract phase
+    data, err := p.extractor.Extract(ctx)
+    if err != nil {
+        return fmt.Errorf("extraction failed: %w", err)
+    }
+    
+    // Transform phase - process through stages
+    transformedData := data
+    for _, stage := range p.stages {
+        transformedData, err = p.executeStage(ctx, stage, transformedData)
+        if err != nil {
+            return fmt.Errorf("stage %s failed: %w", stage.Name, err)
+        }
+    }
+    
+    // Load phase
+    if err := p.loader.Load(ctx, transformedData); err != nil {
+        return fmt.Errorf("loading failed: %w", err)
+    }
+    
+    return nil
+}
+
+func (p *ETLPipeline) executeStage(ctx context.Context, stage PipelineStage, data interface{}) (interface{}, error) {
+    if stage.Parallel {
+        return p.executeParallelStage(ctx, stage, data)
+    }
+    
+    return stage.Processor.Process(ctx, data)
+}
+
+func (p *ETLPipeline) executeParallelStage(ctx context.Context, stage PipelineStage, data interface{}) (interface{}, error) {
+    // Convert data to slice for parallel processing
+    items := p.convertToSlice(data)
+    
+    workers := p.config.ParallelWorkers
+    if workers <= 0 {
+        workers = runtime.NumCPU()
+    }
+    
+    jobs := make(chan interface{}, len(items))
+    results := make(chan ProcessResult, len(items))
+    
+    // Start workers
+    for w := 0; w < workers; w++ {
+        go func() {
+            for item := range jobs {
+                result, err := stage.Processor.Process(ctx, item)
+                results <- ProcessResult{Data: result, Error: err}
+            }
+        }()
+    }
+    
+    // Send jobs
+    for _, item := range items {
+        jobs <- item
+    }
+    close(jobs)
+    
+    // Collect results
+    var processedItems []interface{}
+    var errors []error
+    
+    for i := 0; i < len(items); i++ {
+        result := <-results
+        if result.Error != nil {
+            errors = append(errors, result.Error)
+        } else {
+            processedItems = append(processedItems, result.Data)
+        }
+    }
+    
+    if len(errors) > 0 {
+        return nil, fmt.Errorf("parallel processing failed with %d errors", len(errors))
+    }
+    
+    return processedItems, nil
+}
+```
+
+### 2.3 Streaming Batch Processor
+```go
+package streaming
+
+import (
+    "context"
+    "time"
+)
+
+type StreamingBatchProcessor struct {
+    source     StreamSource
+    processor  BatchProcessor
+    window     time.Duration
+    batchSize  int
+    buffer     []StreamEvent
+    ticker     *time.Ticker
+    quit       chan struct{}
+}
+
+type StreamEvent struct {
+    ID        string      `json:"id"`
+    Timestamp time.Time   `json:"timestamp"`
+    Data      interface{} `json:"data"`
+    Type      string      `json:"type"`
+}
+
+func NewStreamingBatchProcessor(config StreamingConfig) *StreamingBatchProcessor {
+    return &StreamingBatchProcessor{
+        source:    config.Source,
+        processor: config.Processor,
+        window:    config.Window,
+        batchSize: config.BatchSize,
+        buffer:    make([]StreamEvent, 0, config.BatchSize),
+        ticker:    time.NewTicker(config.Window),
+        quit:      make(chan struct{}),
+    }
+}
+
+func (sbp *StreamingBatchProcessor) Start(ctx context.Context) error {
+    eventChan, err := sbp.source.Subscribe(ctx)
+    if err != nil {
+        return fmt.Errorf("failed to subscribe to stream: %w", err)
+    }
+    
+    for {
+        select {
+        case event := <-eventChan:
+            sbp.addToBuffer(event)
+            
+            // Process if buffer is full
+            if len(sbp.buffer) >= sbp.batchSize {
+                if err := sbp.processBatch(ctx); err != nil {
+                    return fmt.Errorf("failed to process batch: %w", err)
+                }
+            }
+            
+        case <-sbp.ticker.C:
+            // Process batch on timer
+            if len(sbp.buffer) > 0 {
+                if err := sbp.processBatch(ctx); err != nil {
+                    return fmt.Errorf("failed to process timed batch: %w", err)
+                }
+            }
+            
+        case <-ctx.Done():
+            return ctx.Err()
+            
+        case <-sbp.quit:
+            return nil
+        }
+    }
+}
+
+func (sbp *StreamingBatchProcessor) addToBuffer(event StreamEvent) {
+    sbp.buffer = append(sbp.buffer, event)
+}
+
+func (sbp *StreamingBatchProcessor) processBatch(ctx context.Context) error {
+    if len(sbp.buffer) == 0 {
+        return nil
+    }
+    
+    batch := make([]StreamEvent, len(sbp.buffer))
+    copy(batch, sbp.buffer)
+    sbp.buffer = sbp.buffer[:0] // Clear buffer
+    
+    return sbp.processor.ProcessEvents(ctx, batch)
+}
+
+func (sbp *StreamingBatchProcessor) Stop() {
+    sbp.ticker.Stop()
+    close(sbp.quit)
+}
+```
+
+## 3. Job Scheduling
+
+### 3.1 Cron Job Manager
+```go
+package scheduler
+
+import (
+    "context"
+    "github.com/robfig/cron/v3"
+)
+
+type JobScheduler struct {
+    cron   *cron.Cron
+    jobs   map[string]ScheduledJob
+    logger Logger
+}
+
+type ScheduledJob struct {
+    ID          string
+    Name        string
+    Schedule    string
+    Job         BatchJob
+    LastRun     time.Time
+    NextRun     time.Time
+    Status      JobStatus
+    MaxRetries  int
+    RetryCount  int
+}
+
+type BatchJob interface {
+    Execute(ctx context.Context) error
+    GetName() string
+    GetTimeout() time.Duration
+}
+
+func NewJobScheduler(logger Logger) *JobScheduler {
+    return &JobScheduler{
+        cron:   cron.New(cron.WithSeconds()),
+        jobs:   make(map[string]ScheduledJob),
+        logger: logger,
+    }
+}
+
+func (js *JobScheduler) AddJob(job ScheduledJob) error {
+    entryID, err := js.cron.AddFunc(job.Schedule, func() {
+        js.executeJob(job)
+    })
+    if err != nil {
+        return fmt.Errorf("failed to add job %s: %w", job.Name, err)
+    }
+    
+    job.ID = fmt.Sprintf("%d", entryID)
+    js.jobs[job.ID] = job
+    
+    js.logger.Info("Job scheduled", map[string]interface{}{
+        "job_name": job.Name,
+        "schedule": job.Schedule,
+    })
+    
+    return nil
+}
+
+func (js *JobScheduler) executeJob(job ScheduledJob) {
+    ctx, cancel := context.WithTimeout(context.Background(), job.Job.GetTimeout())
+    defer cancel()
+    
+    js.logger.Info("Starting job execution", map[string]interface{}{
+        "job_name": job.Name,
+    })
+    
+    startTime := time.Now()
+    
+    err := job.Job.Execute(ctx)
+    
+    duration := time.Since(startTime)
+    
+    if err != nil {
+        job.RetryCount++
+        js.logger.Error("Job execution failed", map[string]interface{}{
+            "job_name":    job.Name,
+            "error":       err.Error(),
+            "retry_count": job.RetryCount,
+            "duration":    duration,
+        })
+        
+        if job.RetryCount < job.MaxRetries {
+            // Schedule retry
+            time.AfterFunc(time.Minute*time.Duration(job.RetryCount), func() {
+                js.executeJob(job)
+            })
+        } else {
+            job.Status = JobStatusFailed
+            js.logger.Error("Job failed after max retries", map[string]interface{}{
+                "job_name":    job.Name,
+                "max_retries": job.MaxRetries,
+            })
+        }
+    } else {
+        job.Status = JobStatusCompleted
+        job.RetryCount = 0
+        job.LastRun = startTime
+        
+        js.logger.Info("Job completed successfully", map[string]interface{}{
+            "job_name": job.Name,
+            "duration": duration,
+        })
+    }
+    
+    js.jobs[job.ID] = job
+}
+
+func (js *JobScheduler) Start() {
+    js.cron.Start()
+    js.logger.Info("Job scheduler started")
+}
+
+func (js *JobScheduler) Stop() {
+    js.cron.Stop()
+    js.logger.Info("Job scheduler stopped")
+}
+```
+
+### 3.2 Kubernetes CronJob
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: data-processing-job
+  namespace: batch-processing
+spec:
+  schedule: "0 2 * * *"  # Run daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: batch-processor
+            image: myapp/batch-processor:latest
+            env:
+            - name: JOB_TYPE
+              value: "data-processing"
+            - name: BATCH_SIZE
+              value: "1000"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-secret
+                  key: url
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "1Gi"
+                cpu: "1000m"
+            volumeMounts:
+            - name: data-volume
+              mountPath: /data
+          volumes:
+          - name: data-volume
+            persistentVolumeClaim:
+              claimName: batch-data-pvc
+          restartPolicy: OnFailure
+      backoffLimit: 3
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+```
+
+## 4. Data Processing Patterns
+
+### 4.1 Map-Reduce Pattern
+```go
+package mapreduce
+
+type MapReduceJob struct {
+    name       string
+    mapper     Mapper
+    reducer    Reducer
+    combiner   Combiner // Optional
+    partitioner Partitioner
+    workers    int
+}
+
+type Mapper interface {
+    Map(key string, value interface{}) ([]KeyValue, error)
+}
+
+type Reducer interface {
+    Reduce(key string, values []interface{}) (interface{}, error)
+}
+
+type KeyValue struct {
+    Key   string
+    Value interface{}
+}
+
+func (mrj *MapReduceJob) Execute(ctx context.Context, input []KeyValue) ([]KeyValue, error) {
+    // Map phase
+    mapResults := make(chan []KeyValue, len(input))
+    semaphore := make(chan struct{}, mrj.workers)
+    
+    for _, item := range input {
+        semaphore <- struct{}{}
+        go func(kv KeyValue) {
+            defer func() { <-semaphore }()
+            
+            results, err := mrj.mapper.Map(kv.Key, kv.Value)
+            if err != nil {
+                // Handle error
+                return
+            }
+            mapResults <- results
+        }(item)
+    }
+    
+    // Collect map results
+    var allMapResults []KeyValue
+    for i := 0; i < len(input); i++ {
+        results := <-mapResults
+        allMapResults = append(allMapResults, results...)
+    }
+    
+    close(mapResults)
+    
+    // Group by key for reduce phase
+    grouped := make(map[string][]interface{})
+    for _, kv := range allMapResults {
+        grouped[kv.Key] = append(grouped[kv.Key], kv.Value)
+    }
+    
+    // Reduce phase
+    var finalResults []KeyValue
+    for key, values := range grouped {
+        result, err := mrj.reducer.Reduce(key, values)
+        if err != nil {
+            return nil, fmt.Errorf("reduce failed for key %s: %w", key, err)
+        }
+        
+        finalResults = append(finalResults, KeyValue{
+            Key:   key,
+            Value: result,
+        })
+    }
+    
+    return finalResults, nil
+}
+```
+
+### 4.2 Pipeline Pattern
+```go
+package pipeline
+
+type Pipeline struct {
+    stages []Stage
+    name   string
+    buffer int
+}
+
+type Stage interface {
+    Process(ctx context.Context, input <-chan interface{}) <-chan interface{}
+    Name() string
+}
+
+func NewPipeline(name string, bufferSize int) *Pipeline {
+    return &Pipeline{
+        name:   name,
+        buffer: bufferSize,
+    }
+}
+
+func (p *Pipeline) AddStage(stage Stage) {
+    p.stages = append(p.stages, stage)
+}
+
+func (p *Pipeline) Execute(ctx context.Context, input <-chan interface{}) <-chan interface{} {
+    if len(p.stages) == 0 {
+        return input
+    }
+    
+    current := input
+    for _, stage := range p.stages {
+        current = stage.Process(ctx, current)
+    }
+    
+    return current
+}
+
+// Example stages
+type FilterStage struct {
+    name      string
+    predicate func(interface{}) bool
+}
+
+func (fs *FilterStage) Process(ctx context.Context, input <-chan interface{}) <-chan interface{} {
+    output := make(chan interface{}, 100)
+    
+    go func() {
+        defer close(output)
+        for item := range input {
+            if fs.predicate(item) {
+                select {
+                case output <- item:
+                case <-ctx.Done():
+                    return
+                }
+            }
+        }
+    }()
+    
+    return output
+}
+
+func (fs *FilterStage) Name() string {
+    return fs.name
+}
+
+type TransformStage struct {
+    name        string
+    transformer func(interface{}) interface{}
+}
+
+func (ts *TransformStage) Process(ctx context.Context, input <-chan interface{}) <-chan interface{} {
+    output := make(chan interface{}, 100)
+    
+    go func() {
+        defer close(output)
+        for item := range input {
+            transformed := ts.transformer(item)
+            select {
+            case output <- transformed:
+            case <-ctx.Done():
+                return
+            }
+        }
+    }()
+    
+    return output
+}
+
+func (ts *TransformStage) Name() string {
+    return ts.name
+}
+```
+
+## 5. Error Handling and Recovery
+
+### 5.1 Retry Mechanisms
+```go
+package retry
+
+import (
+    "context"
+    "time"
+)
+
+type RetryPolicy struct {
+    MaxAttempts   int           `yaml:"max_attempts"`
+    InitialDelay  time.Duration `yaml:"initial_delay"`
+    MaxDelay      time.Duration `yaml:"max_delay"`
+    BackoffFactor float64       `yaml:"backoff_factor"`
+    RetryableErrors []string    `yaml:"retryable_errors"`
+}
+
+type RetryableOperation func(ctx context.Context) error
+
+func WithRetry(ctx context.Context, policy RetryPolicy, operation RetryableOperation) error {
+    var lastErr error
+    delay := policy.InitialDelay
+    
+    for attempt := 1; attempt <= policy.MaxAttempts; attempt++ {
+        err := operation(ctx)
+        if err == nil {
+            return nil // Success
+        }
+        
+        lastErr = err
+        
+        // Check if error is retryable
+        if !isRetryableError(err, policy.RetryableErrors) {
+            return err
+        }
+        
+        if attempt == policy.MaxAttempts {
+            break // Don't wait after the last attempt
+        }
+        
+        // Wait before retry
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        case <-time.After(delay):
+        }
+        
+        // Calculate next delay with backoff
+        delay = time.Duration(float64(delay) * policy.BackoffFactor)
+        if delay > policy.MaxDelay {
+            delay = policy.MaxDelay
+        }
+    }
+    
+    return fmt.Errorf("operation failed after %d attempts: %w", policy.MaxAttempts, lastErr)
+}
+
+func isRetryableError(err error, retryableErrors []string) bool {
+    errMsg := err.Error()
+    for _, retryableErr := range retryableErrors {
+        if strings.Contains(errMsg, retryableErr) {
+            return true
+        }
+    }
+    return false
+}
+
+// Circuit breaker for batch operations
+type CircuitBreaker struct {
+    maxFailures   int
+    resetTimeout  time.Duration
+    failures      int
+    lastFailTime  time.Time
+    state         CircuitState
+    mutex         sync.RWMutex
+}
+
+type CircuitState int
+
+const (
+    CircuitClosed CircuitState = iota
+    CircuitOpen
+    CircuitHalfOpen
+)
+
+func NewCircuitBreaker(maxFailures int, resetTimeout time.Duration) *CircuitBreaker {
+    return &CircuitBreaker{
+        maxFailures:  maxFailures,
+        resetTimeout: resetTimeout,
+        state:        CircuitClosed,
+    }
+}
+
+func (cb *CircuitBreaker) Execute(operation func() error) error {
+    cb.mutex.RLock()
+    state := cb.state
+    failures := cb.failures
+    lastFailTime := cb.lastFailTime
+    cb.mutex.RUnlock()
+    
+    switch state {
+    case CircuitOpen:
+        if time.Since(lastFailTime) > cb.resetTimeout {
+            cb.mutex.Lock()
+            cb.state = CircuitHalfOpen
+            cb.mutex.Unlock()
+        } else {
+            return fmt.Errorf("circuit breaker is open")
+        }
+    case CircuitHalfOpen:
+        // Allow one request through
+    case CircuitClosed:
+        // Normal operation
+    }
+    
+    err := operation()
+    
+    cb.mutex.Lock()
+    defer cb.mutex.Unlock()
+    
+    if err != nil {
+        cb.failures++
+        cb.lastFailTime = time.Now()
+        
+        if cb.failures >= cb.maxFailures {
+            cb.state = CircuitOpen
+        }
+    } else {
+        cb.failures = 0
+        cb.state = CircuitClosed
+    }
+    
+    return err
+}
+```
+
+## 6. Monitoring and Observability
+
+### 6.1 Metrics Collection
+```go
+package monitoring
+
+import (
+    "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+    batchJobsTotal = promauto.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "batch_jobs_total",
+            Help: "Total number of batch jobs executed",
+        },
+        []string{"job_name", "status"},
+    )
+    
+    batchJobDuration = promauto.NewHistogramVec(
+        prometheus.HistogramOpts{
+            Name: "batch_job_duration_seconds",
+            Help: "Duration of batch job execution",
+        },
+        []string{"job_name"},
+    )
+    
+    batchItemsProcessed = promauto.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "batch_items_processed_total",
+            Help: "Total number of items processed in batches",
+        },
+        []string{"job_name", "batch_type"},
+    )
+    
+    batchItemsErrors = promauto.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "batch_items_errors_total",
+            Help: "Total number of item processing errors",
+        },
+        []string{"job_name", "error_type"},
+    )
+)
+
+type BatchMetrics struct {
+    jobName string
+}
+
+func NewBatchMetrics(jobName string) *BatchMetrics {
+    return &BatchMetrics{
+        jobName: jobName,
+    }
+}
+
+func (bm *BatchMetrics) RecordJobStart() {
+    batchJobsTotal.WithLabelValues(bm.jobName, "started").Inc()
+}
+
+func (bm *BatchMetrics) RecordJobCompletion(duration time.Duration, status string) {
+    batchJobsTotal.WithLabelValues(bm.jobName, status).Inc()
+    batchJobDuration.WithLabelValues(bm.jobName).Observe(duration.Seconds())
+}
+
+func (bm *BatchMetrics) RecordItemsProcessed(count int, batchType string) {
+    batchItemsProcessed.WithLabelValues(bm.jobName, batchType).Add(float64(count))
+}
+
+func (bm *BatchMetrics) RecordItemError(errorType string) {
+    batchItemsErrors.WithLabelValues(bm.jobName, errorType).Inc()
+}
+```
+
+### 6.2 Health Monitoring
+```go
+package health
+
+type BatchHealthChecker struct {
+    jobs       map[string]*ScheduledJob
+    thresholds HealthThresholds
+}
+
+type HealthThresholds struct {
+    MaxFailureRate     float64       `yaml:"max_failure_rate"`
+    MaxExecutionTime   time.Duration `yaml:"max_execution_time"`
+    MaxTimeSinceRun    time.Duration `yaml:"max_time_since_run"`
+    MaxConsecutiveFails int          `yaml:"max_consecutive_fails"`
+}
+
+type HealthStatus struct {
+    Healthy           bool                   `json:"healthy"`
+    Jobs              map[string]JobHealth   `json:"jobs"`
+    OverallStatus     string                 `json:"overall_status"`
+    LastCheck         time.Time              `json:"last_check"`
+    UnhealthyJobs     []string               `json:"unhealthy_jobs,omitempty"`
+}
+
+type JobHealth struct {
+    Name              string        `json:"name"`
+    Healthy           bool          `json:"healthy"`
+    LastRun           time.Time     `json:"last_run"`
+    NextRun           time.Time     `json:"next_run"`
+    ConsecutiveFails  int           `json:"consecutive_fails"`
+    FailureRate       float64       `json:"failure_rate"`
+    AverageRunTime    time.Duration `json:"average_run_time"`
+    Issues            []string      `json:"issues,omitempty"`
+}
+
+func (bhc *BatchHealthChecker) CheckHealth() HealthStatus {
+    status := HealthStatus{
+        Healthy:       true,
+        Jobs:          make(map[string]JobHealth),
+        OverallStatus: "healthy",
+        LastCheck:     time.Now(),
+    }
+    
+    for jobName, job := range bhc.jobs {
+        jobHealth := bhc.checkJobHealth(job)
+        status.Jobs[jobName] = jobHealth
+        
+        if !jobHealth.Healthy {
+            status.Healthy = false
+            status.UnhealthyJobs = append(status.UnhealthyJobs, jobName)
+        }
+    }
+    
+    if !status.Healthy {
+        status.OverallStatus = "unhealthy"
+    }
+    
+    return status
+}
+
+func (bhc *BatchHealthChecker) checkJobHealth(job *ScheduledJob) JobHealth {
+    health := JobHealth{
+        Name:             job.Name,
+        Healthy:          true,
+        LastRun:          job.LastRun,
+        NextRun:          job.NextRun,
+        ConsecutiveFails: job.ConsecutiveFails,
+        FailureRate:      job.FailureRate,
+        AverageRunTime:   job.AverageRunTime,
+    }
+    
+    // Check consecutive failures
+    if job.ConsecutiveFails >= bhc.thresholds.MaxConsecutiveFails {
+        health.Healthy = false
+        health.Issues = append(health.Issues, fmt.Sprintf("Too many consecutive failures: %d", job.ConsecutiveFails))
+    }
+    
+    // Check failure rate
+    if job.FailureRate > bhc.thresholds.MaxFailureRate {
+        health.Healthy = false
+        health.Issues = append(health.Issues, fmt.Sprintf("High failure rate: %.2f%%", job.FailureRate*100))
+    }
+    
+    // Check last run time
+    if time.Since(job.LastRun) > bhc.thresholds.MaxTimeSinceRun {
+        health.Healthy = false
+        health.Issues = append(health.Issues, "Job hasn't run recently")
+    }
+    
+    // Check execution time
+    if job.AverageRunTime > bhc.thresholds.MaxExecutionTime {
+        health.Healthy = false
+        health.Issues = append(health.Issues, "Job taking too long to execute")
+    }
+    
+    return health
+}
+```
+
+## 7. Configuration Management
+
+### 7.1 Batch Job Configuration
+```yaml
+# batch-config.yaml
+batch_processing:
+  global:
+    max_workers: 10
+    default_timeout: "30m"
+    retry_policy:
+      max_attempts: 3
+      initial_delay: "30s"
+      max_delay: "5m"
+      backoff_factor: 2.0
+      retryable_errors:
+        - "connection timeout"
+        - "temporary failure"
+        - "rate limit exceeded"
+
+  jobs:
+    - name: "daily-user-report"
+      schedule: "0 2 * * *"
+      type: "etl"
+      enabled: true
+      timeout: "45m"
+      batch_size: 1000
+      max_retries: 5
+      config:
+        source:
+          type: "database"
+          connection: "postgres://user:pass@localhost/db"
+          query: "SELECT * FROM users WHERE updated_at >= $1"
+        transformations:
+          - type: "filter"
+            condition: "status = 'active'"
+          - type: "aggregate"
+            group_by: ["department"]
+            metrics: ["count", "avg_salary"]
+        destination:
+          type: "s3"
+          bucket: "reports-bucket"
+          prefix: "daily-reports/"
+
+    - name: "data-cleanup"
+      schedule: "0 3 * * 0"  # Weekly on Sunday
+      type: "cleanup"
+      enabled: true
+      timeout: "2h"
+      config:
+        retention_days: 90
+        tables:
+          - "audit_logs"
+          - "temporary_data"
+        archive_before_delete: true
+        archive_location: "s3://archive-bucket/cleanup/"
+
+  monitoring:
+    health_check:
+      max_failure_rate: 0.1
+      max_execution_time: "1h"
+      max_time_since_run: "25h"
+      max_consecutive_fails: 3
+    metrics:
+      push_gateway: "http://prometheus-pushgateway:9091"
+      job_label: "batch_processing"
+    alerts:
+      webhook: "http://alertmanager:9093/api/v1/alerts"
+      email: "ops@company.com"
+```
+
+## 8. Data Quality and Validation
+
+### 8.1 Data Validation Framework
+```go
+package validation
+
+type DataValidator struct {
+    rules   []ValidationRule
+    metrics ValidationMetrics
+}
+
+type ValidationRule interface {
+    Validate(data interface{}) ValidationResult
+    Name() string
+    Severity() Severity
+}
+
+type ValidationResult struct {
+    Valid    bool
+    Errors   []ValidationError
+    Warnings []ValidationWarning
+    Metrics  map[string]interface{}
+}
+
+type ValidationError struct {
+    Field   string `json:"field"`
+    Value   interface{} `json:"value"`
+    Rule    string `json:"rule"`
+    Message string `json:"message"`
+}
+
+type Severity int
+
+const (
+    SeverityWarning Severity = iota
+    SeverityError
+    SeverityCritical
+)
+
+// Example validation rules
+type NotNullRule struct {
+    field string
+}
+
+func (r *NotNullRule) Validate(data interface{}) ValidationResult {
+    result := ValidationResult{Valid: true}
+    
+    // Use reflection to check field
+    value := reflect.ValueOf(data)
+    if value.Kind() == reflect.Ptr {
+        value = value.Elem()
+    }
+    
+    field := value.FieldByName(r.field)
+    if !field.IsValid() || field.IsNil() {
+        result.Valid = false
+        result.Errors = append(result.Errors, ValidationError{
+            Field:   r.field,
+            Value:   nil,
+            Rule:    "not_null",
+            Message: fmt.Sprintf("Field %s cannot be null", r.field),
+        })
+    }
+    
+    return result
+}
+
+func (r *NotNullRule) Name() string {
+    return fmt.Sprintf("not_null_%s", r.field)
+}
+
+func (r *NotNullRule) Severity() Severity {
+    return SeverityError
+}
+
+type RangeRule struct {
+    field string
+    min   float64
+    max   float64
+}
+
+func (r *RangeRule) Validate(data interface{}) ValidationResult {
+    result := ValidationResult{Valid: true}
+    
+    value := reflect.ValueOf(data).Elem().FieldByName(r.field)
+    if !value.IsValid() {
+        return result
+    }
+    
+    var numVal float64
+    switch value.Kind() {
+    case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+        numVal = float64(value.Int())
+    case reflect.Float32, reflect.Float64:
+        numVal = value.Float()
+    default:
+        return result // Skip validation for non-numeric types
+    }
+    
+    if numVal < r.min || numVal > r.max {
+        result.Valid = false
+        result.Errors = append(result.Errors, ValidationError{
+            Field:   r.field,
+            Value:   numVal,
+            Rule:    "range",
+            Message: fmt.Sprintf("Value %f is outside range [%f, %f]", numVal, r.min, r.max),
+        })
+    }
+    
+    return result
+}
+
+func (r *RangeRule) Name() string {
+    return fmt.Sprintf("range_%s", r.field)
+}
+
+func (r *RangeRule) Severity() Severity {
+    return SeverityWarning
+}
+```
+
+## 9. Performance Optimization
+
+### 9.1 Memory Management
+```go
+package performance
+
+import (
+    "runtime"
+    "sync"
+)
+
+type MemoryPool struct {
+    pool sync.Pool
+    size int
+}
+
+func NewMemoryPool(itemSize int) *MemoryPool {
+    return &MemoryPool{
+        pool: sync.Pool{
+            New: func() interface{} {
+                return make([]byte, itemSize)
+            },
+        },
+        size: itemSize,
+    }
+}
+
+func (mp *MemoryPool) Get() []byte {
+    return mp.pool.Get().([]byte)
+}
+
+func (mp *MemoryPool) Put(item []byte) {
+    if len(item) == mp.size {
+        mp.pool.Put(item[:0]) // Reset slice length but keep capacity
+    }
+}
+
+// Memory-efficient batch processor
+type MemoryEfficientProcessor struct {
+    memoryPool *MemoryPool
+    maxMemory  int64
+    chunkSize  int
+}
+
+func (mep *MemoryEfficientProcessor) Process(ctx context.Context, data []DataItem) error {
+    // Monitor memory usage
+    var memStats runtime.MemStats
+    runtime.ReadMemStats(&memStats)
+    
+    if memStats.Alloc > uint64(mep.maxMemory) {
+        // Force garbage collection if memory usage is high
+        runtime.GC()
+    }
+    
+    // Process in chunks to control memory usage
+    for i := 0; i < len(data); i += mep.chunkSize {
+        end := i + mep.chunkSize
+        if end > len(data) {
+            end = len(data)
+        }
+        
+        chunk := data[i:end]
+        if err := mep.processChunk(ctx, chunk); err != nil {
+            return err
+        }
+        
+        // Yield to scheduler
+        runtime.Gosched()
+    }
+    
+    return nil
+}
+
+func (mep *MemoryEfficientProcessor) processChunk(ctx context.Context, chunk []DataItem) error {
+    buffer := mep.memoryPool.Get()
+    defer mep.memoryPool.Put(buffer)
+    
+    // Process chunk using pooled buffer
+    // ... processing logic
+    
+    return nil
+}
+```
+
+## 10. Testing Strategies
+
+### 10.1 Batch Job Testing
+```go
+package testing
+
+import (
+    "context"
+    "testing"
+    "time"
+)
+
+func TestBatchProcessor(t *testing.T) {
+    // Setup test dependencies
+    mockDataSource := &MockDataSource{}
+    mockProcessor := &MockProcessor{}
+    mockDestination := &MockDestination{}
+    mockLogger := &MockLogger{}
+    mockMetrics := &MockMetrics{}
+    
+    deps := Dependencies{
+        DataSource:  mockDataSource,
+        Processor:   mockProcessor,
+        Destination: mockDestination,
+        Logger:      mockLogger,
+        Metrics:     mockMetrics,
+    }
+    
+    config := BatchConfig{
+        Name:       "test-batch",
+        BatchSize:  10,
+        MaxRetries: 3,
+        Timeout:    time.Minute,
+    }
+    
+    processor := NewBatchProcessor(config, deps)
+    
+    // Setup test data
+    testData := []DataItem{
+        {ID: "1", Data: "test1"},
+        {ID: "2", Data: "test2"},
+        {ID: "3", Data: "test3"},
+    }
+    
+    mockDataSource.SetData(testData)
+    
+    // Execute test
+    ctx := context.Background()
+    err := processor.Process(ctx)
+    
+    // Assertions
+    assert.NoError(t, err)
+    assert.Equal(t, 1, mockDataSource.GetBatchCallCount())
+    assert.Equal(t, 3, mockProcessor.GetProcessCallCount())
+    assert.Equal(t, 1, mockDestination.GetSaveCallCount())
+}
+
+// Mock implementations
+type MockDataSource struct {
+    data           []DataItem
+    batchCallCount int
+    currentIndex   int
+}
+
+func (mds *MockDataSource) GetBatch(ctx context.Context, size int) ([]DataItem, error) {
+    mds.batchCallCount++
+    
+    if mds.currentIndex >= len(mds.data) {
+        return []DataItem{}, nil // No more data
+    }
+    
+    end := mds.currentIndex + size
+    if end > len(mds.data) {
+        end = len(mds.data)
+    }
+    
+    batch := mds.data[mds.currentIndex:end]
+    mds.currentIndex = end
+    
+    return batch, nil
+}
+
+func (mds *MockDataSource) SetData(data []DataItem) {
+    mds.data = data
+    mds.currentIndex = 0
+}
+
+func (mds *MockDataSource) GetBatchCallCount() int {
+    return mds.batchCallCount
+}

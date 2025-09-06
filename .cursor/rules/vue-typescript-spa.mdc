@@ -1,0 +1,2201 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Vue TypeScript SPA Development - Cursor Rules
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Project Structure Standards](#project-structure-standards)
+3. [TypeScript Configuration](#typescript-configuration)
+4. [Vue Development Patterns](#vue-development-patterns)
+5. [Code Style and Quality](#code-style-and-quality)
+6. [Testing Framework](#testing-framework)
+7. [Security Guidelines](#security-guidelines)
+8. [Documentation Standards](#documentation-standards)
+9. [Build and Deployment](#build-and-deployment)
+10. [Performance Optimization](#performance-optimization)
+11. [Validation Rules](#validation-rules)
+
+## Overview
+
+This rule set governs the development of Single Page Applications (SPAs) using Vue 3, TypeScript, and modern development practices. It ensures code quality, maintainability, security, and comprehensive testing coverage.
+
+### Core Principles
+- **Type Safety**: Leverage TypeScript for robust type checking
+- **Component-Based Architecture**: Modular, reusable Vue components
+- **Test-Driven Development**: Comprehensive testing with Cypress and Vitest
+- **Code Quality**: Consistent formatting, linting, and documentation
+- **Security First**: Implement security best practices from the start
+- **Performance**: Optimize for speed and user experience
+
+### Required Technology Stack
+```yaml
+core_technologies:
+  framework: Vue 3 (Composition API)
+  language: TypeScript 5.0+
+  build_tool: Vite 4.0+
+  package_manager: pnpm (preferred) or npm
+
+testing_stack:
+  unit_testing: Vitest
+  e2e_testing: Cypress
+  component_testing: Vue Test Utils + Vitest
+  coverage: c8 or Istanbul
+
+code_quality:
+  linting: ESLint + Vue ESLint plugin
+  formatting: Prettier
+  type_checking: TypeScript strict mode
+  pre_commit: Husky + lint-staged
+
+state_management:
+  small_apps: Vue Composition API + Provide/Inject
+  medium_apps: Pinia
+  large_apps: Pinia + Pinia Plugin Persist
+
+routing:
+  spa_routing: Vue Router 4
+  type_safety: Typed routes with TypeScript
+```
+
+## Project Structure Standards
+
+### Mandatory Folder Structure
+```
+src/
+├── components/           # Reusable Vue components
+│   ├── base/            # Base/primitive components
+│   ├── common/          # Common business components
+│   └── layout/          # Layout components
+├── composables/         # Vue composition functions
+├── stores/              # Pinia stores
+├── router/              # Vue Router configuration
+├── views/               # Page-level components
+├── types/               # TypeScript type definitions
+├── utils/               # Utility functions
+├── services/            # API services and external integrations
+├── assets/              # Static assets
+│   ├── images/
+│   ├── icons/
+│   └── styles/
+├── plugins/             # Vue plugins
+├── directives/          # Custom Vue directives
+└── __tests__/           # Test files
+    ├── unit/
+    ├── integration/
+    └── e2e/
+
+public/                  # Static public assets
+docs/                    # Project documentation
+cypress/                 # Cypress test configuration
+├── e2e/
+├── fixtures/
+└── support/
+```
+
+### File Naming Conventions
+```typescript
+// Components: PascalCase
+UserProfile.vue
+BaseButton.vue
+CommonModal.vue
+
+// Composables: camelCase with 'use' prefix
+useUserAuth.ts
+useApiClient.ts
+useLocalStorage.ts
+
+// Stores: camelCase with 'Store' suffix
+userStore.ts
+productStore.ts
+
+// Types: PascalCase with descriptive names
+UserTypes.ts
+ApiTypes.ts
+ComponentTypes.ts
+
+// Utils: camelCase
+dateUtils.ts
+validationUtils.ts
+
+// Services: camelCase with 'Service' suffix
+apiService.ts
+authService.ts
+```
+
+## TypeScript Configuration
+
+### tsconfig.json Standards
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/composables/*": ["./src/composables/*"],
+      "@/stores/*": ["./src/stores/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/services/*": ["./src/services/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+```
+
+### Type Definition Standards
+```typescript
+// src/types/UserTypes.ts
+export interface User {
+  readonly id: string
+  email: string
+  firstName: string
+  lastName: string
+  role: UserRole
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type UserRole = 'admin' | 'user' | 'moderator'
+
+export interface CreateUserRequest {
+  email: string
+  firstName: string
+  lastName: string
+  password: string
+}
+
+export interface UpdateUserRequest extends Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>> {}
+
+// API Response types
+export interface ApiResponse<T> {
+  data: T
+  message: string
+  success: boolean
+  timestamp: string
+}
+
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+```
+
+## Vue Development Patterns
+
+### Component Structure Standards
+```vue
+<!-- UserProfile.vue -->
+<template>
+  <div class="user-profile" :class="profileClasses">
+    <!-- Template content with semantic HTML -->
+    <header class="user-profile__header">
+      <h1 class="user-profile__title">{{ user.firstName }} {{ user.lastName }}</h1>
+    </header>
+    
+    <main class="user-profile__content">
+      <!-- Main content -->
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref, onMounted } from 'vue'
+import type { User } from '@/types/UserTypes'
+import { useUserStore } from '@/stores/userStore'
+
+// Props with TypeScript
+interface Props {
+  userId: string
+  showActions?: boolean
+  variant?: 'default' | 'compact'
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showActions: true,
+  variant: 'default'
+})
+
+// Emits with TypeScript
+interface Emits {
+  userUpdated: [user: User]
+  actionClicked: [action: string, user: User]
+}
+
+const emit = defineEmits<Emits>()
+
+// Reactive state
+const isLoading = ref(false)
+const error = ref<string | null>(null)
+
+// Store usage
+const userStore = useUserStore()
+
+// Computed properties
+const profileClasses = computed(() => ({
+  'user-profile--compact': props.variant === 'compact',
+  'user-profile--loading': isLoading.value
+}))
+
+const user = computed(() => userStore.getUserById(props.userId))
+
+// Methods
+const handleUserUpdate = async (updatedUser: User): Promise<void> => {
+  try {
+    isLoading.value = true
+    await userStore.updateUser(updatedUser)
+    emit('userUpdated', updatedUser)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Lifecycle
+onMounted(async () => {
+  if (!user.value) {
+    await userStore.fetchUser(props.userId)
+  }
+})
+</script>
+
+<style scoped lang="scss">
+.user-profile {
+  @apply bg-white rounded-lg shadow-md p-6;
+  
+  &--compact {
+    @apply p-4;
+  }
+  
+  &--loading {
+    @apply opacity-50 pointer-events-none;
+  }
+  
+  &__header {
+    @apply mb-4 border-b border-gray-200 pb-4;
+  }
+  
+  &__title {
+    @apply text-2xl font-bold text-gray-900;
+  }
+  
+  &__content {
+    @apply space-y-4;
+  }
+}
+</style>
+```
+
+### Composables Pattern
+```typescript
+// src/composables/useApiClient.ts
+import { ref, computed } from 'vue'
+import type { ApiResponse } from '@/types/ApiTypes'
+
+interface UseApiClientOptions {
+  baseURL?: string
+  timeout?: number
+  retries?: number
+}
+
+export function useApiClient(options: UseApiClientOptions = {}) {
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
+  const abortController = ref<AbortController | null>(null)
+
+  const baseURL = options.baseURL || import.meta.env.VITE_API_BASE_URL
+  const timeout = options.timeout || 10000
+  const retries = options.retries || 3
+
+  /**
+   * Generic API request method with error handling and retries
+   */
+  const request = async <T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> => {
+    isLoading.value = true
+    error.value = null
+    
+    // Create new abort controller for this request
+    abortController.value = new AbortController()
+    
+    const requestOptions: RequestInit = {
+      ...options,
+      signal: abortController.value.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      }
+    }
+
+    let lastError: Error
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(`${baseURL}${endpoint}`, requestOptions)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
+        return data
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error('Unknown error')
+        
+        if (attempt === retries || err.name === 'AbortError') {
+          break
+        }
+        
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+      }
+    }
+    
+    error.value = lastError!.message
+    throw lastError!
+  }
+
+  /**
+   * Cancel ongoing request
+   */
+  const cancelRequest = (): void => {
+    if (abortController.value) {
+      abortController.value.abort()
+      abortController.value = null
+    }
+  }
+
+  /**
+   * GET request
+   */
+  const get = <T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { ...options, method: 'GET' })
+
+  /**
+   * POST request
+   */
+  const post = <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined
+    })
+
+  /**
+   * PUT request
+   */
+  const put = <T>(endpoint: string, data?: unknown, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined
+    })
+
+  /**
+   * DELETE request
+   */
+  const del = <T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { ...options, method: 'DELETE' })
+
+  // Computed properties
+  const hasError = computed(() => error.value !== null)
+  const isIdle = computed(() => !isLoading.value && !hasError.value)
+
+  return {
+    // State
+    isLoading: readonly(isLoading),
+    error: readonly(error),
+    hasError,
+    isIdle,
+    
+    // Methods
+    request,
+    get,
+    post,
+    put,
+    delete: del,
+    cancelRequest
+  }
+}
+```
+
+### Pinia Store Pattern
+```typescript
+// src/stores/userStore.ts
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import type { User, CreateUserRequest, UpdateUserRequest } from '@/types/UserTypes'
+import { useApiClient } from '@/composables/useApiClient'
+
+export const useUserStore = defineStore('user', () => {
+  // State
+  const users = ref<Map<string, User>>(new Map())
+  const currentUserId = ref<string | null>(null)
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
+
+  // API client
+  const { get, post, put, delete: del } = useApiClient()
+
+  // Getters
+  const currentUser = computed(() => 
+    currentUserId.value ? users.value.get(currentUserId.value) : null
+  )
+
+  const usersList = computed(() => Array.from(users.value.values()))
+
+  const getUserById = computed(() => (id: string) => users.value.get(id))
+
+  const isAuthenticated = computed(() => currentUser.value !== null)
+
+  // Actions
+  const setCurrentUser = (userId: string): void => {
+    currentUserId.value = userId
+  }
+
+  const addUser = (user: User): void => {
+    users.value.set(user.id, user)
+  }
+
+  const removeUser = (userId: string): void => {
+    users.value.delete(userId)
+    if (currentUserId.value === userId) {
+      currentUserId.value = null
+    }
+  }
+
+  const fetchUsers = async (): Promise<void> => {
+    try {
+      isLoading.value = true
+      error.value = null
+      
+      const response = await get<User[]>('/users')
+      
+      // Clear existing users and add new ones
+      users.value.clear()
+      response.data.forEach(user => addUser(user))
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch users'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const fetchUser = async (userId: string): Promise<User> => {
+    try {
+      isLoading.value = true
+      error.value = null
+      
+      const response = await get<User>(`/users/${userId}`)
+      addUser(response.data)
+      
+      return response.data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch user'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const createUser = async (userData: CreateUserRequest): Promise<User> => {
+    try {
+      isLoading.value = true
+      error.value = null
+      
+      const response = await post<User>('/users', userData)
+      addUser(response.data)
+      
+      return response.data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to create user'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const updateUser = async (userId: string, userData: UpdateUserRequest): Promise<User> => {
+    try {
+      isLoading.value = true
+      error.value = null
+      
+      const response = await put<User>(`/users/${userId}`, userData)
+      addUser(response.data)
+      
+      return response.data
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to update user'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const deleteUser = async (userId: string): Promise<void> => {
+    try {
+      isLoading.value = true
+      error.value = null
+      
+      await del(`/users/${userId}`)
+      removeUser(userId)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to delete user'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const clearError = (): void => {
+    error.value = null
+  }
+
+  const reset = (): void => {
+    users.value.clear()
+    currentUserId.value = null
+    error.value = null
+    isLoading.value = false
+  }
+
+  return {
+    // State
+    users: readonly(users),
+    currentUserId: readonly(currentUserId),
+    isLoading: readonly(isLoading),
+    error: readonly(error),
+    
+    // Getters
+    currentUser,
+    usersList,
+    getUserById,
+    isAuthenticated,
+    
+    // Actions
+    setCurrentUser,
+    addUser,
+    removeUser,
+    fetchUsers,
+    fetchUser,
+    createUser,
+    updateUser,
+    deleteUser,
+    clearError,
+    reset
+  }
+})
+```
+
+## Code Style and Quality
+
+### ESLint Configuration
+```javascript
+// .eslintrc.cjs
+module.exports = {
+  root: true,
+  env: {
+    node: true,
+    browser: true,
+    es2022: true
+  },
+  extends: [
+    'eslint:recommended',
+    '@typescript-eslint/recommended',
+    '@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:vue/vue3-recommended',
+    'plugin:vue/vue3-strongly-recommended',
+    '@vue/eslint-config-typescript',
+    '@vue/eslint-config-prettier'
+  ],
+  parser: 'vue-eslint-parser',
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    parser: '@typescript-eslint/parser',
+    project: './tsconfig.json',
+    extraFileExtensions: ['.vue']
+  },
+  plugins: ['@typescript-eslint', 'vue'],
+  rules: {
+    // TypeScript specific rules
+    '@typescript-eslint/no-unused-vars': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'warn',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/prefer-const': 'error',
+    '@typescript-eslint/no-non-null-assertion': 'warn',
+    
+    // Vue specific rules
+    'vue/component-name-in-template-casing': ['error', 'PascalCase'],
+    'vue/component-definition-name-casing': ['error', 'PascalCase'],
+    'vue/custom-event-name-casing': ['error', 'camelCase'],
+    'vue/define-emits-declaration': ['error', 'type-based'],
+    'vue/define-props-declaration': ['error', 'type-based'],
+    'vue/multi-word-component-names': 'error',
+    'vue/no-unused-components': 'error',
+    'vue/no-unused-vars': 'error',
+    'vue/require-default-prop': 'off', // Using TypeScript defaults
+    
+    // General rules
+    'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+    'prefer-const': 'error',
+    'no-var': 'error'
+  },
+  overrides: [
+    {
+      files: ['**/__tests__/**/*', '**/*.test.*', '**/*.spec.*'],
+      env: {
+        jest: true
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off'
+      }
+    }
+  ]
+}
+```
+
+### Prettier Configuration
+```json
+{
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "printWidth": 100,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "endOfLine": "lf",
+  "vueIndentScriptAndStyle": true
+}
+```
+
+### Code Documentation Standards
+```typescript
+/**
+ * User authentication composable
+ * 
+ * Provides reactive authentication state and methods for login/logout operations.
+ * Automatically persists authentication state to localStorage and handles token refresh.
+ * 
+ * @example
+ * ```typescript
+ * const { user, isAuthenticated, login, logout } = useAuth()
+ * 
+ * // Login user
+ * await login({ email: 'user@example.com', password: 'password' })
+ * 
+ * // Check authentication status
+ * if (isAuthenticated.value) {
+ *   console.log('User is logged in:', user.value)
+ * }
+ * ```
+ * 
+ * @returns Authentication state and methods
+ */
+export function useAuth() {
+  // Implementation...
+}
+
+/**
+ * Validates email format using RFC 5322 specification
+ * 
+ * @param email - The email address to validate
+ * @returns True if email is valid, false otherwise
+ * 
+ * @example
+ * ```typescript
+ * const isValid = validateEmail('user@example.com') // true
+ * const isInvalid = validateEmail('invalid-email') // false
+ * ```
+ */
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  return emailRegex.test(email) && email.length <= 254
+}
+```
+
+## Testing Framework
+
+### Vitest Configuration
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
+
+export default defineConfig({
+  plugins: [vue()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/__tests__/setup.ts'],
+    coverage: {
+      provider: 'c8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/__tests__/',
+        '**/*.d.ts',
+        '**/*.config.*',
+        'dist/'
+      ],
+      thresholds: {
+        global: {
+          branches: 80,
+          functions: 80,
+          lines: 80,
+          statements: 80
+        }
+      }
+    }
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src')
+    }
+  }
+})
+```
+
+### Unit Testing Standards
+```typescript
+// src/__tests__/unit/composables/useAuth.test.ts
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { useAuth } from '@/composables/useAuth'
+import type { LoginCredentials } from '@/types/AuthTypes'
+
+// Mock API service
+vi.mock('@/services/authService', () => ({
+  login: vi.fn(),
+  logout: vi.fn(),
+  refreshToken: vi.fn()
+}))
+
+describe('useAuth', () => {
+  beforeEach(() => {
+    // Clear localStorage before each test
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  describe('initial state', () => {
+    it('should initialize with null user and false authentication status', () => {
+      const { user, isAuthenticated } = useAuth()
+      
+      expect(user.value).toBeNull()
+      expect(isAuthenticated.value).toBe(false)
+    })
+
+    it('should restore user from localStorage if available', () => {
+      const mockUser = { id: '1', email: 'test@example.com', name: 'Test User' }
+      localStorage.setItem('auth_user', JSON.stringify(mockUser))
+      
+      const { user, isAuthenticated } = useAuth()
+      
+      expect(user.value).toEqual(mockUser)
+      expect(isAuthenticated.value).toBe(true)
+    })
+  })
+
+  describe('login', () => {
+    it('should successfully login user with valid credentials', async () => {
+      const mockUser = { id: '1', email: 'test@example.com', name: 'Test User' }
+      const credentials: LoginCredentials = {
+        email: 'test@example.com',
+        password: 'password123'
+      }
+
+      // Mock successful API response
+      const authService = await import('@/services/authService')
+      vi.mocked(authService.login).mockResolvedValue({
+        user: mockUser,
+        token: 'mock-token'
+      })
+
+      const { login, user, isAuthenticated, error } = useAuth()
+      
+      await login(credentials)
+      
+      expect(user.value).toEqual(mockUser)
+      expect(isAuthenticated.value).toBe(true)
+      expect(error.value).toBeNull()
+      expect(localStorage.getItem('auth_user')).toBe(JSON.stringify(mockUser))
+    })
+
+    it('should handle login failure with invalid credentials', async () => {
+      const credentials: LoginCredentials = {
+        email: 'test@example.com',
+        password: 'wrong-password'
+      }
+
+      // Mock failed API response
+      const authService = await import('@/services/authService')
+      vi.mocked(authService.login).mockRejectedValue(new Error('Invalid credentials'))
+
+      const { login, user, isAuthenticated, error } = useAuth()
+      
+      await expect(login(credentials)).rejects.toThrow('Invalid credentials')
+      
+      expect(user.value).toBeNull()
+      expect(isAuthenticated.value).toBe(false)
+      expect(error.value).toBe('Invalid credentials')
+    })
+  })
+
+  describe('logout', () => {
+    it('should clear user state and localStorage on logout', async () => {
+      const mockUser = { id: '1', email: 'test@example.com', name: 'Test User' }
+      localStorage.setItem('auth_user', JSON.stringify(mockUser))
+
+      const { logout, user, isAuthenticated } = useAuth()
+      
+      await logout()
+      
+      expect(user.value).toBeNull()
+      expect(isAuthenticated.value).toBe(false)
+      expect(localStorage.getItem('auth_user')).toBeNull()
+    })
+  })
+})
+```
+
+### Component Testing Standards
+```typescript
+// src/__tests__/unit/components/UserProfile.test.ts
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import UserProfile from '@/components/UserProfile.vue'
+import { useUserStore } from '@/stores/userStore'
+import type { User } from '@/types/UserTypes'
+
+const mockUser: User = {
+  id: '1',
+  email: 'test@example.com',
+  firstName: 'John',
+  lastName: 'Doe',
+  role: 'user',
+  createdAt: new Date('2023-01-01'),
+  updatedAt: new Date('2023-01-01')
+}
+
+describe('UserProfile', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('should render user information correctly', () => {
+    const userStore = useUserStore()
+    userStore.addUser(mockUser)
+
+    const wrapper = mount(UserProfile, {
+      props: {
+        userId: '1'
+      }
+    })
+
+    expect(wrapper.find('.user-profile__title').text()).toBe('John Doe')
+    expect(wrapper.find('[data-testid="user-email"]').text()).toBe('test@example.com')
+  })
+
+  it('should emit userUpdated event when user is updated', async () => {
+    const userStore = useUserStore()
+    userStore.addUser(mockUser)
+
+    const wrapper = mount(UserProfile, {
+      props: {
+        userId: '1',
+        showActions: true
+      }
+    })
+
+    const updateButton = wrapper.find('[data-testid="update-user-btn"]')
+    await updateButton.trigger('click')
+
+    expect(wrapper.emitted('userUpdated')).toBeTruthy()
+    expect(wrapper.emitted('userUpdated')?.[0]).toEqual([mockUser])
+  })
+
+  it('should show loading state while fetching user', async () => {
+    const wrapper = mount(UserProfile, {
+      props: {
+        userId: '2' // Non-existent user
+      }
+    })
+
+    expect(wrapper.classes()).toContain('user-profile--loading')
+  })
+
+  it('should apply compact variant class when specified', () => {
+    const userStore = useUserStore()
+    userStore.addUser(mockUser)
+
+    const wrapper = mount(UserProfile, {
+      props: {
+        userId: '1',
+        variant: 'compact'
+      }
+    })
+
+    expect(wrapper.classes()).toContain('user-profile--compact')
+  })
+})
+```
+
+### Cypress E2E Testing Standards
+```typescript
+// cypress/e2e/user-management.cy.ts
+describe('User Management', () => {
+  beforeEach(() => {
+    // Setup test data
+    cy.task('db:seed')
+    cy.visit('/users')
+  })
+
+  describe('User List', () => {
+    it('should display list of users', () => {
+      cy.get('[data-testid="user-list"]').should('be.visible')
+      cy.get('[data-testid="user-item"]').should('have.length.at.least', 1)
+    })
+
+    it('should filter users by search term', () => {
+      cy.get('[data-testid="user-search"]').type('john')
+      cy.get('[data-testid="user-item"]').should('contain.text', 'John')
+      cy.get('[data-testid="user-item"]').should('not.contain.text', 'Jane')
+    })
+
+    it('should navigate to user detail page when clicking on user', () => {
+      cy.get('[data-testid="user-item"]').first().click()
+      cy.url().should('include', '/users/')
+      cy.get('[data-testid="user-profile"]').should('be.visible')
+    })
+  })
+
+  describe('User Creation', () => {
+    it('should create new user with valid data', () => {
+      cy.get('[data-testid="create-user-btn"]').click()
+      
+      // Fill form
+      cy.get('[data-testid="first-name-input"]').type('Test')
+      cy.get('[data-testid="last-name-input"]').type('User')
+      cy.get('[data-testid="email-input"]').type('test@example.com')
+      cy.get('[data-testid="password-input"]').type('SecurePassword123!')
+      
+      // Submit form
+      cy.get('[data-testid="submit-btn"]').click()
+      
+      // Verify success
+      cy.get('[data-testid="success-message"]').should('be.visible')
+      cy.url().should('include', '/users/')
+      cy.get('[data-testid="user-profile"]').should('contain.text', 'Test User')
+    })
+
+    it('should show validation errors for invalid data', () => {
+      cy.get('[data-testid="create-user-btn"]').click()
+      
+      // Submit empty form
+      cy.get('[data-testid="submit-btn"]').click()
+      
+      // Check validation errors
+      cy.get('[data-testid="first-name-error"]').should('contain.text', 'First name is required')
+      cy.get('[data-testid="email-error"]').should('contain.text', 'Email is required')
+    })
+  })
+
+  describe('User Authentication', () => {
+    it('should login with valid credentials', () => {
+      cy.visit('/login')
+      
+      cy.get('[data-testid="email-input"]').type('admin@example.com')
+      cy.get('[data-testid="password-input"]').type('password123')
+      cy.get('[data-testid="login-btn"]').click()
+      
+      cy.url().should('eq', Cypress.config().baseUrl + '/dashboard')
+      cy.get('[data-testid="user-menu"]').should('be.visible')
+    })
+
+    it('should show error for invalid credentials', () => {
+      cy.visit('/login')
+      
+      cy.get('[data-testid="email-input"]').type('admin@example.com')
+      cy.get('[data-testid="password-input"]').type('wrongpassword')
+      cy.get('[data-testid="login-btn"]').click()
+      
+      cy.get('[data-testid="error-message"]').should('contain.text', 'Invalid credentials')
+      cy.url().should('include', '/login')
+    })
+  })
+
+  describe('Accessibility', () => {
+    it('should be accessible', () => {
+      cy.injectAxe()
+      cy.checkA11y()
+    })
+
+    it('should support keyboard navigation', () => {
+      cy.get('body').tab()
+      cy.focused().should('have.attr', 'data-testid', 'user-search')
+      
+      cy.focused().tab()
+      cy.focused().should('have.attr', 'data-testid', 'create-user-btn')
+    })
+  })
+})
+```
+
+## Security Guidelines
+
+### Input Validation and Sanitization
+```typescript
+// src/utils/validationUtils.ts
+import DOMPurify from 'dompurify'
+
+/**
+ * Sanitizes HTML content to prevent XSS attacks
+ */
+export function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br'],
+    ALLOWED_ATTR: ['href', 'target']
+  })
+}
+
+/**
+ * Validates and sanitizes user input
+ */
+export function sanitizeInput(input: string): string {
+  return input.trim().replace(/[<>]/g, '')
+}
+
+/**
+ * Email validation with security considerations
+ */
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  return emailRegex.test(email) && email.length <= 254
+}
+
+/**
+ * Password strength validation
+ */
+export function validatePassword(password: string): {
+  isValid: boolean
+  errors: string[]
+} {
+  const errors: string[] = []
+  
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long')
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter')
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter')
+  }
+  
+  if (!/\d/.test(password)) {
+    errors.push('Password must contain at least one number')
+  }
+  
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    errors.push('Password must contain at least one special character')
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  }
+}
+```
+
+### Content Security Policy
+```typescript
+// src/utils/securityUtils.ts
+/**
+ * Content Security Policy configuration
+ */
+export const CSP_CONFIG = {
+  'default-src': ["'self'"],
+  'script-src': ["'self'", "'unsafe-inline'", 'https://trusted-cdn.com'],
+  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  'img-src': ["'self'", 'data:', 'https:'],
+  'font-src': ["'self'", 'https://fonts.gstatic.com'],
+  'connect-src': ["'self'", process.env.VITE_API_BASE_URL],
+  'frame-ancestors': ["'none'"],
+  'base-uri': ["'self'"],
+  'form-action': ["'self'"]
+}
+
+/**
+ * Generates CSP header string
+ */
+export function generateCSPHeader(): string {
+  return Object.entries(CSP_CONFIG)
+    .map(([directive, sources]) => `${directive} ${sources.join(' ')}`)
+    .join('; ')
+}
+```
+
+### Authentication Security
+```typescript
+// src/composables/useSecureAuth.ts
+import { ref, computed } from 'vue'
+import { jwtDecode } from 'jwt-decode'
+
+interface TokenPayload {
+  sub: string
+  exp: number
+  iat: number
+  role: string
+}
+
+export function useSecureAuth() {
+  const token = ref<string | null>(localStorage.getItem('auth_token'))
+  const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
+
+  /**
+   * Validates JWT token and checks expiration
+   */
+  const isTokenValid = computed(() => {
+    if (!token.value) return false
+    
+    try {
+      const payload = jwtDecode<TokenPayload>(token.value)
+      const now = Date.now() / 1000
+      
+      return payload.exp > now
+    } catch {
+      return false
+    }
+  })
+
+  /**
+   * Securely stores authentication tokens
+   */
+  const storeTokens = (accessToken: string, refreshTokenValue: string): void => {
+    token.value = accessToken
+    refreshToken.value = refreshTokenValue
+    
+    // Store in httpOnly cookies in production
+    if (import.meta.env.PROD) {
+      // Use secure cookie storage
+      document.cookie = `auth_token=${accessToken}; Secure; HttpOnly; SameSite=Strict`
+    } else {
+      localStorage.setItem('auth_token', accessToken)
+      localStorage.setItem('refresh_token', refreshTokenValue)
+    }
+  }
+
+  /**
+   * Clears authentication tokens
+   */
+  const clearTokens = (): void => {
+    token.value = null
+    refreshToken.value = null
+    
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('refresh_token')
+    
+    // Clear cookies
+    document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+  }
+
+  return {
+    token: readonly(token),
+    isTokenValid,
+    storeTokens,
+    clearTokens
+  }
+}
+```
+
+## Documentation Standards
+
+### Component Documentation
+```vue
+<!-- 
+/**
+ * UserProfile Component
+ * 
+ * Displays user profile information with optional editing capabilities.
+ * Supports different display variants and emits events for user interactions.
+ * 
+ * @component
+ * @example
+ * <UserProfile 
+ *   :user-id="userId" 
+ *   variant="compact" 
+ *   :show-actions="true"
+ *   @user-updated="handleUserUpdate"
+ * />
+ */
+-->
+<template>
+  <!-- Component template -->
+</template>
+
+<script setup lang="ts">
+/**
+ * Props for UserProfile component
+ */
+interface Props {
+  /** Unique identifier for the user */
+  userId: string
+  /** Display variant for the profile */
+  variant?: 'default' | 'compact'
+  /** Whether to show action buttons */
+  showActions?: boolean
+}
+
+/**
+ * Events emitted by UserProfile component
+ */
+interface Emits {
+  /** Emitted when user data is updated */
+  userUpdated: [user: User]
+  /** Emitted when an action button is clicked */
+  actionClicked: [action: string, user: User]
+}
+</script>
+```
+
+### API Documentation
+```typescript
+// src/services/userService.ts
+/**
+ * User Service
+ * 
+ * Provides methods for user-related API operations including CRUD operations,
+ * authentication, and profile management.
+ * 
+ * @example
+ * ```typescript
+ * import { userService } from '@/services/userService'
+ * 
+ * // Get user by ID
+ * const user = await userService.getUser('123')
+ * 
+ * // Create new user
+ * const newUser = await userService.createUser({
+ *   email: 'user@example.com',
+ *   firstName: 'John',
+ *   lastName: 'Doe'
+ * })
+ * ```
+ */
+export class UserService {
+  /**
+   * Retrieves a user by their unique identifier
+   * 
+   * @param userId - The unique identifier of the user
+   * @returns Promise that resolves to the user data
+   * @throws {Error} When user is not found or request fails
+   * 
+   * @example
+   * ```typescript
+   * try {
+   *   const user = await userService.getUser('123')
+   *   console.log(user.email)
+   * } catch (error) {
+   *   console.error('Failed to fetch user:', error.message)
+   * }
+   * ```
+   */
+  async getUser(userId: string): Promise<User> {
+    // Implementation
+  }
+}
+```
+
+### README Documentation Template
+```markdown
+# Project Name
+
+Brief description of the Vue TypeScript SPA project.
+
+## 🚀 Features
+
+- ✅ Vue 3 with Composition API
+- ✅ TypeScript with strict mode
+- ✅ Pinia for state management
+- ✅ Vue Router for navigation
+- ✅ Vitest for unit testing
+- ✅ Cypress for E2E testing
+- ✅ ESLint + Prettier for code quality
+- ✅ Responsive design with Tailwind CSS
+
+## 📋 Prerequisites
+
+- Node.js 18.0 or higher
+- pnpm 8.0 or higher (recommended) or npm
+
+## 🛠️ Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd <project-name>
+
+# Install dependencies
+pnpm install
+
+# Copy environment variables
+cp .env.example .env.local
+```
+
+## 🏃‍♂️ Development
+
+```bash
+# Start development server
+pnpm dev
+
+# Run tests
+pnpm test
+
+# Run E2E tests
+pnpm test:e2e
+
+# Lint code
+pnpm lint
+
+# Format code
+pnpm format
+```
+
+## 🏗️ Build
+
+```bash
+# Build for production
+pnpm build
+
+# Preview production build
+pnpm preview
+```
+
+## 📁 Project Structure
+
+```
+src/
+├── components/     # Reusable Vue components
+├── composables/    # Vue composition functions
+├── stores/         # Pinia stores
+├── router/         # Vue Router configuration
+├── views/          # Page-level components
+├── types/          # TypeScript type definitions
+├── utils/          # Utility functions
+├── services/       # API services
+└── assets/         # Static assets
+```
+
+## 🧪 Testing
+
+### Unit Tests
+```bash
+# Run unit tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Run tests in watch mode
+pnpm test:watch
+```
+
+### E2E Tests
+```bash
+# Run E2E tests headlessly
+pnpm test:e2e
+
+# Open Cypress UI
+pnpm test:e2e:open
+```
+
+## 📖 Documentation
+
+- [Component Documentation](./docs/components.md)
+- [API Documentation](./docs/api.md)
+- [Testing Guide](./docs/testing.md)
+- [Deployment Guide](./docs/deployment.md)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+```
+
+This comprehensive cursor rule provides a complete framework for developing Vue TypeScript SPAs with best practices for code quality, testing, security, and documentation. The rule ensures consistent development patterns and maintains high standards across all aspects of the application.
+
+## Build and Deployment
+
+### Vite Configuration
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
+
+export default defineConfig({
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src')
+    }
+  },
+  build: {
+    target: 'esnext',
+    minify: 'terser',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router', 'pinia'],
+          ui: ['@headlessui/vue', '@heroicons/vue']
+        }
+      }
+    }
+  },
+  server: {
+    port: 3000,
+    open: true
+  },
+  preview: {
+    port: 4173
+  }
+})
+```
+
+### Environment Configuration
+```bash
+# .env.example
+VITE_APP_TITLE=Vue TypeScript SPA
+VITE_API_BASE_URL=http://localhost:8000/api
+VITE_APP_VERSION=1.0.0
+VITE_ENABLE_ANALYTICS=false
+
+# .env.local (development)
+VITE_API_BASE_URL=http://localhost:8000/api
+VITE_ENABLE_ANALYTICS=false
+
+# .env.production
+VITE_API_BASE_URL=https://api.production.com
+VITE_ENABLE_ANALYTICS=true
+```
+
+### Docker Configuration
+```dockerfile
+# Dockerfile
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY pnpm-lock.yaml ./
+
+# Install dependencies
+RUN npm install -g pnpm
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build application
+RUN pnpm build
+
+# Production stage
+FROM nginx:alpine AS production
+
+# Copy built application
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### CI/CD Pipeline
+```yaml
+# .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Run linting
+        run: pnpm lint
+      
+      - name: Run type checking
+        run: pnpm type-check
+      
+      - name: Run unit tests
+        run: pnpm test:coverage
+      
+      - name: Run E2E tests
+        run: pnpm test:e2e:ci
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build application
+        run: pnpm build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist/
+      
+      - name: Deploy to production
+        run: |
+          # Add deployment commands here
+          echo "Deploying to production..."
+```
+
+## Performance Optimization
+
+### Code Splitting and Lazy Loading
+```typescript
+// src/router/index.ts
+import { createRouter, createWebHistory } from 'vue-router'
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    {
+      path: '/',
+      name: 'Home',
+      component: () => import('@/views/HomeView.vue')
+    },
+    {
+      path: '/users',
+      name: 'Users',
+      component: () => import('@/views/UsersView.vue'),
+      children: [
+        {
+          path: ':id',
+          name: 'UserDetail',
+          component: () => import('@/views/UserDetailView.vue'),
+          props: true
+        }
+      ]
+    },
+    {
+      path: '/admin',
+      name: 'Admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: { requiresAuth: true, role: 'admin' }
+    }
+  ]
+})
+
+export default router
+```
+
+### Image Optimization
+```vue
+<!-- src/components/OptimizedImage.vue -->
+<template>
+  <picture class="optimized-image">
+    <source
+      v-if="webpSrc"
+      :srcset="webpSrc"
+      type="image/webp"
+    >
+    <img
+      :src="src"
+      :alt="alt"
+      :loading="loading"
+      :class="imageClasses"
+      @load="onLoad"
+      @error="onError"
+    >
+  </picture>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+
+interface Props {
+  src: string
+  alt: string
+  webpSrc?: string
+  loading?: 'lazy' | 'eager'
+  sizes?: string
+  className?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  loading: 'lazy'
+})
+
+const isLoaded = ref(false)
+const hasError = ref(false)
+
+const imageClasses = computed(() => [
+  'optimized-image__img',
+  props.className,
+  {
+    'optimized-image__img--loaded': isLoaded.value,
+    'optimized-image__img--error': hasError.value
+  }
+])
+
+const onLoad = (): void => {
+  isLoaded.value = true
+}
+
+const onError = (): void => {
+  hasError.value = true
+}
+</script>
+
+<style scoped>
+.optimized-image__img {
+  @apply transition-opacity duration-300 opacity-0;
+}
+
+.optimized-image__img--loaded {
+  @apply opacity-100;
+}
+
+.optimized-image__img--error {
+  @apply opacity-50;
+}
+</style>
+```
+
+### Virtual Scrolling for Large Lists
+```vue
+<!-- src/components/VirtualList.vue -->
+<template>
+  <div
+    ref="containerRef"
+    class="virtual-list"
+    @scroll="onScroll"
+  >
+    <div
+      class="virtual-list__spacer"
+      :style="{ height: `${totalHeight}px` }"
+    >
+      <div
+        class="virtual-list__content"
+        :style="{ transform: `translateY(${offsetY}px)` }"
+      >
+        <div
+          v-for="item in visibleItems"
+          :key="item.id"
+          class="virtual-list__item"
+          :style="{ height: `${itemHeight}px` }"
+        >
+          <slot :item="item" :index="item.index" />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts" generic="T extends { id: string | number }">
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+
+interface Props {
+  items: T[]
+  itemHeight: number
+  containerHeight: number
+  overscan?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  overscan: 5
+})
+
+const containerRef = ref<HTMLElement>()
+const scrollTop = ref(0)
+
+const totalHeight = computed(() => props.items.length * props.itemHeight)
+
+const startIndex = computed(() => 
+  Math.max(0, Math.floor(scrollTop.value / props.itemHeight) - props.overscan)
+)
+
+const endIndex = computed(() => 
+  Math.min(
+    props.items.length - 1,
+    Math.ceil((scrollTop.value + props.containerHeight) / props.itemHeight) + props.overscan
+  )
+)
+
+const visibleItems = computed(() => 
+  props.items
+    .slice(startIndex.value, endIndex.value + 1)
+    .map((item, index) => ({
+      ...item,
+      index: startIndex.value + index
+    }))
+)
+
+const offsetY = computed(() => startIndex.value * props.itemHeight)
+
+const onScroll = (event: Event): void => {
+  const target = event.target as HTMLElement
+  scrollTop.value = target.scrollTop
+}
+
+onMounted(() => {
+  if (containerRef.value) {
+    containerRef.value.style.height = `${props.containerHeight}px`
+  }
+})
+</script>
+
+<style scoped>
+.virtual-list {
+  @apply overflow-auto;
+}
+
+.virtual-list__spacer {
+  @apply relative;
+}
+
+.virtual-list__content {
+  @apply absolute top-0 left-0 right-0;
+}
+
+.virtual-list__item {
+  @apply border-b border-gray-200;
+}
+</style>
+```
+
+### Performance Monitoring
+```typescript
+// src/utils/performanceUtils.ts
+/**
+ * Performance monitoring utilities
+ */
+export class PerformanceMonitor {
+  private static instance: PerformanceMonitor
+  private metrics: Map<string, number> = new Map()
+
+  static getInstance(): PerformanceMonitor {
+    if (!PerformanceMonitor.instance) {
+      PerformanceMonitor.instance = new PerformanceMonitor()
+    }
+    return PerformanceMonitor.instance
+  }
+
+  /**
+   * Measures execution time of a function
+   */
+  measure<T>(name: string, fn: () => T): T {
+    const start = performance.now()
+    const result = fn()
+    const end = performance.now()
+    
+    this.metrics.set(name, end - start)
+    
+    if (import.meta.env.DEV) {
+      console.log(`Performance [${name}]: ${(end - start).toFixed(2)}ms`)
+    }
+    
+    return result
+  }
+
+  /**
+   * Measures async function execution time
+   */
+  async measureAsync<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    const start = performance.now()
+    const result = await fn()
+    const end = performance.now()
+    
+    this.metrics.set(name, end - start)
+    
+    if (import.meta.env.DEV) {
+      console.log(`Performance [${name}]: ${(end - start).toFixed(2)}ms`)
+    }
+    
+    return result
+  }
+
+  /**
+   * Gets all recorded metrics
+   */
+  getMetrics(): Record<string, number> {
+    return Object.fromEntries(this.metrics)
+  }
+
+  /**
+   * Clears all metrics
+   */
+  clear(): void {
+    this.metrics.clear()
+  }
+}
+
+/**
+ * Web Vitals monitoring
+ */
+export function initWebVitals(): void {
+  if (typeof window === 'undefined') return
+
+  // Largest Contentful Paint
+  new PerformanceObserver((list) => {
+    const entries = list.getEntries()
+    const lastEntry = entries[entries.length - 1]
+    console.log('LCP:', lastEntry.startTime)
+  }).observe({ entryTypes: ['largest-contentful-paint'] })
+
+  // First Input Delay
+  new PerformanceObserver((list) => {
+    const entries = list.getEntries()
+    entries.forEach((entry) => {
+      console.log('FID:', entry.processingStart - entry.startTime)
+    })
+  }).observe({ entryTypes: ['first-input'] })
+
+  // Cumulative Layout Shift
+  new PerformanceObserver((list) => {
+    let clsValue = 0
+    const entries = list.getEntries()
+    
+    entries.forEach((entry) => {
+      if (!entry.hadRecentInput) {
+        clsValue += entry.value
+      }
+    })
+    
+    console.log('CLS:', clsValue)
+  }).observe({ entryTypes: ['layout-shift'] })
+}
+```
+
+## Validation Rules
+
+### Pre-commit Hooks
+```json
+{
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,scss,vue}": [
+      "stylelint --fix"
+    ],
+    "*.{md,json}": [
+      "prettier --write"
+    ]
+  }
+}
+```
+
+### Commit Message Standards
+```javascript
+// commitlint.config.js
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      [
+        'feat',     // New feature
+        'fix',      // Bug fix
+        'docs',     // Documentation changes
+        'style',    // Code style changes
+        'refactor', // Code refactoring
+        'test',     // Adding or updating tests
+        'chore',    // Maintenance tasks
+        'perf',     // Performance improvements
+        'ci',       // CI/CD changes
+        'build'     // Build system changes
+      ]
+    ],
+    'subject-max-length': [2, 'always', 72],
+    'subject-case': [2, 'always', 'lower-case']
+  }
+}
+```
+
+### Code Quality Gates
+```typescript
+// scripts/quality-check.ts
+import { execSync } from 'child_process'
+
+interface QualityMetrics {
+  linting: boolean
+  typeChecking: boolean
+  testCoverage: number
+  buildSuccess: boolean
+}
+
+/**
+ * Runs comprehensive quality checks
+ */
+async function runQualityChecks(): Promise<QualityMetrics> {
+  const metrics: QualityMetrics = {
+    linting: false,
+    typeChecking: false,
+    testCoverage: 0,
+    buildSuccess: false
+  }
+
+  try {
+    // Run ESLint
+    execSync('pnpm lint', { stdio: 'inherit' })
+    metrics.linting = true
+    console.log('✅ Linting passed')
+  } catch {
+    console.error('❌ Linting failed')
+  }
+
+  try {
+    // Run TypeScript type checking
+    execSync('pnpm type-check', { stdio: 'inherit' })
+    metrics.typeChecking = true
+    console.log('✅ Type checking passed')
+  } catch {
+    console.error('❌ Type checking failed')
+  }
+
+  try {
+    // Run tests with coverage
+    const coverageOutput = execSync('pnpm test:coverage --reporter=json', { encoding: 'utf8' })
+    const coverage = JSON.parse(coverageOutput)
+    metrics.testCoverage = coverage.total.lines.pct
+    
+    if (metrics.testCoverage >= 80) {
+      console.log(`✅ Test coverage: ${metrics.testCoverage}%`)
+    } else {
+      console.error(`❌ Test coverage below threshold: ${metrics.testCoverage}%`)
+    }
+  } catch {
+    console.error('❌ Test coverage check failed')
+  }
+
+  try {
+    // Run build
+    execSync('pnpm build', { stdio: 'inherit' })
+    metrics.buildSuccess = true
+    console.log('✅ Build successful')
+  } catch {
+    console.error('❌ Build failed')
+  }
+
+  return metrics
+}
+
+/**
+ * Validates quality gates
+ */
+function validateQualityGates(metrics: QualityMetrics): boolean {
+  const requiredCoverage = 80
+  
+  const passed = 
+    metrics.linting &&
+    metrics.typeChecking &&
+    metrics.testCoverage >= requiredCoverage &&
+    metrics.buildSuccess
+
+  if (passed) {
+    console.log('🎉 All quality gates passed!')
+  } else {
+    console.error('💥 Quality gates failed!')
+    process.exit(1)
+  }
+
+  return passed
+}
+
+// Run quality checks
+runQualityChecks().then(validateQualityGates)
+```
+
+### Bundle Analysis
+```typescript
+// scripts/bundle-analysis.ts
+import { execSync } from 'child_process'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+interface BundleMetrics {
+  totalSize: number
+  gzippedSize: number
+  chunkCount: number
+  largestChunk: string
+}
+
+/**
+ * Analyzes bundle size and composition
+ */
+function analyzeBundleSize(): BundleMetrics {
+  // Build with bundle analysis
+  execSync('pnpm build --mode=analyze', { stdio: 'inherit' })
+  
+  // Read bundle stats
+  const statsPath = resolve('dist/stats.json')
+  const stats = JSON.parse(readFileSync(statsPath, 'utf8'))
+  
+  const metrics: BundleMetrics = {
+    totalSize: stats.assets.reduce((sum: number, asset: any) => sum + asset.size, 0),
+    gzippedSize: stats.assets.reduce((sum: number, asset: any) => sum + (asset.gzipSize || 0), 0),
+    chunkCount: stats.chunks.length,
+    largestChunk: stats.chunks.reduce((largest: any, chunk: any) => 
+      chunk.size > largest.size ? chunk : largest
+    ).name
+  }
+
+  // Validate bundle size limits
+  const maxBundleSize = 500 * 1024 // 500KB
+  const maxChunkSize = 200 * 1024  // 200KB
+  
+  if (metrics.totalSize > maxBundleSize) {
+    console.warn(`⚠️ Bundle size exceeds limit: ${(metrics.totalSize / 1024).toFixed(2)}KB`)
+  }
+  
+  if (metrics.gzippedSize > maxBundleSize / 2) {
+    console.warn(`⚠️ Gzipped size exceeds limit: ${(metrics.gzippedSize / 1024).toFixed(2)}KB`)
+  }
+
+  console.log(`📦 Bundle Analysis:`)
+  console.log(`   Total Size: ${(metrics.totalSize / 1024).toFixed(2)}KB`)
+  console.log(`   Gzipped: ${(metrics.gzippedSize / 1024).toFixed(2)}KB`)
+  console.log(`   Chunks: ${metrics.chunkCount}`)
+  console.log(`   Largest Chunk: ${metrics.largestChunk}`)
+
+  return metrics
+}
+
+analyzeBundleSize()
+```
+
+## Best Practices Summary
+
+### Development Workflow
+1. **Start with TypeScript strict mode** - Enable all strict type checking options
+2. **Use Composition API** - Prefer Composition API over Options API for better TypeScript support
+3. **Component-first approach** - Build reusable, well-documented components
+4. **Test-driven development** - Write tests before implementing features
+5. **Performance monitoring** - Monitor and optimize performance continuously
+
+### Code Organization
+1. **Consistent file naming** - Use PascalCase for components, camelCase for utilities
+2. **Logical folder structure** - Group related files together
+3. **Type definitions** - Create comprehensive TypeScript interfaces
+4. **Documentation** - Document all public APIs and complex logic
+5. **Error handling** - Implement proper error boundaries and user feedback
+
+### Security Practices
+1. **Input validation** - Validate and sanitize all user inputs
+2. **Content Security Policy** - Implement strict CSP headers
+3. **Authentication security** - Use secure token storage and validation
+4. **Dependency scanning** - Regularly audit and update dependencies
+5. **HTTPS enforcement** - Always use HTTPS in production
+
+### Performance Guidelines
+1. **Code splitting** - Implement route-based and component-based code splitting
+2. **Lazy loading** - Load components and resources on demand
+3. **Image optimization** - Use modern image formats and lazy loading
+4. **Bundle optimization** - Monitor and optimize bundle size
+5. **Caching strategies** - Implement appropriate caching mechanisms
+
+This comprehensive cursor rule ensures high-quality Vue TypeScript SPA development with robust testing, security, and performance optimization practices.

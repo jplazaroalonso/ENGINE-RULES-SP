@@ -1,0 +1,96 @@
+graph TB
+    subgraph "Rules Engine Domain Architecture"
+        direction TB
+        
+        subgraph "Core Domain - Strategic Business Value"
+            direction LR
+            CORE_CALC[Rules Calculation<br/>⚡ Real-time Processing<br/>🔧 Conflict Resolution<br/>📊 Performance Optimization<br/>🎯 <500ms Response Time]
+            CORE_MGMT[Rules Management<br/>📝 Rule Lifecycle<br/>🔄 Approval Workflow<br/>📋 Template System<br/>👥 Business User Empowerment]
+            CORE_EVAL[Rules Evaluation<br/>🌐 External Integration<br/>📡 API Gateway<br/>⚖️ Load Balancing<br/>🚀 1000+ TPS Support]
+        end
+        
+        subgraph "Supporting Domain - Business Capabilities"
+            direction LR
+            PROM[Promotions<br/>🎯 Discount Rules<br/>🏷️ Campaign Management<br/>💰 Benefit Calculation<br/>🛍️ Marketing Integration]
+            LOY[Loyalty<br/>⭐ Points Rules<br/>🏆 Tier Management<br/>🎁 Rewards Calculation<br/>📈 Customer Retention]
+            COUP[Coupons<br/>🎫 Validation Rules<br/>🔒 Usage Tracking<br/>🛡️ Fraud Prevention<br/>💳 Redemption Logic]
+            TAX[Taxes & Fees<br/>📍 Jurisdiction Rules<br/>💸 Tax Calculation<br/>📋 Compliance Reporting<br/>⚖️ Regulatory Support]
+            CALC[Rule Evaluator/Calculator<br/>🔢 Calculation Engine<br/>⚡ High Performance<br/>🔄 Multi-Domain Processing<br/>🧮 Mathematical Operations]
+        end
+        
+        subgraph "Generic Domain - Infrastructure Services"
+            direction LR
+            AUTH[Authentication<br/>🔐 User Management<br/>🛡️ OAuth 2.0/JWT<br/>🎫 Session Management<br/>🏢 Enterprise Integration]
+            INT[Integration<br/>🔌 External Systems<br/>📡 Data Synchronization<br/>🔄 Protocol Translation<br/>🌐 API Management]
+            AUDIT[Audit & Compliance<br/>📊 Event Logging<br/>📋 Compliance Tracking<br/>🗂️ Audit Reports<br/>⚖️ SOX/GDPR Support]
+        end
+    end
+    
+    subgraph "External Systems and Stakeholders"
+        direction TB
+        
+        subgraph "Business Users"
+            BA[Business Analysts<br/>📊 Rule Creation<br/>📝 Campaign Design]
+            APPROVER[Approvers<br/>✅ Rule Validation<br/>📋 Compliance Review]
+            ADMIN[System Administrators<br/>⚙️ System Management<br/>📈 Performance Monitoring]
+        end
+        
+        subgraph "External Systems"
+            POS[POS Systems<br/>💳 Point of Sale<br/>🛒 Transaction Processing<br/>🏪 Retail Integration]
+            ECOM[E-commerce Platforms<br/>🌐 Online Shopping<br/>🛍️ Digital Commerce<br/>📱 Mobile Apps]
+            CRM[Customer Systems<br/>👥 Customer Data<br/>📊 Customer Analytics<br/>🎯 Segmentation]
+            ERP[Enterprise Systems<br/>📊 Business Intelligence<br/>💼 Corporate Systems<br/>📈 Financial Reporting]
+        end
+    end
+    
+    %% Core Domain Internal Flow
+    CORE_MGMT --> CORE_CALC
+    CORE_CALC --> CORE_EVAL
+    CORE_CALC <--> CALC
+    
+    %% Supporting Domain Integration
+    CORE_CALC --> PROM
+    CORE_CALC --> LOY
+    CORE_CALC --> COUP
+    CORE_CALC --> TAX
+    
+    %% Supporting Domain Cross-Integration
+    PROM <--> LOY
+    COUP --> PROM
+    
+    %% Generic Domain Support
+    CORE_MGMT --> AUTH
+    CORE_EVAL --> INT
+    CORE_MGMT --> AUDIT
+    CORE_CALC --> AUDIT
+    CORE_EVAL --> AUDIT
+    
+    %% Business User Interactions
+    BA --> CORE_MGMT
+    APPROVER --> CORE_MGMT
+    ADMIN --> CORE_MGMT
+    ADMIN --> CORE_CALC
+    ADMIN --> CORE_EVAL
+    
+    %% External System Integration
+    CORE_EVAL <--> POS
+    CORE_EVAL <--> ECOM
+    INT <--> CRM
+    INT <--> ERP
+    
+    %% Authentication Flow
+    AUTH --> BA
+    AUTH --> APPROVER
+    AUTH --> ADMIN
+    
+    classDef coreContext fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
+    classDef supportingContext fill:#4ecdc4,stroke:#26a69a,stroke-width:2px,color:#fff
+    classDef genericContext fill:#ffe066,stroke:#ffd43b,stroke-width:2px,color:#000
+    classDef businessUser fill:#98fb98,stroke:#32cd32,stroke-width:2px,color:#000
+    classDef externalSystem fill:#dda0dd,stroke:#9370db,stroke-width:2px,color:#000
+    
+    class CORE_CALC,CORE_MGMT,CORE_EVAL coreContext
+    class PROM,LOY,COUP,TAX,CALC supportingContext
+    class AUTH,INT,AUDIT genericContext
+    class BA,APPROVER,ADMIN businessUser
+    class POS,ECOM,CRM,ERP externalSystem

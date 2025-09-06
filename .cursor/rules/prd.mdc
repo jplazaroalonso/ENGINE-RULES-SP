@@ -1,0 +1,299 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Product Requirements Document (PRD) Standards
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Document Structure](#document-structure)
+3. [Content Guidelines](#content-guidelines)
+4. [Templates](#templates)
+5. [Validation Rules](#validation-rules)
+6. [Best Practices](#best-practices)
+7. [Version Control](#version-control)
+
+## Overview
+This document outlines the standards and requirements for creating Product Requirements Documents (PRD) in our projects. A PRD serves as the primary source of truth for product specifications, features, and requirements.
+
+## Document Structure
+
+### Required Sections
+
+1. **Executive Summary**
+   - Product vision
+   - Business objectives
+   - Target market
+   - Key success metrics
+
+2. **Product Overview**
+   - Product description
+   - Target audience
+   - User personas
+   - Market positioning
+   - Value proposition
+
+3. **Business Requirements**
+   - Business goals
+   - Success criteria
+   - Revenue targets
+   - Market requirements
+   - Competitive analysis
+
+4. **Functional Requirements**
+   - Core features
+   - User stories
+   - Use cases
+   - User flows
+   - Feature priority matrix
+
+5. **Technical Requirements**
+   - System architecture
+   - Technology stack
+   - Infrastructure requirements
+   - Integration points
+   - Security requirements
+   - Performance requirements
+
+6. **Non-Functional Requirements**
+   - Performance metrics
+   - Scalability requirements
+   - Security standards
+   - Compliance requirements
+   - Accessibility standards
+   - Internationalization
+
+7. **User Interface**
+   - Design guidelines
+   - Wireframes
+   - User experience flows
+   - Responsive design requirements
+   - Accessibility requirements
+
+8. **Milestones and Timeline**
+   - Development phases
+   - Release schedule
+   - Key deliverables
+   - Dependencies
+   - Resource requirements
+
+9. **Success Metrics**
+   - KPIs
+   - OKRs
+   - Analytics requirements
+   - Monitoring requirements
+
+10. **Appendices**
+    - Technical specifications
+    - Market research
+    - User research
+    - Compliance documents
+    - Reference materials
+
+## Content Guidelines
+
+### Writing Style
+1. **Clarity**
+   - Use clear, concise language
+   - Avoid technical jargon unless necessary
+   - Define acronyms and technical terms
+   - Use active voice
+
+2. **Specificity**
+   - Be specific and measurable
+   - Use quantifiable metrics
+   - Provide concrete examples
+   - Include acceptance criteria
+
+3. **Organization**
+   - Use consistent formatting
+   - Follow logical progression
+   - Include clear section headers
+   - Use appropriate numbering
+
+### Requirements Specification
+1. **User Stories Format**
+   ```markdown
+   As a [user type]
+   I want to [action]
+   So that [benefit/value]
+   ```
+
+2. **Acceptance Criteria Format**
+   ```markdown
+   Given [context]
+   When [action]
+   Then [expected result]
+   ```
+
+3. **Feature Priority Matrix**
+   | Feature | Priority | Effort | Impact |
+   |---------|----------|--------|---------|
+   | Feature 1 | High | Medium | High |
+   | Feature 2 | Medium | Low | Medium |
+
+## Templates
+
+### Basic PRD Template
+```markdown
+# Product Requirements Document
+
+## Executive Summary
+[Brief overview of the product and its objectives]
+
+## Product Overview
+[Detailed description of the product]
+
+## Requirements
+### Functional Requirements
+[List of functional requirements]
+
+### Technical Requirements
+[List of technical requirements]
+
+### Non-Functional Requirements
+[List of non-functional requirements]
+
+## Timeline and Milestones
+[Project timeline and key milestones]
+
+## Success Metrics
+[Definition of success metrics]
+```
+
+### Feature Specification Template
+```markdown
+# Feature Specification
+
+## Overview
+[Feature description]
+
+## User Stories
+[User stories list]
+
+## Technical Requirements
+[Technical requirements]
+
+## Acceptance Criteria
+[List of acceptance criteria]
+
+## Dependencies
+[List of dependencies]
+```
+
+## Validation Rules
+
+### Required Elements
+1. **Document Components**
+   - Title and version number
+   - Table of contents
+   - Executive summary
+   - All required sections
+   - Approval signatures
+
+2. **Content Requirements**
+   - Clear requirements
+   - Measurable metrics
+   - Defined priorities
+   - Resource estimates
+   - Dependencies
+
+3. **Visual Elements**
+   - Diagrams where appropriate
+   - Wireframes for UI features
+   - Flow charts for processes
+   - Priority matrices
+
+### Quality Checks
+1. **Completeness**
+   - All sections filled
+   - No TBD items
+   - Clear acceptance criteria
+   - Defined metrics
+
+2. **Clarity**
+   - No ambiguous language
+   - Defined terms
+   - Clear priorities
+   - Explicit dependencies
+
+3. **Consistency**
+   - Consistent formatting
+   - Standard terminology
+   - Aligned with style guide
+   - Version control
+
+## Best Practices
+
+### Document Management
+1. **Version Control**
+   - Use semantic versioning
+   - Track changes
+   - Maintain change log
+   - Document approvals
+
+2. **Review Process**
+   - Stakeholder review
+   - Technical review
+   - User experience review
+   - Security review
+
+3. **Updates**
+   - Regular reviews
+   - Change tracking
+   - Impact analysis
+   - Communication plan
+
+### Collaboration
+1. **Stakeholder Input**
+   - Regular meetings
+   - Feedback loops
+   - Sign-off process
+   - Change requests
+
+2. **Cross-functional Review**
+   - Development team
+   - Design team
+   - Product team
+   - QA team
+   - Security team
+
+## Version Control
+
+### Version Numbering
+- Major.Minor.Patch (e.g., 1.0.0)
+- Major: Significant changes
+- Minor: Feature additions
+- Patch: Bug fixes/minor updates
+
+### Change Log
+```markdown
+# Change Log
+
+## [1.0.0] - YYYY-MM-DD
+### Added
+- Initial PRD version
+
+### Changed
+- Updated requirements based on feedback
+
+### Removed
+- Deprecated features
+```
+
+### Review Process
+1. **Initial Draft**
+   - Author creates document
+   - Internal review
+   - Stakeholder feedback
+
+2. **Revision**
+   - Incorporate feedback
+   - Update requirements
+   - Update metrics
+
+3. **Approval**
+   - Stakeholder sign-off
+   - Technical review
+   - Final approval

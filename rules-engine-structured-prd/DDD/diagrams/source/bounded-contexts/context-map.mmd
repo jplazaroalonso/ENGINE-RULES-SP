@@ -1,0 +1,83 @@
+graph TB
+    subgraph "Rules Engine Context Map with Integration Patterns"
+        direction TB
+        
+        subgraph "Core Domain Contexts"
+            direction TB
+            RM[Rules Management<br/>📝 Rule Lifecycle Management<br/>🔄 Approval Workflow<br/>📋 Template System<br/>👥 Business User Interface]
+            RC[Rules Calculation<br/>⚡ Core Evaluation Engine<br/>🔧 Conflict Resolution<br/>📊 Performance Optimization<br/>🎯 Real-time Processing]
+            RE[Rules Evaluation<br/>🌐 External API Gateway<br/>📡 Integration Services<br/>⚖️ Load Balancing<br/>🚀 High Throughput]
+        end
+        
+        subgraph "Supporting Domain Contexts"
+            direction TB
+            PROM[Promotions<br/>🎯 Discount Rules<br/>🏷️ Campaign Management<br/>💰 Benefit Calculation<br/>📊 Marketing Analytics]
+            LOY[Loyalty<br/>⭐ Points Rules<br/>🏆 Tier Management<br/>🎁 Rewards Calculation<br/>📈 Customer Engagement]
+            COUP[Coupons<br/>🎫 Validation Rules<br/>🔒 Usage Tracking<br/>🛡️ Fraud Prevention<br/>💳 Redemption Logic]
+            TAX[Taxes & Fees<br/>📍 Jurisdiction Rules<br/>💸 Tax Calculation<br/>📋 Compliance Reporting<br/>⚖️ Regulatory Compliance]
+            CALC[Rule Evaluator/Calculator<br/>🔢 Calculation Engine<br/>⚡ High Performance<br/>🔄 Multi-Domain Processing<br/>🧮 Shared Algorithms]
+        end
+        
+        subgraph "Generic Domain Contexts"
+            direction TB
+            AUTH[Authentication<br/>🔐 User Management<br/>🛡️ OAuth 2.0/JWT<br/>🎫 Session Management<br/>🏢 Enterprise SSO]
+            INT[Integration<br/>🔌 External Systems<br/>📡 Data Synchronization<br/>🔄 Protocol Translation<br/>🛡️ Anti-Corruption Layer]
+            AUDIT[Audit & Compliance<br/>📊 Event Logging<br/>📋 Compliance Tracking<br/>🗂️ Audit Reports<br/>📜 Regulatory Documentation]
+        end
+    end
+    
+    %% Core Domain Relationships - Customer/Supplier Pattern
+    RM -.->|Customer/Supplier<br/>📤 Rule Definitions<br/>📝 Lifecycle Events<br/>✅ Validation Requests<br/>🔄 Status Updates| RC
+    RC -.->|Customer/Supplier<br/>⚡ Evaluation Results<br/>📊 Performance Metrics<br/>🔄 Cache Updates<br/>📈 Health Status| RE
+    
+    %% Shared Kernel Pattern
+    RC <-.->|Shared Kernel<br/>🔢 Calculation Algorithms<br/>⚡ Performance Libraries<br/>🧮 Core Math Functions<br/>🔧 Optimization Utils| CALC
+    
+    %% Open Host Service Pattern
+    RC -.->|Open Host Service<br/>🎯 Evaluation API<br/>📊 Rule Results<br/>🔄 Event Notifications<br/>📈 Performance Data| PROM
+    RC -.->|Open Host Service<br/>⭐ Evaluation API<br/>🏆 Points Calculation<br/>📈 Tier Progression<br/>🎁 Rewards Processing| LOY
+    RC -.->|Open Host Service<br/>🎫 Validation API<br/>🔒 Usage Verification<br/>📊 Fraud Detection<br/>💳 Redemption Rules| COUP
+    RC -.->|Open Host Service<br/>💸 Calculation API<br/>📍 Jurisdiction Processing<br/>📋 Compliance Data<br/>⚖️ Tax Rules| TAX
+    
+    %% Partner Pattern - Supporting Domain Collaboration
+    PROM <-.->|Partner<br/>🤝 Cross-Promotion Rules<br/>⭐ Loyalty Integration<br/>📊 Shared Analytics<br/>🎯 Campaign Coordination| LOY
+    
+    %% Customer/Supplier - Supporting Domain
+    COUP -.->|Customer/Supplier<br/>🎫 Coupon Promotions<br/>💰 Discount Integration<br/>📈 Campaign Data<br/>🛍️ Shopping Benefits| PROM
+    
+    %% Conformist Pattern - Generic Domain Integration
+    RM -.->|Conformist<br/>🔐 Enterprise Auth<br/>👤 User Sessions<br/>🛡️ Security Compliance<br/>🏢 SSO Integration| AUTH
+    
+    %% Anti-Corruption Layer Pattern
+    RE -.->|Anti-Corruption Layer<br/>🔌 Protocol Translation<br/>📡 Data Transformation<br/>🛡️ External Isolation<br/>🔄 Format Conversion| INT
+    
+    %% Published Language Pattern - Audit Integration
+    RM -.->|Published Language<br/>📝 Rule Events<br/>👤 User Actions<br/>🔄 Status Changes<br/>📋 Approval Workflow| AUDIT
+    RC -.->|Published Language<br/>⚡ Evaluation Events<br/>📊 Performance Metrics<br/>⚠️ Error Events<br/>🔧 System Health| AUDIT
+    RE -.->|Published Language<br/>🌐 API Events<br/>📡 Integration Events<br/>📊 Usage Metrics<br/>🚀 Traffic Analytics| AUDIT
+    
+    %% Separate Ways Pattern
+    TAX -.->|Separate Ways<br/>🚫 No Direct Integration<br/>📋 Independent Compliance<br/>💸 Separate Tax Logic<br/>⚖️ Regulatory Independence| COUP
+    
+    %% Pattern Legend
+    subgraph "Integration Pattern Legend"
+        direction LR
+        CS[Customer/Supplier<br/>🔄 Event + API]
+        SK[Shared Kernel<br/>🤝 Joint Ownership]
+        OHS[Open Host Service<br/>📡 Standard API]
+        PART[Partner<br/>🤝 Collaboration]
+        CONF[Conformist<br/>📋 Standard Adoption]
+        ACL[Anti-Corruption Layer<br/>🛡️ Isolation]
+        PL[Published Language<br/>📜 Standard Events]
+        SW[Separate Ways<br/>🚫 Independent]
+    end
+    
+    classDef coreContext fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px,color:#fff
+    classDef supportingContext fill:#4ecdc4,stroke:#26a69a,stroke-width:3px,color:#fff
+    classDef genericContext fill:#ffe066,stroke:#ffd43b,stroke-width:2px,color:#000
+    classDef patternLegend fill:#f0f0f0,stroke:#808080,stroke-width:1px,color:#000
+    
+    class RM,RC,RE coreContext
+    class PROM,LOY,COUP,TAX,CALC supportingContext
+    class AUTH,INT,AUDIT genericContext
+    class CS,SK,OHS,PART,CONF,ACL,PL,SW patternLegend

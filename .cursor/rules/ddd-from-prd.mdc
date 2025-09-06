@@ -1,0 +1,2103 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Domain-Driven Design (DDD) Documentation Standards
+
+## Table of Contents
+1. [Overview](#overview)
+2. [DDD Documentation Structure](#ddd-documentation-structure)
+3. [Domain Model Documentation](#domain-model-documentation)
+4. [Bounded Context Documentation](#bounded-context-documentation)
+5. [Aggregate Documentation](#aggregate-documentation)
+6. [Ubiquitous Language Documentation](#ubiquitous-language-documentation)
+7. [Context Mapping Documentation](#context-mapping-documentation)
+8. [Event Storming Documentation](#event-storming-documentation)
+9. [DDD Visual Documentation](#ddd-visual-documentation)
+10. [Code Documentation Standards](#code-documentation-standards)
+11. [Validation and Quality Assurance](#validation-and-quality-assurance)
+
+## Overview
+
+This document establishes standards for creating and maintaining Domain-Driven Design (DDD) documentation. It emphasizes clear domain modeling, comprehensive bounded context definitions, and visual representations using Mermaid diagrams that integrate with our established documentation standards.
+
+### DDD Documentation Principles
+- **Domain-Centric**: Focus on business domain and domain expert knowledge
+- **Ubiquitous Language**: Consistent terminology across all documentation
+- **Bounded Context Clarity**: Clear boundaries and context definitions
+- **Aggregate Cohesion**: Well-defined aggregate boundaries and rules
+- **Strategic Design**: Context mapping and integration patterns
+- **Tactical Design**: Implementation patterns and code organization
+
+### PRD-to-DDD Intelligent Synthesis Strategy
+
+This section defines how to systematically infer, synthesize, and validate DDD information from existing PRD documentation following the `apps_prd.mdc` structure:
+
+#### Inference-First Approach (Beyond Simple Extraction)
+Rather than merely extracting existing information, use intelligent inference and synthesis:
+
+1. **Aggregate Inference**: Analyze main nouns in user stories and PRD descriptions to identify aggregate candidates
+   - Example: Stories mentioning "orders," "customers," "products" → infer Order, Customer, Product aggregates
+   - Cross-validate with verbs to understand relationships ("add product to cart" → Customer has Cart, Cart contains Products)
+
+2. **Business Rule Synthesis**: Transform Given/When/Then criteria into clear natural language business rules
+   - Example: "Given an order with products, When inventory is zero, Then order cannot be confirmed" → "An order cannot be confirmed if inventory of any products is zero"
+   - Go beyond copy-paste to add analytical value
+
+3. **Relationship Analysis**: Examine verbs in user stories to infer aggregate relationships
+   - "As a customer, I want to **add** a product to my cart" → Customer manages Cart, Cart contains Products
+   - "As a manager, I want to **approve** a rule" → Manager approves Rule (approval relationship)
+
+#### Multi-Step Iterative Generation Process
+Transform linear workflow into iterative process with intermediate validations:
+
+**Step 1: Strategic Analysis with Validation**
+- Generate domains, subdomains, context mapping from executive-summary, general-description, dependencies.md only
+- Create preliminary domain classification table
+- **Validation Point**: Verify domains align with business value propositions and strategic objectives
+
+**Step 2: Ubiquitous Language Generation with Cross-Validation**  
+- Using domain list from Step 1, scan stories.md, acceptance.md to build glossary
+- **Validation Point**: Flag important terms that don't fit identified domains for domain refinement
+- **Synthesis Point**: Create concept relationship maps showing how terms interconnect
+
+**Step 3: Tactical Modeling with Invariant Extraction**
+- Generate aggregate and entity models with focus on extracting invariants from unit-tests.md and acceptance.md (per apps_prd.mdc section 6.6)
+- **Inference Point**: Analyze test scenarios to infer missing business rules not explicitly stated
+- **Validation Point**: Ensure all aggregates have clear boundaries and business justification
+
+**Step 4: Consistency Validation and Cross-Referencing**
+- Validate every DDD concept has traceable source in PRD
+- Verify all Mermaid diagrams are well-formed and consistent
+- **Cross-Reference Validation**: Ensure entity names consistent across all documents and diagrams
+
+#### Consistency and Cross-Referencing Framework
+Implement systematic consistency checks and traceability:
+
+**Invariant Traceability Table**
+For each business rule/invariant, maintain:
+```yaml
+InvariantRegistry:
+  - invariant_id: INV-001
+    name: "Order Confirmation Requires Inventory"
+    description: "An order cannot be confirmed if inventory of any products is zero"
+    aggregate: Order
+    source_type: acceptance_criteria
+    source_id: AC-03
+    related_tests: [TC-UT-02, TC-FT-05]
+    business_impact: prevents_overselling
+```
+
+**Entity Consistency Matrix**
+Track entity usage across all documents:
+```yaml
+EntityConsistencyMatrix:
+  Customer:
+    ubiquitous_language: ✓ defined
+    aggregate_design: ✓ modeled  
+    context_map: ✓ referenced
+    domain_events: ✓ CustomerCreated, CustomerUpdated
+    mermaid_diagrams: ✓ consistent_naming
+    
+  Order:
+    ubiquitous_language: ✓ defined
+    aggregate_design: ✓ modeled
+    context_map: ⚠ missing_integration_details
+    domain_events: ✓ OrderConfirmed, OrderCancelled
+    mermaid_diagrams: ✓ consistent_naming
+```
+
+**Success Metrics Contribution Map**
+Link domain elements to business success metrics (per apps_prd.mdc traceability requirements):
+```yaml
+MetricsContributionMap:
+  business_metric: "80% reduction in rule deployment time"
+  contributing_elements:
+    - aggregate: Rule
+      contribution: "Rule aggregate lifecycle automation"
+      feature_trace: FEAT-0001
+      success_criteria: "Rule creation <2 hours vs previous weeks"
+    - context: Rules_Management  
+      contribution: "Streamlined approval workflow"
+      feature_trace: FEAT-0003
+      success_criteria: "Automated approval reduces manual steps"
+```
+
+#### Source Documentation Mapping with Inference Guidelines
+- **Executive Summary (01-executive-summary/)**: Infer strategic domain value and competitive positioning
+- **General Description (02-general-description/)**: Synthesize context boundaries from system capabilities  
+- **Functional Models DDD (03-functional-models-ddd/)**: Use as validation baseline, not just copying
+- **Functional Requirements (04-functional-requirements/)**: Infer domain model from user journey patterns
+- **Feature Documentation**: Synthesize business invariants from user behavior patterns and edge cases
+
+## DDD Documentation Structure
+
+### Required Documentation Hierarchy
+```
+project/
+├── docs/
+│   ├── domain/
+│   │   ├── README.md                          # Domain overview
+│   │   ├── ubiquitous-language.md            # Domain vocabulary
+│   │   ├── domain-model-overview.md          # High-level domain model
+│   │   └── event-storming/                   # Event storming sessions
+│   │       ├── session-01-big-picture.md
+│   │       ├── session-02-process-modeling.md
+│   │       └── session-03-software-design.md
+│   ├── bounded-contexts/
+│   │   ├── README.md                          # Context overview
+│   │   ├── context-map.md                     # Context relationships
+│   │   └── [context-name]/                   # Individual contexts
+│   │       ├── README.md                      # Context documentation
+│   │       ├── domain-model.md               # Context domain model
+│   │       ├── aggregates/                   # Aggregate documentation
+│   │       ├── services/                     # Domain services
+│   │       ├── events/                       # Domain events
+│   │       └── integration/                  # Integration patterns
+│   └── architecture/
+│       ├── strategic-design.md               # Strategic DDD decisions
+│       ├── tactical-design.md                # Tactical DDD patterns
+│       └── implementation-guide.md           # Development guidelines
+└── diagrams/
+    └── source/
+        ├── domain/
+        │   ├── domain-overview.mmd
+        │   └── ubiquitous-language-concepts.mmd
+        ├── bounded-contexts/
+        │   ├── context-map.mmd
+        │   ├── [context-name]-domain-model.mmd
+        │   └── [context-name]-aggregates.mmd
+        └── event-storming/
+            ├── big-picture-timeline.mmd
+            ├── process-flows.mmd
+            └── aggregate-design.mmd
+```
+
+## Domain Model Documentation
+
+### Domain Overview Document Template
+
+#### PRD Source Mapping for Domain Overview with Iterative Validation
+**Step 1: Strategic Analysis with Validation**
+
+**Primary Sources for Strategic Inference**:
+- `01-executive-summary/` - Infer strategic domain value and competitive positioning (not just business objectives)
+- `02-general-description/` - Synthesize system capabilities into domain boundaries
+- `dependencies.md` files - Analyze dependency patterns to classify domain types
+- `08-success-metrics/` - Map metrics to domain value propositions
+
+**Core Domain Identification Process with Inference**:
+1. **Strategic Value Inference**: 
+   - Analyze competitive advantages mentioned in executive summary
+   - Infer which capabilities provide differentiation vs operational support
+   - Map business value statements to domain investment priorities
+   - **Validation Point**: Does domain classification align with stated competitive advantages?
+
+2. **Domain Boundary Synthesis**:
+   - Synthesize system capabilities from general description into logical domain groups
+   - Infer domain relationships from capability interdependencies  
+   - Analyze dependency patterns to distinguish Core/Supporting/Generic classifications
+   - **Validation Point**: Do inferred boundaries support stated business objectives?
+
+3. **Investment Strategy Validation**:
+   - Cross-reference domain classification with success metrics
+   - Validate that Core domains directly contribute to key business KPIs
+   - Ensure Supporting domains enable Core domain success
+   - **Validation Point**: Does investment allocation match business priorities?
+
+**Iterative Refinement Process**:
+- Generate initial domain list from executive summary analysis
+- Validate against general description system capabilities
+- Refine based on dependency analysis patterns
+- Cross-check with success metrics for business alignment
+
+```markdown
+# [Domain Name] - Domain Overview
+
+## Business Context
+### Industry Domain
+- [Industry description and characteristics from executive summary]
+- [Key business drivers and challenges from business objectives]
+- [Market dynamics and competitive landscape from strategic context]
+
+### Business Capabilities
+- [Core business capabilities and value streams from feature objectives]
+- [Supporting capabilities and functions from feature scope analysis]
+- [Cross-cutting concerns and shared services from dependency analysis]
+
+## Core Domain Identification
+### Core Domain
+- **Name**: [Core domain name derived from primary business value proposition]
+- **Description**: [Why this is the core domain based on competitive advantage and strategic value]
+- **Business Value**: [Strategic business importance from executive summary]
+- **Complexity**: [Technical and domain complexity level from feature analysis]
+
+### Supporting Domains
+| Domain | Type | Complexity | Business Impact | Recommended Approach |
+|--------|------|------------|-----------------|---------------------|
+| [Name from feature scope] | Supporting | [From feature complexity] | [From business value] | [Build/Buy based on strategic importance] |
+
+### Generic Domains
+- [List of generic domains from common dependencies (auth, notifications, etc.)]
+- [Third-party solutions and vendor recommendations from dependency analysis]
+
+## Domain Vision Statement
+> [Clear, concise statement of the domain's purpose and value from executive summary]
+
+## Success Metrics
+- [Key business metrics and KPIs from success metrics section]
+- [Technical quality metrics from non-functional requirements]
+- [Domain model evolution indicators from feature traceability]
+```
+
+### Ubiquitous Language Documentation
+
+#### PRD Source Mapping for Ubiquitous Language with Inference
+**Step 2: Ubiquitous Language Generation with Cross-Validation**
+
+**Primary Sources for Language Synthesis**:
+- `../04-functional-requirements/` - Analyze nouns and verbs to infer domain concepts and relationships
+- `stories.md` files - Synthesize business vocabulary from user story patterns and interactions
+- `domain/model.md` files - Cross-validate technical terms with business language for consistency
+- `acceptance.md` files - Infer business rules from Given/When/Then patterns and edge cases
+
+**Intelligent Synthesis Process**:
+1. **Concept Inference from User Stories**: 
+   - Analyze main nouns across all user stories to identify domain entity candidates
+   - Example: "As a customer, I want to add products to my cart" → infer Customer, Product, Cart entities
+   - **Cross-Validation**: Flag entities that appear in stories but not in identified domains from Step 1
+
+2. **Relationship Analysis from Verbs**:
+   - Examine verbs to understand entity relationships and behaviors
+   - Example: "customer **adds** product to cart" → Customer manages Cart, Cart contains Products
+   - "manager **approves** rule" → Manager has approval authority over Rule
+
+3. **Business Rule Synthesis from Acceptance Criteria**:
+   - Transform Given/When/Then scenarios into natural language business rules
+   - Example: "Given order with items, When inventory is 0, Then cannot confirm" → "Orders cannot be confirmed when any item has zero inventory"
+   - **Inference Point**: Identify implicit rules not explicitly stated but implied by edge cases
+
+4. **Terminology Consistency Validation**:
+   - Create cross-reference matrix ensuring consistent naming across all documents
+   - Validate that business terms align with technical model terminology
+   - **Validation Point**: Flag terminology mismatches between business and technical vocabularies
+
+**Iterative Refinement with Domain Validation**:
+- Generate initial vocabulary from user story analysis
+- Cross-validate terms against domains identified in Step 1
+- Flag important terms that don't fit existing domain boundaries (may indicate missing domains)
+- Synthesize relationship maps showing how concepts interconnect across contexts
+
+#### **Ambiguity Detection and Alert System**
+**Purpose**: Prevent incorrect assumptions from ambiguous natural language by flagging unclear terms and relationships for human validation
+
+**Multi-Meaning Term Detection Process**:
+1. **Business Context Analysis**: Identify terms that could have multiple meanings in business domain
+   - Example: "Order" could mean "purchase order," "sort order," or "command/instruction"
+   - Example: "Customer" could mean "end user," "business client," or "account holder"
+
+2. **Relationship Ambiguity Detection**: Flag unclear relationships between entities
+   - Example: "Customer manages account" - unclear if direct management or through intermediary
+   - Example: "Product belongs to category" - unclear if single or multiple categories
+
+3. **Scope Ambiguity Identification**: Detect unclear boundaries or responsibilities
+   - Example: "System validates order" - unclear if business validation or technical validation
+   - Example: "User creates rule" - unclear which type of user (admin, business analyst, etc.)
+
+**Ambiguity Alert Structure**:
+```yaml
+AmbiguityAlert:
+  alert_id: AMB-001
+  alert_type: term_ambiguity | relationship_ambiguity | scope_ambiguity
+  term_or_relationship: "Order"
+  context: "User story US-005: 'Customer places order'"
+  source_location: "stories.md line 45"
+  possible_interpretations:
+    - interpretation_1: "Purchase Order (e-commerce transaction)"
+    - interpretation_2: "Work Order (service request)"
+    - interpretation_3: "Sort Order (data organization)"
+  recommendation: "Based on e-commerce context, likely 'Purchase Order'"
+  confidence_level: medium | high | low
+  human_validation_required: true
+  proposed_resolution: "Define as 'Purchase Order' in ubiquitous language"
+  impact_assessment: "Affects Order aggregate design and business rules"
+```
+
+**Alert Generation Guidelines**:
+- **Trigger Conditions**: 
+  - Term appears with different contextual meanings across user stories
+  - Relationship verbs are vague ("manages," "handles," "processes")
+  - Business rules contain undefined scope ("system," "user," "application")
+- **Alert Priority**: Critical for core domain concepts, medium for supporting domain, low for generic domain
+- **Resolution Tracking**: Track human decisions to improve future ambiguity detection
+
+```markdown
+# Ubiquitous Language Dictionary
+
+## Core Concepts
+### [Concept Name]
+- **Definition**: [Clear, business-focused definition extracted from functional requirements]
+- **Context**: [Where this concept applies - derived from feature boundaries]
+- **Synonyms**: [Alternative terms used in user stories and requirements]
+- **Related Concepts**: [Links to related terms found in domain models]
+- **Business Rules**: [Key rules governing this concept from acceptance criteria]
+- **Examples**: [Concrete examples from user stories and test scenarios]
+
+## Domain Entities
+### [Entity Name]
+- **Purpose**: [Why this entity exists]
+- **Identity**: [What makes it unique]
+- **Lifecycle**: [Creation, modification, deletion rules]
+- **Business Rules**: [Invariants and constraints]
+- **Relationships**: [Connections to other entities]
+
+## Value Objects
+### [Value Object Name]
+- **Purpose**: [What it represents]
+- **Attributes**: [Component parts]
+- **Equality**: [How equality is determined]
+- **Immutability**: [Immutability constraints]
+- **Validation Rules**: [Business validation logic]
+
+## Domain Events
+### [Event Name]
+- **Trigger**: [What causes this event]
+- **Payload**: [Data carried by the event]
+- **Consequences**: [What happens as a result]
+- **Timing**: [When the event occurs]
+- **Subscribers**: [Who is interested in this event]
+
+## Aggregates
+### [Aggregate Name]
+- **Purpose**: [Business responsibility]
+- **Root Entity**: [Aggregate root identification]
+- **Boundaries**: [What's included/excluded]
+- **Invariants**: [Business rules enforced]
+- **Commands**: [Operations available]
+
+## Business Processes
+### [Process Name]
+- **Goal**: [Business objective]
+- **Trigger**: [Process initiation]
+- **Steps**: [Process flow]
+- **Participants**: [Actors involved]
+- **Outcomes**: [Possible results]
+
+## Anti-Patterns and Forbidden Terms
+- **[Forbidden Term]**: Use [Preferred Term] instead
+- **[Anti-Pattern]**: [Why it's problematic and what to use]
+```
+
+## Bounded Context Documentation
+
+### Bounded Context Template
+```markdown
+# [Context Name] Bounded Context
+
+## Context Definition
+### Purpose
+- [Why this context exists]
+- [Business capabilities it provides]
+- [Value it delivers to the organization]
+
+### Boundaries
+- **Included**: [What belongs in this context]
+- **Excluded**: [What doesn't belong here]
+- **Gray Areas**: [Unclear boundaries and decisions]
+
+### Team Ownership
+- **Responsible Team**: [Team name and contact]
+- **Domain Expert**: [Business expert contact]
+- **Technical Lead**: [Technical lead contact]
+
+## Domain Model
+### Core Entities
+```mermaid
+classDiagram
+    class CustomerAccount {
+        +AccountId id
+        +CustomerId customerId
+        +AccountType type
+        +Balance balance
+        +openAccount()
+        +deposit(amount)
+        +withdraw(amount)
+        +calculateInterest()
+    }
+    
+    class Customer {
+        +CustomerId id
+        +PersonalInfo personalInfo
+        +ContactInfo contactInfo
+        +CreditRating creditRating
+        +register()
+        +updateInfo()
+    }
+    
+    class Transaction {
+        +TransactionId id
+        +AccountId accountId
+        +Amount amount
+        +TransactionType type
+        +DateTime timestamp
+        +execute()
+        +reverse()
+    }
+    
+    CustomerAccount ||--o{ Transaction
+    Customer ||--o{ CustomerAccount
+```
+
+### Aggregates Overview
+```mermaid
+graph TD
+    A[Customer Aggregate] -->|owns| B[Customer Account Aggregate]
+    B -->|contains| C[Transaction History]
+    B -->|enforces| D[Account Rules]
+    A -->|has| E[Credit Profile]
+    A -->|manages| F[Contact Preferences]
+```
+
+### Domain Services
+- **[Service Name]**: [Purpose and responsibilities]
+  - **Operations**: [Key operations provided]
+  - **Dependencies**: [External dependencies]
+  - **Business Rules**: [Rules enforced]
+
+### Integration Points
+- **Inbound**: [How other contexts use this context]
+- **Outbound**: [How this context uses other contexts]
+- **Events Published**: [Domain events published]
+- **Events Consumed**: [External events consumed]
+
+## Technical Implementation
+### Architecture Patterns
+- **Aggregate Pattern**: [How aggregates are implemented]
+- **Repository Pattern**: [Data access approach]
+- **Domain Service Pattern**: [Service implementation]
+- **Event Sourcing**: [If applicable, event sourcing strategy]
+
+### Data Model
+- **Storage Technology**: [Database/storage choice]
+- **Schema Design**: [Data organization]
+- **Migration Strategy**: [Schema evolution approach]
+
+### API Design
+- **REST Endpoints**: [Public API design]
+- **gRPC Services**: [If applicable, gRPC interface]
+- **Message Contracts**: [Event/message schemas]
+```
+
+## Aggregate Documentation
+
+#### PRD Source Mapping for Aggregates with Intelligent Modeling
+**Step 3: Tactical Modeling with Invariant Extraction**
+
+**Primary Sources for Aggregate Synthesis**:
+- `domain/model.md` for each feature - Use as validation baseline, infer missing elements from behavior patterns
+- `stories.md` and `behaviour-tests.md` - Synthesize aggregate boundaries from user interaction patterns and state changes
+- `acceptance.md` - Transform Given/When/Then scenarios into business invariants with clear traceability
+- `unit-tests.md` and `functional-tests.md` - Infer validation rules and boundary conditions from test edge cases
+
+**Intelligent Aggregate Modeling Process**:
+1. **Aggregate Boundary Inference**:
+   - Analyze user story transaction patterns to identify consistency boundaries
+   - Example: "Customer adds items to cart, then checks out" → Cart and Order are separate aggregates (different transaction boundaries)
+   - **Inference Point**: Identify aggregates by analyzing what data must change together atomically
+
+2. **Invariant Synthesis from Acceptance Criteria**:
+   - Transform Given/When/Then into precise business rules with clear conditions
+   - Example: "Given order pending, When payment processed, Then status = confirmed" → "Order status can only transition to CONFIRMED after successful payment processing"
+   - **Synthesis Point**: Combine multiple acceptance criteria to identify comprehensive business rules
+
+3. **Missing Business Rule Inference**:
+   - Analyze test edge cases to infer unstated business rules
+   - Example: Unit test checking "order total cannot be negative" → infer business rule about pricing constraints
+   - **Inference Point**: What business rules are implied by error conditions and validation tests?
+
+4. **Aggregate Root Identification**:
+   - Analyze which entities are referenced in user stories as entry points
+   - Identify entities that control access to related entities
+   - **Validation Point**: Does aggregate root choice support user interaction patterns?
+
+**Invariant Traceability Framework** (per apps_prd.mdc section 6.6):
+```yaml
+InvariantRegistry:
+  - invariant_id: INV-001
+    name: "Order Status Transition Control"
+    description: "Order status can only transition to CONFIRMED after successful payment processing"
+    aggregate: Order
+    source_type: acceptance_criteria
+    source_id: AC-15
+    related_tests: [TC-UT-08, TC-FT-12]
+    business_impact: "Prevents order fulfillment without payment"
+    validation_method: "State machine pattern with payment gateway integration"
+```
+
+**Consistency Validation with Cross-Referencing**:
+- Ensure all aggregates have clear business justification from user stories
+- Validate that aggregate boundaries support identified business processes
+- Cross-reference aggregate design with ubiquitous language for naming consistency
+- **Validation Point**: Can each aggregate be modified independently without violating business rules?
+
+#### **UI vs Domain Logic Separation Validation**
+**Purpose**: Ensure domain rules remain pure business logic without UI/presentation concerns, maintaining clean separation of concerns
+
+**Domain Logic Purity Validation Process**:
+1. **Business Rule Analysis**: Examine domain rules for UI/presentation concerns
+   - **Pure Domain Rule**: "Order total must be calculated from line items and applicable taxes"
+   - **Mixed Concern (Invalid)**: "Order total must be displayed in currency format with two decimal places"
+   - **Validation**: Domain rules should focus on business invariants, not presentation
+
+2. **UI-UX Cross-Validation Against 07-ui-ux Section**:
+   - **Domain Rule**: "Customer must provide valid email address for registration"
+   - **UI Rule (from 07-ui-ux)**: "Email input field must show validation errors in red"
+   - **Validation**: Ensure domain doesn't specify UI presentation details
+
+3. **Aggregate Method Validation**: Verify aggregate methods contain only business logic
+   - **Valid Domain Method**: `order.calculateTotal()` - pure business calculation
+   - **Invalid Domain Method**: `order.displayFormattedTotal()` - contains presentation logic
+   - **Validation**: Aggregate methods should not return formatted strings or UI-specific data
+
+**Separation Validation Framework**:
+```yaml
+DomainLogicValidation:
+  aggregate: Order
+  business_rules:
+    - rule: "Order total calculation includes taxes and discounts"
+      contains_ui_concerns: false
+      validation_status: ✓ valid_domain_rule
+    - rule: "Order status displayed as progress bar"
+      contains_ui_concerns: true
+      validation_status: ✗ invalid_ui_concern_in_domain
+      recommendation: "Move to UI layer specification"
+  
+  methods:
+    - method: "calculateTotal()"
+      return_type: "Money"
+      contains_ui_logic: false
+      validation_status: ✓ pure_business_logic
+    - method: "getFormattedStatus()"
+      return_type: "String"
+      contains_ui_logic: true
+      validation_status: ✗ presentation_logic_in_domain
+      recommendation: "Move formatting to presentation layer"
+```
+
+**Cross-Reference Validation with UI-UX Documentation**:
+```yaml
+UIUXCrossValidation:
+  domain_rule: "Customer email must be unique across system"
+  ui_specification: "Email field shows 'Email already exists' error message"
+  separation_status: ✓ proper_separation
+  rationale: "Domain enforces uniqueness, UI handles error presentation"
+  
+  domain_rule: "Product price must be positive non-zero value"
+  ui_specification: "Price input shows currency symbol and validates format"
+  separation_status: ✓ proper_separation
+  rationale: "Domain enforces business constraint, UI handles formatting"
+```
+
+**Validation Alerts for Separation Violations**:
+```yaml
+SeparationViolationAlert:
+  alert_id: SEP-001
+  violation_type: ui_logic_in_domain | domain_logic_in_ui
+  location: "Order aggregate, calculateDisplayTotal() method"
+  description: "Method returns formatted currency string with locale-specific formatting"
+  violation_details: "Domain method includes presentation formatting logic"
+  recommended_fix: "Return Money value object, move formatting to presentation layer"
+  impact: "Violates clean architecture principles, reduces testability"
+  ui_ux_section_reference: "07-ui-ux/currency-formatting-specifications"
+```
+
+## Strategic Design Elements
+
+### Core, Supporting, and Generic Domain Classification
+
+#### PRD Source Mapping for Strategic Design
+**Primary Sources**: Identify strategic design elements from:
+- `01-executive-summary/` - Analyze business objectives and value proposition to identify Core domains
+- `feature.md` objectives - Determine which features provide competitive advantage (Core) vs operational support (Supporting)
+- `dependencies.md` - Identify Generic domains through common infrastructure dependencies like Payment Processing, Authentication
+- `02-general-description/` - System overview to understand domain relationships and strategic importance
+
+**Domain Classification Process**:
+1. **Core Domain Identification**: Features that provide direct competitive advantage and align with primary business value proposition
+2. **Supporting Domain Recognition**: Features that enable core business but don't differentiate competitively
+3. **Generic Domain Detection**: Common infrastructure needs shared across multiple contexts (auth, payments, notifications)
+
+**Strategic Investment Guidelines**:
+- **Core Domains**: Maximum investment (build in-house with best resources)
+- **Supporting Domains**: Moderate investment (build or buy based on complexity)
+- **Generic Domains**: Minimal investment (buy/outsource when possible)
+
+### Context Integration Patterns
+
+#### Integration Pattern Selection from PRD Analysis
+**Pattern Selection Based on Dependency Types** (from `dependencies.md` analysis):
+
+1. **Customer/Supplier Pattern**:
+   - **Trigger**: When one feature/context provides services that another depends on
+   - **Example**: Rule Management provides validated rules to Rule Evaluation
+   - **Identification**: Look for "upstream/downstream" language in dependencies
+
+2. **Anti-Corruption Layer Pattern**:
+   - **Trigger**: Integration with external legacy systems or third-party services
+   - **Example**: Integration with enterprise authentication systems
+   - **Identification**: External system dependencies with different data models/protocols
+
+3. **Shared Kernel Pattern**:
+   - **Trigger**: Multiple contexts share common domain logic or data structures
+   - **Example**: Shared calculation algorithms across multiple rule types
+   - **Identification**: Common components referenced in multiple feature dependencies
+
+4. **Open Host Service Pattern**:
+   - **Trigger**: One context provides standardized APIs to multiple consumers
+   - **Example**: Core rule evaluation engine serving multiple domain-specific contexts
+   - **Identification**: One feature serving multiple others with standardized interfaces
+
+5. **Conformist Pattern**:
+   - **Trigger**: Adapting to external system standards without ability to influence
+   - **Example**: Enterprise SSO integration, payment processor APIs
+   - **Identification**: External dependencies with rigid, unchangeable interfaces
+
+### Strategic Design Documentation Template
+
+```markdown
+# Strategic Design Decisions
+
+## Domain Portfolio Analysis
+### Core Domain Investment
+- **Domain**: [Name from executive summary value proposition]
+- **Strategic Value**: [Competitive advantage analysis from business objectives]
+- **Investment Level**: [High/Medium/Low based on strategic importance]
+- **Rationale**: [Why this domain provides competitive advantage]
+
+### Supporting Domain Analysis
+| Domain | Business Function | Strategic Value | Investment Approach | Rationale |
+|--------|------------------|-----------------|-------------------|----------|
+| [From feature scope] | [From feature.md] | [Medium/Low] | [Build/Buy] | [Supporting business operations] |
+
+### Generic Domain Strategy
+| Domain | Common Need | Recommended Solution | Integration Pattern |
+|--------|-------------|---------------------|-------------------|
+| [From dependencies] | [Infrastructure need] | [Buy/Outsource] | [Conformist/ACL] |
+
+## Context Integration Strategy
+### Integration Pattern Decisions
+1. **[Context A] → [Context B]**: [Pattern Name]
+   - **Justification**: [Why this pattern based on dependency analysis]
+   - **Implementation**: [How to implement based on technical requirements]
+   - **Evolution**: [How this relationship may change over time]
+
+## Strategic Evolution Path
+### Short-term (6-12 months)
+- [Priority investments in core domains]
+- [Supporting domain optimization]
+
+### Medium-term (1-2 years)
+- [Core domain enhancement]
+- [Integration pattern evolution]
+
+### Long-term (2+ years)
+- [Strategic domain expansion]
+- [New capability development]
+```
+
+### Aggregate Design Template with Code Generation Integration
+```markdown
+# [Aggregate Name] Aggregate
+
+## Business Purpose
+### Responsibility
+- [Core business responsibility extracted from feature.md objectives]
+- [Why this aggregate exists based on user stories and domain model]
+- [Business invariants it protects derived from acceptance criteria and tests]
+
+### Business Rules
+1. **[Rule Name from acceptance criteria]**: [Detailed rule description from Given/When/Then scenarios]
+   - **Trigger**: [When this rule applies based on user story conditions]
+   - **Validation**: [How to check compliance derived from unit-tests.md]
+   - **Consequences**: [What happens if violated from functional-tests.md]
+
+## Code Generation Specifications
+
+### Programming Language: [Go/Java/C#/Python - specify target language]
+
+### Aggregate Root Structure
+```go
+// Generated from DDD aggregate design
+type [AggregateName] struct {
+    // Value Objects
+    id [AggregateName]ID
+    [field_name] [ValueObjectType]
+    
+    // Internal State
+    [state_field] [StateType]
+    version int // For optimistic concurrency control
+    
+    // Domain Events (unpublished)
+    events []DomainEvent
+}
+
+// Factory Method
+func New[AggregateName]([parameters]) (*[AggregateName], error) {
+    // Business validation from acceptance criteria
+    if [validation_condition] {
+        return nil, errors.New("[business_rule_violation_message]")
+    }
+    
+    aggregate := &[AggregateName]{
+        id: [generateID](),
+        [field_name]: [parameter_value],
+        version: 0,
+        events: make([]DomainEvent, 0),
+    }
+    
+    // Raise domain event
+    aggregate.addDomainEvent([AggregateName]Created{
+        AggregateID: aggregate.id,
+        [event_data]: [values],
+        OccurredAt: time.Now(),
+    })
+    
+    return aggregate, nil
+}
+
+// Business Methods (from user stories and acceptance criteria)
+func (a *[AggregateName]) [BusinessMethod]([parameters]) error {
+    // Business rule validation (from acceptance criteria)
+    if [business_rule_condition] {
+        return errors.New("[invariant_violation_message]")
+    }
+    
+    // State change
+    [state_modification]
+    a.version++
+    
+    // Raise domain event
+    a.addDomainEvent([BusinessEvent]{
+        AggregateID: a.id,
+        [event_data]: [values],
+        OccurredAt: time.Now(),
+    })
+    
+    return nil
+}
+
+// Domain Event Management
+func (a *[AggregateName]) addDomainEvent(event DomainEvent) {
+    a.events = append(a.events, event)
+}
+
+func (a *[AggregateName]) GetUncommittedEvents() []DomainEvent {
+    return a.events
+}
+
+func (a *[AggregateName]) MarkEventsAsCommitted() {
+    a.events = make([]DomainEvent, 0)
+}
+```
+
+### Value Objects Generation
+```go
+// Generated from value object specifications
+type [ValueObjectName] struct {
+    value [underlying_type]
+}
+
+func New[ValueObjectName](value [underlying_type]) ([ValueObjectName], error) {
+    // Validation rules from domain model
+    if [validation_condition] {
+        return [ValueObjectName]{}, errors.New("[validation_error_message]")
+    }
+    
+    return [ValueObjectName]{value: value}, nil
+}
+
+// Immutability and equality
+func (vo [ValueObjectName]) Value() [underlying_type] {
+    return vo.value
+}
+
+func (vo [ValueObjectName]) Equals(other [ValueObjectName]) bool {
+    return vo.value == other.value
+}
+
+func (vo [ValueObjectName]) String() string {
+    return fmt.Sprintf("[format_string]", vo.value)
+}
+```
+
+### Domain Events Structure
+```go
+// Generated from domain events identified in user stories
+type [EventName] struct {
+    AggregateID [AggregateName]ID
+    [event_field] [field_type]
+    OccurredAt time.Time
+    Version int
+}
+
+func (e [EventName]) GetAggregateID() string {
+    return string(e.AggregateID)
+}
+
+func (e [EventName]) GetEventType() string {
+    return "[event_type_constant]"
+}
+
+func (e [EventName]) GetOccurredAt() time.Time {
+    return e.OccurredAt
+}
+
+func (e [EventName]) GetVersion() int {
+    return e.Version
+}
+```
+
+### Domain Service Interfaces
+```go
+// Generated from domain service specifications
+type [ServiceName] interface {
+    [ServiceMethod]([parameters]) ([return_type], error)
+}
+
+// Implementation guidelines (not generated)
+type [ServiceName]Impl struct {
+    [dependencies] [DependencyType]
+}
+
+func New[ServiceName]([dependencies]) [ServiceName] {
+    return &[ServiceName]Impl{
+        [dependencies]: [dependencies],
+    }
+}
+
+func (s *[ServiceName]Impl) [ServiceMethod]([parameters]) ([return_type], error) {
+    // Implementation follows business rules from acceptance criteria
+    // TODO: Implement business logic based on [specific_acceptance_criteria]
+    return [default_return], nil
+}
+```
+
+### Repository Interface Generation
+```go
+// Generated from aggregate specifications
+type [AggregateName]Repository interface {
+    GetByID(ctx context.Context, id [AggregateName]ID) (*[AggregateName], error)
+    Save(ctx context.Context, aggregate *[AggregateName]) error
+    Delete(ctx context.Context, id [AggregateName]ID) error
+    
+    // Query methods based on user stories
+    [QueryMethod](ctx context.Context, [parameters]) ([]*[AggregateName], error)
+}
+```
+
+### Unit Test Template Generation
+```go
+// Generated test cases from acceptance criteria and unit-tests.md
+func Test[AggregateName]_[BusinessRule](t *testing.T) {
+    // Given (from acceptance criteria)
+    [test_setup]
+    
+    // When (from acceptance criteria)
+    [action_under_test]
+    
+    // Then (from acceptance criteria)
+    [assertions]
+    
+    // Verify domain events
+    events := aggregate.GetUncommittedEvents()
+    assert.Len(t, events, [expected_event_count])
+    assert.IsType(t, [ExpectedEventType]{}, events[0])
+}
+
+func Test[AggregateName]_[BusinessRule]_InvalidCondition(t *testing.T) {
+    // Test error cases from acceptance criteria
+    [error_test_implementation]
+}
+```
+
+## Code Generation Guidelines
+
+### Generation Triggers
+- **Aggregate Design Complete**: Generate when aggregate has been validated and approved
+- **Business Rules Finalized**: Ensure all acceptance criteria have been analyzed
+- **Value Objects Defined**: Generate after value object validation rules are specified
+- **Domain Events Identified**: Generate after event storming or user story analysis
+
+### Code Quality Standards
+- **Immutability**: Value objects must be immutable
+- **Encapsulation**: Aggregate state only modified through business methods
+- **Domain Events**: All state changes must raise appropriate domain events
+- **Error Handling**: Business rule violations return descriptive errors
+- **Testing**: Generated code includes comprehensive test templates
+
+### Validation Requirements
+- **Business Rules**: All business rules from acceptance criteria implemented as validations
+- **Invariants**: All aggregate invariants enforced in methods
+- **Domain Events**: All significant business events properly raised and structured
+- **Interface Contracts**: Repository and service interfaces match domain service specifications
+```
+
+## Design Structure
+### Aggregate Root
+```mermaid
+classDiagram
+    class OrderAggregate {
+        <<AggregateRoot>>
+        +OrderId id
+        +CustomerId customerId
+        +OrderStatus status
+        +List~OrderLine~ orderLines
+        +Money totalAmount
+        +createOrder(customerId, orderLines)
+        +addOrderLine(productId, quantity)
+        +removeOrderLine(lineId)
+        +confirm()
+        +cancel()
+        +ship()
+    }
+    
+    class OrderLine {
+        +OrderLineId id
+        +ProductId productId
+        +Quantity quantity
+        +Money unitPrice
+        +Money totalPrice
+        +calculateTotal()
+    }
+    
+    class OrderStatus {
+        <<enumeration>>
+        DRAFT
+        CONFIRMED
+        SHIPPED
+        DELIVERED
+        CANCELLED
+    }
+    
+    OrderAggregate ||--o{ OrderLine
+    OrderAggregate --> OrderStatus
+```
+
+### Entity Relationships
+- **Root Entity**: [Aggregate root details]
+- **Child Entities**: [Entities within aggregate boundary]
+- **Value Objects**: [Value objects used]
+
+### Invariants and Constraints
+1. **[Invariant Name]**
+   - **Rule**: [Detailed invariant description]
+   - **Enforcement**: [How it's maintained]
+   - **Error Handling**: [What happens on violation]
+
+### Commands and Queries
+#### Commands
+- **[Command Name]**: [Purpose and parameters]
+  - **Preconditions**: [Required state]
+  - **Business Logic**: [What happens]
+  - **Events Raised**: [Domain events generated]
+  - **Side Effects**: [Additional consequences]
+
+#### Queries
+- **[Query Name]**: [Information retrieved]
+  - **Parameters**: [Query parameters]
+  - **Return Type**: [Data structure returned]
+  - **Performance**: [Performance characteristics]
+
+### Domain Events
+```mermaid
+sequenceDiagram
+    participant Client
+    participant OrderAggregate
+    participant EventStore
+    participant EventHandler
+    
+    Client->>OrderAggregate: confirmOrder()
+    OrderAggregate->>OrderAggregate: validateInvariants()
+    OrderAggregate->>EventStore: OrderConfirmed event
+    EventStore->>EventHandler: publish event
+    EventHandler->>External: notify fulfillment
+```
+
+### Lifecycle Management
+- **Creation**: [How aggregates are created]
+- **Modification**: [How they're updated]
+- **Deletion**: [Deletion rules and constraints]
+- **Archival**: [Long-term storage strategy]
+```
+
+## Context Mapping Documentation
+
+#### PRD Source Mapping for Context Maps
+**Primary Sources**: Analyze bounded contexts and relationships from:
+- `02-general-description/` - System overview and high-level context identification
+- `dependencies.md` of each feature - External system dependencies and integration patterns
+- `feature.md` files - Feature objectives and scope to identify context boundaries
+- `functional-tests.md` and `integration` sections - Cross-context interaction patterns
+
+**Extraction Process**:
+1. **Context Identification**: Use general description and feature scope to identify distinct business capabilities
+2. **Relationship Analysis**: Analyze dependencies.md to understand how contexts interact with external systems
+3. **Integration Pattern Mapping**: Based on dependency types (API calls, events, shared data), identify appropriate DDD integration patterns
+4. **Domain Classification**: Use executive summary and feature objectives to classify contexts as Core, Supporting, or Generic
+
+**Integration Pattern Selection Guidelines**:
+- **Customer/Supplier**: When one context provides services that another depends on (identified in dependencies.md)
+- **Anti-Corruption Layer**: When integrating with external legacy systems (found in integration dependencies)
+- **Shared Kernel**: When multiple contexts share common domain logic (identified in shared components)
+- **Open Host Service**: When a context provides standardized APIs to multiple consumers
+- **Conformist**: When adapting to external system standards (enterprise auth, payment processors)
+
+### Context Map Template
+```markdown
+# Domain Context Map
+
+## Context Relationships Overview
+```mermaid
+graph TD
+    subgraph "Core Domain"
+        OMS[Order Management]
+        INV[Inventory]
+        PRC[Pricing]
+    end
+    
+    subgraph "Supporting Domains"
+        CRM[Customer Management]
+        PAY[Payment Processing]
+        SHP[Shipping]
+    end
+    
+    subgraph "Generic Domains"
+        AUTH[Authentication]
+        NOT[Notifications]
+        RPT[Reporting]
+    end
+    
+    OMS -->|Customer/Supplier| CRM
+    OMS -->|Conformist| PAY
+    OMS -->|Partner| SHP
+    INV -->|Shared Kernel| PRC
+    OMS -->|Anti-Corruption Layer| AUTH
+    CRM -->|Open Host Service| NOT
+    RPT -->|Published Language| OMS
+```
+
+## Integration Patterns
+
+### Customer/Supplier Pattern
+- **Upstream Context**: [Supplier context]
+- **Downstream Context**: [Customer context]
+- **Integration Method**: [API, events, shared database]
+- **Data Flow**: [What data is exchanged]
+- **Responsibilities**: [Who maintains what]
+
+### Conformist Pattern
+- **Upstream Context**: [Dominant context]
+- **Downstream Context**: [Conforming context]
+- **Constraints**: [Limitations imposed]
+- **Adaptation Strategy**: [How to handle changes]
+
+### Anti-Corruption Layer Pattern
+- **External System**: [System being integrated]
+- **Translation Logic**: [How data is translated]
+- **Isolation Strategy**: [How corruption is prevented]
+- **Maintenance**: [Who maintains the layer]
+
+### Shared Kernel Pattern
+- **Shared Model**: [What is shared]
+- **Team Coordination**: [How teams coordinate]
+- **Change Management**: [How changes are managed]
+- **Testing Strategy**: [How compatibility is ensured]
+
+### Open Host Service Pattern
+- **Service Provider**: [Context providing service]
+- **Published Language**: [Stable API definition]
+- **Version Management**: [How versions are handled]
+- **Documentation**: [API documentation standards]
+
+## Context Evolution Strategy
+- **Relationship Lifecycle**: [How relationships evolve]
+- **Migration Patterns**: [How to change patterns]
+- **Team Dynamics**: [Organizational considerations]
+- **Technology Constraints**: [Technical limitations]
+```
+
+## Event Storming Documentation
+
+### Enhanced Event Storming Session Documentation
+
+#### PRD Integration for Event Storming Results
+**Purpose**: Document and synthesize results from collaborative event storming sessions, providing comprehensive guidance for translating workshop outcomes into DDD artifacts
+
+**Event Storming to DDD Mapping Process**:
+1. **Big Picture Event Flow Analysis**: Transform timeline events into domain event specifications
+2. **Process Modeling Integration**: Map user journey flows to bounded context boundaries  
+3. **Software Design Translation**: Convert workshop discoveries into aggregate designs and business rules
+
+#### **Event Storming Result Synthesis Framework**
+
+**Big Picture to Domain Events Mapping**:
+```yaml
+EventStormingToModelMapping:
+  workshop_event: "Customer Registered"
+  event_timeline_position: "1st in customer journey"
+  triggering_command: "Register Customer"
+  actor: "Customer"
+  domain_event_specification:
+    name: "CustomerRegistered"
+    aggregate: "Customer"
+    payload:
+      - customerId: "UUID"
+      - personalInfo: "PersonalInfo value object"
+      - registrationSource: "String"
+    business_significance: "Enables customer to access system features"
+    downstream_effects: ["Send welcome email", "Create customer profile", "Initialize preferences"]
+```
+
+**Process Modeling to Bounded Context Translation**:
+```yaml
+ProcessToBoundedContext:
+  workshop_process: "Order Fulfillment Process"
+  identified_steps:
+    - "Customer places order"
+    - "Inventory is checked"
+    - "Payment is processed"
+    - "Order is shipped"
+  bounded_context_candidates:
+    - name: "Order Management"
+      responsibilities: ["Order creation", "Order tracking", "Order lifecycle"]
+      process_steps: ["Customer places order", "Order tracking"]
+    - name: "Inventory Management"  
+      responsibilities: ["Stock checking", "Inventory reservation", "Stock updates"]
+      process_steps: ["Inventory is checked"]
+    - name: "Payment Processing"
+      responsibilities: ["Payment validation", "Transaction processing", "Refunds"]
+      process_steps: ["Payment is processed"]
+```
+
+**Hotspot Analysis and Resolution Tracking**:
+```yaml
+WorkshopHotspots:
+  - hotspot_id: "HS-001"
+    description: "Unclear who handles inventory conflicts when multiple orders compete for same item"
+    identified_during: "Big Picture session"
+    stakeholders_involved: ["Inventory Manager", "Order Fulfillment Team"]
+    proposed_resolutions:
+      - option_1: "First-come-first-served with queue"
+      - option_2: "Priority-based allocation (VIP customers first)"
+      - option_3: "Partial fulfillment with backorder"
+    resolution_decision: "Priority-based allocation agreed"
+    impact_on_model: "Requires Customer priority level in Order aggregate"
+    follow_up_actions: ["Update aggregate design", "Define priority business rules"]
+```
+
+**Aggregate Discovery Documentation**:
+```yaml
+WorkshopAggregateDiscovery:
+  - aggregate_name: "Order"
+    discovered_during: "Process modeling session"
+    workshop_evidence:
+      - "Order placed" event
+      - "Order confirmed" event  
+      - "Order shipped" event
+    business_rules_identified:
+      - "Order cannot be modified after confirmation"
+      - "Order must have at least one item"
+      - "Order total includes taxes based on shipping address"
+    aggregate_boundary_rationale: "All order-related data must change together for consistency"
+    identified_invariants:
+      - "Order status transitions follow specific workflow"
+      - "Order total must equal sum of line items plus taxes"
+```
+
+### Event Storming Session Template
+```markdown
+# Event Storming Session: [Session Name]
+
+## Session Information
+- **Date**: [Session date]
+- **Duration**: [Session length]
+- **Facilitator**: [Facilitator name]
+- **Participants**: [List of participants and roles]
+- **Objective**: [Session goal]
+
+## Session Results
+
+### Big Picture Event Flow
+```mermaid
+timeline
+    title Domain Event Timeline
+    
+    section Customer Journey
+        Customer Registration : Customer Registered
+                              : Account Created
+                              : Welcome Email Sent
+        
+        Product Selection      : Product Viewed
+                              : Product Added to Cart
+                              : Cart Updated
+        
+        Order Process         : Order Submitted
+                              : Payment Processed
+                              : Order Confirmed
+                              : Inventory Reserved
+        
+        Fulfillment          : Order Shipped
+                              : Tracking Number Generated
+                              : Customer Notified
+                              : Order Delivered
+```
+
+### Domain Events Identified
+| Event Name | Trigger | Data | Consequences | Bounded Context |
+|------------|---------|------|-------------|-----------------|
+| [Event] | [Trigger] | [Data payload] | [What happens next] | [Context] |
+
+### Commands and Policies
+#### Commands
+- **[Command Name]**: [What user/system wants to do]
+  - **Trigger**: [What initiates this command]
+  - **Actor**: [Who executes it]
+  - **Outcome**: [Expected result]
+
+#### Policies (Business Rules)
+- **[Policy Name]**: [Automated business rule]
+  - **Trigger Event**: [Event that triggers policy]
+  - **Condition**: [When policy applies]
+  - **Action**: [What the policy does]
+
+### Read Models and Views
+- **[View Name]**: [Information needed by users]
+  - **Data Sources**: [Where data comes from]
+  - **Update Trigger**: [When view is updated]
+  - **Users**: [Who uses this view]
+
+### Hotspots and Issues
+- **[Issue Description]**: [Problem identified]
+  - **Impact**: [How it affects the domain]
+  - **Resolution**: [Proposed solution]
+  - **Owner**: [Who will address it]
+
+### Aggregates Discovered
+```mermaid
+graph LR
+    subgraph "Order Context"
+        O[Order Aggregate]
+        O --> OL[Order Line]
+        O --> OS[Order Status]
+    end
+    
+    subgraph "Inventory Context"
+        P[Product Aggregate]
+        P --> PI[Product Info]
+        P --> PS[Product Stock]
+    end
+    
+    subgraph "Customer Context"
+        C[Customer Aggregate]
+        C --> CP[Customer Profile]
+        C --> CA[Customer Address]
+    end
+    
+    O -.->|references| P
+    O -.->|belongs to| C
+```
+```
+
+## DDD Visual Documentation
+
+### Mermaid Diagram Standards for DDD
+
+#### Visual Documentation Requirements from apps_prd.mdc Standard
+**Mandatory Compliance**: All visual diagrams must follow the apps_prd.mdc and ddd-documentation.mdc standards:
+
+1. **Mermaid Syntax Only**: Use Mermaid code blocks directly in markdown for native preview support
+2. **Source File Management**: Create duplicate .mmd files in diagrams/source/ directory for external use
+3. **High-Resolution Generation**: Generate both SVG and PNG formats (2x scale) for presentations
+4. **Consistent Styling**: Use standardized class definitions and color schemes
+5. **Accessibility**: Include alt text and text alternatives for diagrams
+
+**Diagram Organization Structure** (following apps_prd.mdc):
+```
+diagrams/
+├── source/           # Source .mmd files organized by category
+│   ├── domain/       # Domain-level diagrams
+│   ├── bounded-contexts/  # Context relationship diagrams  
+│   ├── aggregates/   # Aggregate design diagrams
+│   └── event-flows/  # Event flow sequence diagrams
+├── generated/        # Auto-generated images
+│   ├── svg/          # High-resolution SVG files
+│   └── png/          # High-resolution PNG files (2x scale)
+└── scripts/          # Generation and validation scripts
+```
+
+**Required Diagram Types for DDD**:
+- **Domain Overview**: High-level domain architecture with context boundaries
+- **Context Map**: Context relationships with integration patterns
+- **Aggregate Designs**: Class diagrams showing aggregate internal structure
+- **Event Flows**: Sequence diagrams showing domain event flows
+- **Bounded Context Internal Models**: Context-specific domain models
+
+#### 1. Domain Model Diagrams
+```markdown
+```mermaid
+classDiagram
+    direction TB
+    
+    class Customer {
+        <<AggregateRoot>>
+        +CustomerId id
+        +PersonalInfo personalInfo
+        +ContactInfo contactInfo
+        +register()
+        +updateProfile()
+        +deactivate()
+    }
+    
+    class PersonalInfo {
+        <<ValueObject>>
+        +string firstName
+        +string lastName
+        +Date birthDate
+        +validate()
+    }
+    
+    class ContactInfo {
+        <<ValueObject>>
+        +EmailAddress email
+        +PhoneNumber phone
+        +Address address
+        +validate()
+    }
+    
+    class CustomerRegistered {
+        <<DomainEvent>>
+        +CustomerId customerId
+        +DateTime occurredOn
+        +PersonalInfo personalInfo
+    }
+    
+    Customer ||--|| PersonalInfo
+    Customer ||--|| ContactInfo
+    Customer --> CustomerRegistered : publishes
+```
+```
+
+#### 2. Bounded Context Maps
+```markdown
+```mermaid
+graph TB
+    subgraph "Sales Context"
+        direction TB
+        SC[Sales Core]
+        SO[Sales Operations]
+        SP[Sales Planning]
+        SC --- SO
+        SC --- SP
+    end
+    
+    subgraph "Inventory Context"
+        direction TB
+        IM[Inventory Management]
+        IP[Inventory Planning]
+        IW[Warehouse Operations]
+        IM --- IP
+        IM --- IW
+    end
+    
+    subgraph "Customer Context"
+        direction TB
+        CM[Customer Management]
+        CS[Customer Service]
+        CA[Customer Analytics]
+        CM --- CS
+        CM --- CA
+    end
+    
+    SC -->|Customer/Supplier| IM
+    SC -->|Conformist| CM
+    IM -->|Partner| IW
+    CS -->|Anti-Corruption Layer| CA
+    
+    classDef coreContext fill:#ff9999
+    classDef supportingContext fill:#99ccff
+    classDef genericContext fill:#99ff99
+    
+    class SC,IM coreContext
+    class CM,CS supportingContext
+    class CA,SO,SP,IP,IW genericContext
+```
+```
+
+#### 3. Aggregate Design Diagrams
+```markdown
+```mermaid
+graph TD
+    subgraph "Order Aggregate Boundary"
+        direction TB
+        OR[Order Root]
+        OL[Order Line]
+        OS[Order Status]
+        OE[Order Events]
+        
+        OR ||--o{ OL
+        OR --> OS
+        OR --> OE
+    end
+    
+    subgraph "External References"
+        direction TB
+        C[Customer ID]
+        P[Product ID]
+        I[Inventory Service]
+    end
+    
+    OR -.->|references| C
+    OL -.->|references| P
+    OR -.->|calls| I
+    
+    classDef aggregateRoot fill:#ff6b6b
+    classDef entity fill:#4ecdc4
+    classDef valueObject fill:#45b7d1
+    classDef domainService fill:#96ceb4
+    classDef external fill:#feca57
+    
+    class OR aggregateRoot
+    class OL entity
+    class OS,OE valueObject
+    class I domainService
+    class C,P external
+```
+```
+
+#### 4. Event Flow Diagrams
+```markdown
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant UI as User Interface
+    participant OA as Order Aggregate
+    participant IS as Inventory Service
+    participant PS as Payment Service
+    participant ES as Event Store
+    
+    C->>UI: Place Order
+    UI->>OA: CreateOrder(customerId, items)
+    OA->>IS: ReserveInventory(items)
+    IS-->>OA: InventoryReserved
+    OA->>PS: ProcessPayment(amount)
+    PS-->>OA: PaymentProcessed
+    OA->>ES: OrderConfirmed event
+    OA-->>UI: Order Created
+    UI-->>C: Order Confirmation
+    
+    Note over ES: Event triggers downstream processes
+    ES->>Fulfillment: Order Ready for Shipping
+    ES->>Analytics: Update Sales Metrics
+    ES->>Customer Service: Send Confirmation Email
+```
+```
+
+### Diagram Organization for DDD
+```
+diagrams/
+├── source/
+│   ├── domain/
+│   │   ├── domain-overview.mmd           # High-level domain model
+│   │   ├── ubiquitous-language.mmd       # Core concepts visualization
+│   │   └── strategic-design.mmd          # Strategic design decisions
+│   ├── bounded-contexts/
+│   │   ├── context-map.mmd               # Overall context relationships
+│   │   ├── sales-context.mmd             # Sales context internal model
+│   │   ├── inventory-context.mmd         # Inventory context model
+│   │   └── integration-patterns.mmd      # Integration pattern details
+│   ├── aggregates/
+│   │   ├── order-aggregate.mmd           # Order aggregate design
+│   │   ├── customer-aggregate.mmd        # Customer aggregate design
+│   │   └── product-aggregate.mmd         # Product aggregate design
+│   └── event-flows/
+│       ├── order-process-flow.mmd        # Order processing sequence
+│       ├── customer-journey.mmd          # Customer interaction flow
+│       └── inventory-updates.mmd         # Inventory update flows
+└── generated/
+    ├── svg/                              # Generated SVG files
+    └── png/                              # Generated PNG files (2x scale)
+```
+
+## Code Documentation Standards
+
+### Domain Entity Documentation
+```go
+// Customer represents a customer in the customer management bounded context.
+// This is an aggregate root that encapsulates customer identity, personal information,
+// and business rules related to customer lifecycle management.
+//
+// Business Rules:
+// - A customer must have valid personal information at all times
+// - A customer can only be deactivated, never deleted (GDPR compliance)
+// - Contact information changes trigger domain events for downstream systems
+//
+// Aggregate Boundary:
+// - Includes: PersonalInfo, ContactInfo, CustomerPreferences
+// - Excludes: Orders, Payments (separate aggregates)
+type Customer struct {
+    // id uniquely identifies the customer across all systems
+    id            CustomerID    `json:"id"`
+    
+    // personalInfo contains immutable personal details
+    personalInfo  PersonalInfo  `json:"personalInfo"`
+    
+    // contactInfo contains mutable contact details
+    contactInfo   ContactInfo   `json:"contactInfo"`
+    
+    // preferences contains customer preferences and settings
+    preferences   CustomerPreferences `json:"preferences"`
+    
+    // version supports optimistic concurrency control
+    version       int          `json:"version"`
+    
+    // events contains unpublished domain events
+    events        []DomainEvent `json:"-"`
+}
+
+// Register creates a new customer with the provided information.
+// This method enforces the business invariant that all customers must have
+// valid personal and contact information.
+//
+// Domain Events:
+// - CustomerRegistered: Published when registration succeeds
+//
+// Business Rules:
+// - Personal info must be valid and complete
+// - Email address must be unique across all customers
+// - Phone number format must be valid for the country
+func (c *Customer) Register(personalInfo PersonalInfo, contactInfo ContactInfo) error {
+    // Implementation details...
+}
+```
+
+### Domain Service Documentation
+```go
+// CustomerDuplicationChecker is a domain service that ensures customer uniqueness
+// across the customer management bounded context.
+//
+// This service encapsulates business logic that spans multiple aggregates
+// and requires coordination that doesn't naturally belong to any single aggregate.
+//
+// Dependencies:
+// - CustomerRepository: For checking existing customers
+// - EmailValidationService: For email format validation
+//
+// Business Rules Enforced:
+// - No two customers can have the same email address
+// - No two customers can have the same phone number in the same country
+type CustomerDuplicationChecker interface {
+    // CheckEmailUniqueness verifies that the email address is not already
+    // registered to another customer.
+    //
+    // Returns:
+    // - true if email is unique
+    // - false if email is already in use
+    // - error if validation fails
+    CheckEmailUniqueness(email EmailAddress) (bool, error)
+    
+    // CheckPhoneUniqueness verifies that the phone number is not already
+    // registered to another customer in the same country.
+    CheckPhoneUniqueness(phone PhoneNumber, country Country) (bool, error)
+}
+```
+
+### Repository Interface Documentation
+```go
+// CustomerRepository provides data access for Customer aggregates.
+// This interface defines the contract for persisting and retrieving
+// customer data while maintaining aggregate consistency.
+//
+// Implementation Requirements:
+// - Must support optimistic concurrency control via version numbers
+// - Must ensure transactional consistency when saving aggregates
+// - Must publish domain events atomically with aggregate persistence
+//
+// Performance Considerations:
+// - GetByID should be optimized for single customer retrieval
+// - FindByEmail should use indexed email lookups
+// - Save operations should batch event publishing
+type CustomerRepository interface {
+    // GetByID retrieves a customer aggregate by its unique identifier.
+    // Returns ErrCustomerNotFound if the customer doesn't exist.
+    GetByID(ctx context.Context, id CustomerID) (*Customer, error)
+    
+    // FindByEmail finds a customer by email address.
+    // Returns nil if no customer found with that email.
+    FindByEmail(ctx context.Context, email EmailAddress) (*Customer, error)
+    
+    // Save persists the customer aggregate and publishes domain events.
+    // Uses optimistic concurrency control based on aggregate version.
+    // Returns ErrConcurrencyViolation if version conflict detected.
+    Save(ctx context.Context, customer *Customer) error
+    
+    // Delete marks a customer as deleted (soft delete for GDPR compliance).
+    // This doesn't actually remove data but marks it as deactivated.
+    Delete(ctx context.Context, id CustomerID) error
+}
+```
+
+### Domain Event Documentation
+```go
+// CustomerRegistered is a domain event published when a new customer
+// successfully completes the registration process.
+//
+// This event is consumed by:
+// - Email Service: Send welcome email
+// - Analytics Service: Track registration metrics
+// - Marketing Service: Add to marketing campaigns
+// - Audit Service: Log customer creation
+//
+// Event Schema Version: 1.0
+// Backward Compatibility: Additive changes only
+type CustomerRegistered struct {
+    // EventMetadata contains standard event information
+    EventMetadata
+    
+    // CustomerID uniquely identifies the registered customer
+    CustomerID CustomerID `json:"customerId"`
+    
+    // PersonalInfo contains the customer's personal information at registration
+    PersonalInfo PersonalInfo `json:"personalInfo"`
+    
+    // ContactInfo contains the customer's contact information at registration
+    ContactInfo ContactInfo `json:"contactInfo"`
+    
+    // RegistrationSource indicates how the customer registered
+    RegistrationSource string `json:"registrationSource"`
+    
+    // MarketingConsent indicates if customer consented to marketing
+    MarketingConsent bool `json:"marketingConsent"`
+}
+
+// EventType returns the type identifier for this domain event.
+func (e CustomerRegistered) EventType() string {
+    return "customer.registered.v1"
+}
+
+// AggregateID returns the ID of the aggregate that produced this event.
+func (e CustomerRegistered) AggregateID() string {
+    return string(e.CustomerID)
+}
+```
+
+## Validation and Quality Assurance
+
+### DDD Documentation Checklist
+
+#### Domain Model Validation
+- [ ] **Ubiquitous Language**: All terms defined and consistently used
+- [ ] **Business Rules**: All invariants and constraints documented
+- [ ] **Domain Events**: Event triggers and consequences clearly defined
+- [ ] **Aggregates**: Boundaries and responsibilities clearly delineated
+- [ ] **Value Objects**: Immutability and equality rules documented
+- [ ] **Domain Services**: Service responsibilities and dependencies defined
+
+#### Bounded Context Validation
+- [ ] **Context Purpose**: Clear business capability definition
+- [ ] **Boundaries**: Explicit inclusion/exclusion criteria
+- [ ] **Team Ownership**: Responsible team clearly identified
+- [ ] **Integration Points**: All external dependencies documented
+- [ ] **Data Model**: Storage and schema design documented
+- [ ] **API Design**: Public interfaces clearly specified
+
+#### Context Mapping Validation
+- [ ] **Relationship Patterns**: All integration patterns documented
+- [ ] **Data Flow**: Information exchange clearly defined
+- [ ] **Team Coordination**: Communication protocols established
+- [ ] **Evolution Strategy**: Change management approach defined
+- [ ] **Technology Constraints**: Technical limitations documented
+
+#### Visual Documentation Validation
+- [ ] **Mermaid Syntax**: All diagrams have valid Mermaid syntax
+- [ ] **Source Files**: All .mmd files properly organized
+- [ ] **Diagram Clarity**: Visual elements clearly convey relationships
+- [ ] **Consistency**: Consistent styling across all diagrams
+- [ ] **High Resolution**: PNG generation at 2x scale successful
+
+#### Code Documentation Validation
+- [ ] **Business Context**: Code comments explain business significance
+- [ ] **Aggregate Rules**: Business invariants documented in code
+- [ ] **Event Documentation**: Domain events clearly documented
+- [ ] **Repository Contracts**: Data access contracts well-defined
+- [ ] **Service Interfaces**: Domain service responsibilities clear
+
+### Quality Metrics for DDD Documentation
+
+#### Completeness Metrics
+- **Domain Coverage**: Percentage of domain concepts documented
+- **Context Mapping**: Percentage of integration points documented
+- **Aggregate Coverage**: Percentage of aggregates with complete documentation
+- **Event Documentation**: Percentage of domain events documented
+- **Visual Consistency**: Percentage of concepts with visual representation
+
+#### Accuracy Metrics
+- **Business Alignment**: Validation with domain experts
+- **Technical Accuracy**: Code-documentation consistency
+- **Terminology Consistency**: Ubiquitous language adherence
+- **Diagram Accuracy**: Visual-textual documentation alignment
+
+#### Usability Metrics
+- **Developer Onboarding**: Time to understand domain model
+- **Business Stakeholder Understanding**: Domain expert comprehension
+- **Change Documentation**: Time to update documentation after changes
+- **Integration Clarity**: Ease of understanding context relationships
+
+### DDD Documentation Testing Scripts
+
+#### Mermaid Validation Script
+```bash
+#!/bin/bash
+# Validate all DDD Mermaid diagrams
+
+echo "Validating DDD Mermaid diagrams..."
+
+# Domain diagrams
+find diagrams/source/domain -name "*.mmd" -exec mmdc -i {} -o /tmp/test.svg \; -print
+
+# Bounded context diagrams
+find diagrams/source/bounded-contexts -name "*.mmd" -exec mmdc -i {} -o /tmp/test.svg \; -print
+
+# Aggregate diagrams
+find diagrams/source/aggregates -name "*.mmd" -exec mmdc -i {} -o /tmp/test.svg \; -print
+
+# Event flow diagrams
+find diagrams/source/event-flows -name "*.mmd" -exec mmdc -i {} -o /tmp/test.svg \; -print
+
+echo "All DDD diagrams validated successfully"
+```
+
+#### Documentation Completeness Check
+```bash
+#!/bin/bash
+# Check DDD documentation completeness
+
+echo "Checking DDD documentation completeness..."
+
+# Check required documentation structure
+required_docs=(
+    "docs/domain/README.md"
+    "docs/domain/ubiquitous-language.md"
+    "docs/domain/domain-model-overview.md"
+    "docs/bounded-contexts/README.md"
+    "docs/bounded-contexts/context-map.md"
+)
+
+for doc in "${required_docs[@]}"; do
+    if [[ ! -f "$doc" ]]; then
+        echo "Missing required document: $doc"
+        exit 1
+    fi
+done
+
+# Check bounded context documentation
+for context_dir in docs/bounded-contexts/*/; do
+    if [[ -d "$context_dir" ]]; then
+        context_name=$(basename "$context_dir")
+        required_context_docs=(
+            "README.md"
+            "domain-model.md"
+        )
+        
+        for context_doc in "${required_context_docs[@]}"; do
+            if [[ ! -f "$context_dir/$context_doc" ]]; then
+                echo "Missing document for context $context_name: $context_doc"
+            fi
+        done
+    fi
+done
+
+echo "DDD documentation completeness check completed"
+```
+
+### Continuous Improvement Framework
+
+#### Monthly DDD Documentation Review
+- **Domain Expert Validation**: Regular review with business stakeholders
+- **Technical Accuracy Check**: Validate documentation against code
+- **Integration Pattern Review**: Assess context relationship effectiveness
+- **Visual Documentation Update**: Ensure diagrams reflect current state
+
+#### Quarterly DDD Evolution Assessment
+- **Bounded Context Evolution**: Assess context boundary changes
+- **Aggregate Design Review**: Evaluate aggregate effectiveness
+- **Event Model Assessment**: Review domain event design and usage
+- **Context Mapping Updates**: Update integration patterns and relationships
+
+#### Documentation Maintenance Strategy
+- **Automated Validation**: Regular automated checks for completeness
+- **Version Control Integration**: Track documentation changes with code
+- **Training Updates**: Keep team training materials current
+- **Best Practice Evolution**: Incorporate new DDD patterns and practices
+
+## PRD-to-DDD Implementation Summary with Iterative Validation
+
+### Complete Synthesis Workflow with Cross-Referencing
+
+When creating DDD documentation from existing PRD (apps_prd.mdc structure), follow this intelligent iterative approach:
+
+#### Phase 1: Strategic Analysis with Validation
+1. **Infer Domain Strategy** from `01-executive-summary/`:
+   - Analyze competitive positioning to infer Core Domain characteristics
+   - Synthesize business value statements into domain investment priorities  
+   - Map success metrics to domain capabilities for strategic alignment
+   - **Validation Point**: Does domain classification support stated competitive advantages?
+
+2. **Synthesize System Architecture** from `02-general-description/`:
+   - Infer bounded context candidates from system capability descriptions
+   - Analyze integration requirements to predict context relationship patterns
+   - **Cross-Validation**: Compare inferred contexts with dependencies.md analysis
+
+#### Phase 2: Domain Modeling with Inference
+3. **Synthesize Ubiquitous Language** from `04-functional-requirements/`:
+   - Analyze nouns across user stories to infer domain entity candidates
+   - Examine verbs to understand entity relationships and behaviors
+   - Transform acceptance criteria into natural language business rules
+   - **Cross-Validation**: Flag terms that don't fit identified domain boundaries
+
+4. **Intelligent Aggregate Modeling** from feature documentation:
+   - Infer aggregate boundaries from user interaction patterns and transaction atomicity
+   - Synthesize business invariants from Given/When/Then scenarios with clear traceability
+   - Analyze test edge cases to identify unstated business rules
+   - **Validation Point**: Do aggregate boundaries support identified business processes?
+
+#### Phase 3: Context Mapping with Pattern Analysis
+5. **Intelligent Context Relationship Mapping** from `dependencies.md`:
+   - Analyze dependency patterns to infer optimal integration patterns
+   - Customer/Supplier: identify upstream/downstream value flow patterns
+   - Shared Kernel: detect shared algorithm and data structure opportunities
+   - Anti-Corruption Layer: identify external system complexity isolation needs
+   - **Validation Point**: Do integration patterns support performance and scalability requirements?
+
+#### Phase 4: Visual Documentation with Consistency Validation
+6. **Create Validated Mermaid Diagrams** following apps_prd.mdc standards:
+   - Generate domain overview with inferred strategic positioning
+   - Create context maps showing synthesized integration patterns
+   - Design aggregate diagrams with extracted business invariants
+   - Model event flows with acceptance criteria traceability
+   - **Step 4 Validation**: Verify all diagrams use consistent entity naming and relationships
+
+### Iterative Quality Assurance Framework
+
+#### Cross-Reference Validation Tables
+
+**Entity Consistency Matrix**:
+```yaml
+EntityConsistencyCheck:
+  Rule:
+    ubiquitous_language: ✓ defined_with_business_context
+    aggregate_design: ✓ modeled_with_invariants
+    context_map: ✓ referenced_in_integration_patterns
+    domain_events: ✓ RuleCreated_RuleActivated_consistent
+    mermaid_diagrams: ✓ consistent_naming_across_all_diagrams
+    traceability: ✓ linked_to_AC-001_TC-UT-05
+    
+  Customer:
+    ubiquitous_language: ✓ defined_with_business_context
+    aggregate_design: ⚠ missing_privacy_constraints
+    context_map: ✓ referenced_in_integration_patterns
+    domain_events: ✓ CustomerRegistered_CustomerUpdated
+    mermaid_diagrams: ✓ consistent_naming
+    traceability: ✓ linked_to_FEAT-0002_success_metrics
+```
+
+**Invariant Traceability Registry**:
+```yaml
+InvariantRegistry:
+  - invariant_id: INV-001
+    name: "Rule Status Transition Control"
+    description: "Rules can only transition to ACTIVE status after approval"
+    aggregate: Rule
+    source_type: acceptance_criteria  
+    source_id: AC-05
+    related_tests: [TC-UT-08, TC-FT-12]
+    business_impact: "Ensures governance compliance"
+    success_metric_contribution: "Supports 99.9% availability target"
+    
+  - invariant_id: INV-002
+    name: "Evaluation Performance Constraint"
+    description: "Rule evaluation must complete within 500ms for 95% of requests"
+    aggregate: EvaluationContext
+    source_type: non_functional_requirements
+    source_id: NFR-001
+    related_tests: [TC-PERF-01, TC-LOAD-03]
+    business_impact: "Maintains customer experience quality"
+    success_metric_contribution: "Directly supports <500ms SLA requirement"
+```
+
+**Success Metrics Contribution Map**:
+```yaml
+MetricsTraceability:
+  "80% reduction in rule deployment time":
+    contributing_aggregates:
+      - Rule: "Automated lifecycle management reduces manual steps"
+      - Template: "Reusable patterns accelerate rule creation"
+    contributing_contexts:
+      - Rules_Management: "Streamlined approval workflow automation"
+      - Rules_Evaluation: "Automated deployment and activation"
+    feature_traces: [FEAT-0001, FEAT-0003]
+    validation_criteria: "Rule creation time <2 hours vs previous weeks"
+    
+  "99.9% system availability":
+    contributing_aggregates:
+      - EvaluationContext: "Robust error handling and graceful degradation"
+      - Rule: "Conflict detection prevents system failures"
+    contributing_contexts:
+      - Rules_Calculation: "High availability evaluation engine"
+      - Integration: "Circuit breaker patterns for external dependencies"
+    feature_traces: [FEAT-0002, FEAT-0005]
+    validation_criteria: "Uptime monitoring and SLA compliance"
+```
+
+#### Final Validation Checklist
+
+**Step 4: Comprehensive Consistency Validation**
+- [ ] All entities named consistently across ubiquitous language, aggregates, context maps, and diagrams
+- [ ] Every business rule has traceable source (AC-XX, TC-XX, or NFR-XX)
+- [ ] All aggregates have clear business justification from user story analysis
+- [ ] Context integration patterns support identified performance and scalability requirements
+- [ ] All Mermaid diagrams validate syntactically and semantically
+- [ ] Success metrics contribution map complete with quantifiable connections
+- [ ] Cross-reference matrix shows no missing elements or inconsistencies
+
+### Validation Checklist for PRD-to-DDD Mapping
+
+#### Strategic Design Validation
+- [ ] Core domains identified from business value proposition
+- [ ] Supporting domains mapped from feature analysis
+- [ ] Generic domains extracted from common dependencies
+- [ ] Integration patterns selected based on dependency types
+
+#### Domain Model Validation
+- [ ] Ubiquitous language extracted from all PRD sources
+- [ ] Aggregates documented with business rules from acceptance criteria
+- [ ] Domain events identified from user story flows
+- [ ] Bounded context boundaries align with feature scope
+
+#### Visual Documentation Validation
+- [ ] All diagrams use Mermaid syntax as per apps_prd.mdc
+- [ ] Source .mmd files created in proper directory structure
+- [ ] Context maps show integration patterns from dependency analysis
+- [ ] Aggregate diagrams reflect domain model specifications
+
+#### Traceability Validation
+- [ ] All DDD concepts traceable back to PRD sources
+- [ ] Business rules mapped to specific acceptance criteria
+- [ ] Context boundaries justified by feature dependencies
+- [ ] Strategic decisions aligned with business objectives
+
+## Enhanced Rule Summary: From Extraction to Intelligent Synthesis
+
+### Key Improvements Implemented
+
+#### 1. Inference-First Approach 🧠
+**Problem Solved**: Transformed from simple extraction to intelligent synthesis
+- **Aggregate Inference**: Analyze nouns/verbs in user stories to infer entities and relationships
+- **Business Rule Synthesis**: Convert Given/When/Then into natural language with added analytical value
+- **Relationship Analysis**: Examine story verbs to understand entity interactions and dependencies
+- **Missing Rule Inference**: Identify implicit business rules from test edge cases and error conditions
+
+#### 2. Multi-Step Iterative Process 🔄
+**Problem Solved**: Replaced linear workflow with iterative validation approach
+- **Step 1**: Strategic Analysis with validation against competitive advantages
+- **Step 2**: Ubiquitous Language with cross-validation against identified domains
+- **Step 3**: Tactical Modeling with invariant extraction from acceptance criteria and tests
+- **Step 4**: Consistency Validation with comprehensive cross-referencing
+
+#### 3. Consistency and Cross-Referencing Framework 🔗
+**Problem Solved**: Systematic consistency enforcement across all DDD artifacts
+- **Invariant Traceability Registry**: Every business rule linked to source (AC-XX, TC-XX, NFR-XX)
+- **Entity Consistency Matrix**: Track naming consistency across all documents and diagrams
+- **Success Metrics Contribution Map**: Link domain elements to business KPIs with quantifiable connections
+- **Cross-Reference Validation**: Automated consistency checks between ubiquitous language, aggregates, and diagrams
+
+#### 4. Ambiguity Detection and Human Validation Alerts 🚨
+**Problem Solved**: Prevent incorrect assumptions from ambiguous or unclear natural language
+- **Multi-Meaning Term Detection**: Flag terms with multiple possible interpretations in business context
+- **Unclear Relationship Analysis**: Identify relationships that could be interpreted multiple ways
+- **Alternative Proposal Generation**: Suggest multiple interpretations for human validation
+- **Ambiguity Alert System**: Generate structured alerts for human decision-making
+
+#### 5. UI vs Domain Logic Separation Validation 🎯
+**Problem Solved**: Ensure domain rules don't conflict with UI/presentation logic
+- **Rule Boundary Analysis**: Validate domain rules don't include presentation concerns
+- **UI-UX Cross-Validation**: Check domain rules against 07-ui-ux section for conflicts
+- **Separation of Concerns Enforcement**: Ensure domain logic remains pure and UI-agnostic
+- **Consistency Bridge Validation**: Verify alignment between domain and presentation layers
+
+#### 6. Code Generation Integration 💻
+**Problem Solved**: Bridge gap between DDD documentation and implementation
+- **Aggregate Code Skeleton Generation**: Generate complete Go/Java/C# structures from aggregate designs
+- **Domain Service Interface Generation**: Create service contracts with business rule validation
+- **Value Object Implementation Templates**: Generate immutable value objects with validation
+- **Domain Event Structure Generation**: Create event payload structures with proper typing
+- **Repository Interface Generation**: Create data access contracts from aggregate specifications
+- **Unit Test Template Generation**: Generate test cases from acceptance criteria and business rules
+
+#### 7. Enhanced Event Storming Integration 🎯
+**Problem Solved**: Comprehensive guidance for translating workshop outcomes into DDD artifacts
+- **Workshop Result Synthesis**: Transform event storming discoveries into domain models
+- **Hotspot Resolution Tracking**: Document and track resolution of identified problems
+- **Process-to-Context Mapping**: Translate business processes into bounded context boundaries
+- **Aggregate Discovery Documentation**: Convert workshop insights into aggregate designs
+
+### Enhanced Validation Framework
+
+#### Iterative Quality Assurance
+- **Strategic Validation**: Domain classification supports competitive advantages
+- **Language Validation**: Terms that don't fit identified domains trigger domain refinement
+- **Model Validation**: Aggregate boundaries support business process requirements
+- **Consistency Validation**: Entity naming consistent across all artifacts
+
+#### Comprehensive Traceability
+- **Source Traceability**: Every DDD concept traceable to specific PRD sources
+- **Business Impact Traceability**: Domain elements linked to success metrics
+- **Test Traceability**: Business rules connected to acceptance criteria and test specifications
+- **Evolution Traceability**: Changes tracked with business justification
+
+### Benefits of Enhanced Approach
+
+#### For AI Implementation
+- **Reduces Low-Quality Output**: Inference and synthesis add analytical value beyond copy-paste
+- **Handles Incomplete PRDs**: Intelligent inference fills gaps in incomplete or ambiguous documentation
+- **Ensures Consistency**: Cross-reference matrices catch naming and relationship inconsistencies
+- **Validates Quality**: Multi-step validation prevents propagation of errors
+
+#### For Business Value
+- **Complete Traceability**: Every design decision traceable to business requirements
+- **Strategic Alignment**: Domain investment directly tied to competitive advantages
+- **Quality Assurance**: Systematic validation ensures DDD artifacts support business objectives
+- **Iterative Refinement**: Validation points enable course correction during generation
+
+#### For Technical Implementation
+- **Consistent Naming**: Entity consistency matrix ensures uniform terminology across all artifacts
+- **Clear Boundaries**: Aggregate inference based on transaction atomicity and user interaction patterns
+- **Validated Architecture**: Integration patterns verified against performance and scalability requirements
+- **Maintainable Design**: Cross-reference framework supports long-term evolution
+- **Ready-to-Use Code**: Code generation bridges documentation to implementation with minimal effort
+- **UI-Domain Separation**: Automatic validation ensures clean architecture principles
+- **Comprehensive Testing**: Generated test templates from acceptance criteria ensure quality
+
+#### For Event Storming Workshops
+- **Workshop Synthesis**: Comprehensive framework for translating collaborative sessions into actionable DDD models
+- **Hotspot Resolution**: Systematic tracking and resolution of identified domain complexities
+- **Stakeholder Alignment**: Clear documentation of workshop decisions and their impact on domain design
+- **Implementation Bridge**: Direct path from workshop insights to technical implementation
+
+#### For Quality Assurance
+- **Ambiguity Prevention**: Systematic detection and resolution of unclear natural language
+- **Architecture Compliance**: Automated validation of clean architecture and separation of concerns
+- **Complete Traceability**: End-to-end traceability from business requirements through code generation
+- **Iterative Refinement**: Multi-step validation enables course correction and continuous improvement
+
+This enhanced DDD documentation rule transforms the generation process from simple extraction to intelligent domain analysis with comprehensive validation and traceability, ensuring DDD artifacts that truly support business objectives while maintaining technical excellence.

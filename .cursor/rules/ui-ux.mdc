@@ -1,0 +1,73 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Cursor Rule: Generate UI/UX Specifications from Natural Language
+
+// **Purpose**: This rule guides the AI to generate a detailed UI/UX specification.
+// It translates a high-level natural language description of a user interface into
+// a structured, actionable plan that aligns with the PRD's DDD principles.
+// The output focuses on a) UI flows, b) wireframes and components, and c)
+// user actions and events, without implementing business logic.
+
+// **Input Format**:
+// The user will provide a natural language description of the UI,
+// including the purpose of the screen, key user tasks, and main components.
+// Example: "Generate the UI for the rule creation page. It should allow
+// users to input the rule name, a description, and then build the rule logic
+// using a visual builder. It needs to have a save button and a cancel button."
+
+// **Output Format (All mandatory):**
+// The output must be a single markdown file ready to be placed in `PRD-NEW/rules-engine-restructured-prd/07-ui-ux/<ID>-<slug>/`.
+
+// ---
+// ## 1) User Flow (Mermaid Diagram)
+// This section will contain a flow diagram showing the user's journey.
+// It will include the main path and any alternative or error paths.
+// The diagram must use Mermaid syntax.
+
+// ```mermaid
+// graph TD
+//    A[Start: Navigates to Rule Creation] --> B{Input Data}
+//    B --> C[Visual Rule Builder]
+//    C --> D{User Action: Save or Cancel}
+//    D -->|Save| E[Show Success Message]
+//    D -->|Cancel| F[Return to Rule List]
+//    C -->|Invalid Input| G[Show Validation Error]
+// ```
+
+// ---
+// ## 2) UI Components and Wireframes (Text-based)
+// This section provides a detailed, text-based description of the UI elements.
+// The description must be structured by screen or component and should be
+// easy to translate into a visual wireframe.
+
+// ### Screen: Rule Creation Page
+// - **Layout**: Two-column layout. Left column for rule metadata, right for rule logic builder.
+// - **Components**:
+//   - **Title**: H1 "Create New Rule".
+//   - **Input Field**: Label "Rule Name", placeholder "e.g., Discount for new users".
+//   - **Text Area**: Label "Description", placeholder "Describe the rule's purpose...".
+//   - **Visual Builder Area**: Main area for building rules.
+//   - **Button Group**: "Save" (primary, right-aligned), "Cancel" (secondary, left-aligned).
+
+// ---
+// ## 3) Interaction and States
+// This section details the behavior and different states of the UI components.
+// It must define which user actions trigger events and how the UI reacts,
+// without describing the underlying business logic.
+
+// ### UI States
+// - **Initial State**: All fields are empty. "Save" button is disabled until valid data is entered.
+// - **Loading State**: When a user clicks "Save", a spinner or progress indicator appears.
+// - **Success State**: After successful save, a success message toast is shown, and the user is redirected.
+// - **Error State**: Validation errors are displayed next to their respective fields.
+
+// ### User Actions and Corresponding Events
+// - **Action**: User clicks "Save".
+//   - **Event**: Triggers a `SAVE_RULE_REQUESTED` event.
+// - **Action**: User modifies rule logic in the visual builder.
+//   - **Event**: Triggers a `RULE_LOGIC_UPDATED` event (locally, to enable validation).
+// - **Action**: User clicks "Cancel".
+//   - **Event**: Triggers a `CANCEL_CREATION` event.

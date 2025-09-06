@@ -1,0 +1,1697 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Domain-Specific Language (DSL) Creation Guidelines for DDD
+## Main Context Document (MCD)
+
+## Table of Contents
+1. [Overview](mdc:#overview)
+2. [DSL Structure Requirements](mdc:#dsl-structure-requirements)
+3. [Domain Documentation Rules](mdc:#domain-documentation-rules)
+4. [Entity Documentation Rules](mdc:#entity-documentation-rules)
+5. [Event Documentation Rules](mdc:#event-documentation-rules)
+6. [Function Documentation Rules](mdc:#function-documentation-rules)
+7. [Diagram Generation Rules](mdc:#diagram-generation-rules)
+8. [Validation Requirements](mdc:#validation-requirements)
+9. [Implementation Guidelines](mdc:#implementation-guidelines)
+10. [Event-Driven and Data-Driven Architecture Patterns](mdc:#event-driven-and-data-driven-architecture-patterns)
+
+## Overview
+
+This document defines the rules and guidelines for creating Domain-Specific Language (DSL) documentation in the context of Domain-Driven Design (DDD). It serves as the main reference for maintaining consistency and clarity in domain documentation.
+
+### Purpose
+- Define standardized documentation format for DDD concepts
+- Ensure consistency across domain documentation
+- Facilitate clear communication between domain experts and developers
+- Provide validation rules for documentation quality
+
+### Scope
+- Domain definitions and boundaries
+- Entity specifications
+- Event documentation
+- Function and process documentation
+- Cross-domain relationships
+- Validation rules and requirements
+
+## DSL Structure Requirements
+
+### File Organization
+```
+project/
+├── domains/
+│   ├── domain-name/
+│   │   ├── README.md           # Domain overview
+│   │   ├── bounded-context/    # Bounded Context documentation
+│   │   │   ├── README.md      # BC overview
+│   │   │   ├── context-map.md # Context mapping
+│   │   │   ├── boundaries.md  # BC boundaries
+│   │   │   └── interfaces.md  # BC interfaces
+│   │   ├── subdomains/        # Subdomain organization
+│   │   │   ├── core/          # Core subdomains
+│   │   │   │   ├── subdomain-name/
+│   │   │   │   │   ├── README.md           # Subdomain overview
+│   │   │   │   │   ├── bounded-context/    # Subdomain BC docs
+│   │   │   │   │   ├── entities/           # Subdomain entities
+│   │   │   │   │   ├── events/             # Subdomain events
+│   │   │   │   │   └── functions/          # Subdomain functions
+│   │   │   ├── supporting/    # Supporting subdomains
+│   │   │   │   └── [same structure as core]
+│   │   │   └── generic/       # Generic subdomains
+│   │   │       └── [same structure as core]
+│   │   ├── entities/
+│   │   ├── events/
+│   │   └── functions/
+├── shared/
+└── mcd.md
+```
+
+### Document Structure Rules
+1. **File Naming**
+   - Use kebab-case for all file names
+   - Use descriptive but concise names
+   - Include category prefix when necessary
+   - Example: `payment-processing-domain.md`
+
+2. **Section Organization**
+   - Must include a table of contents
+   - Must have clear section hierarchy
+   - Must use consistent heading levels
+   - Must include version information
+
+3. **Markdown Formatting**
+   - Use ATX-style headers (#)
+   - Use code blocks for examples
+   - Use tables for structured data
+   - Use lists for sequential information
+
+## Domain Documentation Rules
+
+### Required Sections
+1. **Domain Overview**
+```markdown
+# Domain: [Domain Name]
+
+## Overview
+[Concise domain description]
+
+## Strategic Classification
+- Domain Type: [Core|Supporting|Generic]
+- Business Value: [High|Medium|Low]
+- Technical Complexity: [High|Medium|Low]
+
+## Business Context
+- Primary Business Processes
+- Key Stakeholders
+- Success Metrics
+```
+
+2. **Domain Boundaries**
+```markdown
+## Boundaries
+
+### Includes
+- [List of included concepts/processes]
+
+### Excludes
+- [List of explicitly excluded concepts]
+
+### Integration Points
+- [List of external system interactions]
+```
+
+3. **Ubiquitous Language**
+```markdown
+## Ubiquitous Language
+
+| Term | Definition | Context |
+|------|------------|---------|
+| Term1 | Definition1 | Usage context |
+| Term2 | Definition2 | Usage context |
+```
+
+## Entity Documentation Rules
+
+### Entity Definition Template
+```markdown
+# Entity: [Entity Name]
+
+## Classification
+- Type: [Aggregate Root|Entity|Value Object]
+- Category: [Business|Technical|Integration]
+- Lifecycle: [Transient|Persistent]
+
+## Properties
+| Property | Type | Constraints | Description |
+|----------|------|-------------|-------------|
+| prop1 | type1 | constraints1 | description1 |
+
+## Invariants
+1. [Invariant name]
+   - Rule: [rule description]
+   - Validation: [validation method]
+   - Error: [error message]
+
+## Relationships
+- [Related Entity]: [Relationship Type] [Cardinality]
+```
+
+## Event Documentation Rules
+
+### Event Definition Template
+```markdown
+# Event: [Event Name]
+
+## Classification
+- Type: [Domain|Integration|System]
+- Category: [Business|Technical]
+- Criticality: [High|Medium|Low]
+
+## Event Data
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| field1 | type1 | Yes/No | description1 |
+
+## Flow
+1. Trigger: [What triggers this event]
+2. Producer: [Who produces this event]
+3. Consumers: [Who consumes this event]
+4. Side Effects: [Expected side effects]
+```
+
+## Function Documentation Rules
+
+### Function Definition Template
+```markdown
+# Function: [Function Name]
+
+## Purpose
+[Clear description of function's purpose]
+
+## Input/Output
+### Input
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| param1 | type1 | Yes/No | description1 |
+
+### Output
+| Return | Type | Description |
+|--------|------|-------------|
+| result1 | type1 | description1 |
+
+## Business Rules
+1. [Rule name]
+   - Condition: [condition description]
+   - Action: [action description]
+   - Exception: [exception handling]
+```
+
+## Diagram Generation Rules
+
+### General Diagram Guidelines
+1. **Diagram Types**
+   - Use appropriate diagram type for the context
+   - Keep diagrams simple and focused
+   - Include clear titles and descriptions
+   - Add legends when necessary
+
+2. **Naming Conventions**
+   - Use consistent naming across diagrams
+   - Follow ubiquitous language terms
+   - Keep labels concise but descriptive
+   - Use proper capitalization
+
+3. **Visual Style**
+   - Maintain consistent styling
+   - Use appropriate colors for emphasis
+   - Ensure readable font sizes
+   - Limit diagram complexity
+
+### Flow Diagrams
+```markdown
+## Process Flow
+```mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Condition 1| C[Process 1]
+    B -->|Condition 2| D[Process 2]
+    C --> E[End]
+    D --> E
+```
+```
+
+### Sequence Diagrams
+```markdown
+## Interaction Flow
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant S as System
+    participant DB as Database
+
+    U->>S: Request
+    S->>DB: Query
+    DB-->>S: Response
+    S-->>U: Result
+```
+```
+
+### Class Diagrams
+```markdown
+## Domain Model
+```mermaid
+classDiagram
+    class Entity {
+        +String id
+        +String name
+        +validate()
+    }
+    class ValueObject {
+        +String value
+        +validate()
+    }
+    Entity --> ValueObject
+```
+```
+
+### Cause-Effect Diagrams
+```markdown
+## Impact Analysis
+```mermaid
+graph LR
+    A[Cause] --> B[Effect 1]
+    A --> C[Effect 2]
+    B --> D[Impact 1]
+    C --> E[Impact 2]
+```
+```
+
+### Security Context Diagrams
+```markdown
+## Security Boundaries
+```mermaid
+graph TD
+    subgraph Public Zone
+    A[Client]
+    end
+
+    subgraph DMZ
+    B[API Gateway]
+    end
+
+    subgraph Private Zone
+    C[Service]
+    D[(Database)]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+```
+```
+
+### State Diagrams
+```markdown
+## Entity Lifecycle
+```mermaid
+stateDiagram-v2
+    [*] --> Created
+    Created --> Active
+    Active --> Suspended
+    Suspended --> Active
+    Active --> Terminated
+    Terminated --> [*]
+```
+```
+
+### Required Diagram Sections
+
+1. **Domain Overview Diagrams**
+   ```markdown
+   ## Domain Context Map
+   ```mermaid
+   graph TD
+       subgraph Core Domain
+       A[Domain A]
+       end
+
+       subgraph Supporting
+       B[Domain B]
+       end
+
+       subgraph Generic
+       C[Domain C]
+       end
+
+       A --> B
+       B --> C
+   ```
+   ```
+
+2. **Entity Relationship Diagrams**
+   ```markdown
+   ## Entity Relations
+   ```mermaid
+   classDiagram
+       class AggregateRoot {
+           +String id
+           +validate()
+       }
+       class Entity {
+           +String id
+           +validate()
+       }
+       class ValueObject {
+           +String value
+       }
+
+       AggregateRoot --> Entity
+       Entity --> ValueObject
+   ```
+   ```
+
+3. **Process Flow Diagrams**
+   ```markdown
+   ## Business Process
+   ```mermaid
+   graph TD
+       A[Start] --> B{Validation}
+       B -->|Valid| C[Process]
+       B -->|Invalid| D[Error]
+       C --> E[Complete]
+       D --> F[Retry]
+       F --> B
+   ```
+   ```
+
+### Diagram Usage Guidelines
+
+1. **When to Use Flow Diagrams**
+   - Business process flows
+   - Decision trees
+   - State transitions
+   - Data flows
+
+2. **When to Use Sequence Diagrams**
+   - System interactions
+   - API flows
+   - Event sequences
+   - User journeys
+
+3. **When to Use Class Diagrams**
+   - Domain models
+   - Entity relationships
+   - System architecture
+   - Component structures
+
+4. **When to Use Cause-Effect Diagrams**
+   - Impact analysis
+   - Problem resolution
+   - Risk assessment
+   - Change management
+
+5. **When to Use Security Diagrams**
+   - Security zones
+   - Access controls
+   - Data protection
+   - Threat modeling
+
+### Best Practices for Diagrams
+
+1. **Clarity**
+   - One diagram per concept
+     * Break complex diagrams into smaller, focused ones
+     * Each diagram should illustrate a single idea or flow
+     * Maximum recommended elements per diagram: 15-20
+     * Use clear hierarchical structure
+
+   - Clear direction flow
+     * Left-to-right or top-to-bottom flow
+     * Consistent arrow directions
+     * Minimize crossing lines
+     * Group related elements together
+
+   - Proper spacing
+     * Even distribution of elements
+     * Adequate whitespace between components
+     * Consistent padding and margins
+     * Balanced layout
+
+   - Meaningful labels
+     * Use domain terminology
+     * Keep labels concise (3-5 words max)
+     * Include necessary context
+     * Use consistent capitalization
+
+2. **Consistency**
+   - Use standard notations
+     * Follow UML standards where applicable
+     * Use consistent arrow types for relationships
+     * Maintain consistent node shapes
+     * Document any custom notations
+
+   - Maintain style guide
+     * Define color scheme for different element types
+     * Specify font types and sizes
+     * Document line styles and thicknesses
+     * Create templates for common diagrams
+
+   - Follow patterns
+     * Use established DDD patterns
+     * Maintain consistent relationship representations
+     * Follow industry-standard conventions
+     * Document pattern usage
+
+3. **Maintainability**
+   - Keep diagrams updated
+     * Version control for diagrams
+     * Change tracking
+     * Regular review cycles
+     * Update on domain changes
+
+   - Document changes
+     * Changelog for significant updates
+     * Impact analysis for changes
+     * Migration guides when needed
+     * Archive obsolete versions
+
+   - Review regularly
+     * Quarterly diagram reviews
+     * Stakeholder feedback
+     * Technical accuracy checks
+     * Consistency validation
+
+4. **Integration**
+   - Link to requirements
+     * Traceability matrix
+     * Requirement IDs in diagrams
+     * Cross-reference documentation
+     * Impact mapping
+
+   - Reference architecture
+     * Align with architectural decisions
+     * Show technical constraints
+     * Include deployment considerations
+     * Map to system components
+
+   - Connect to documentation
+     * Hyperlinks to related docs
+     * Reference numbers
+     * Version alignment
+     * Context mapping
+
+## File Specifications
+
+### Domain Documentation Files
+
+1. **Domain Overview File (`domain-overview.md`)**
+```markdown
+# Domain: [Domain Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Overview
+[Concise domain description, max 3 paragraphs]
+
+## Strategic Classification
+- Domain Type: [Core|Supporting|Generic]
+- Business Value: [High|Medium|Low]
+- Technical Complexity: [High|Medium|Low]
+
+## Business Context
+### Primary Business Processes
+1. [Process 1]
+2. [Process 2]
+
+### Key Stakeholders
+1. [Stakeholder 1]
+   - Role: [Role description]
+   - Responsibilities: [List of responsibilities]
+
+### Success Metrics
+1. [Metric 1]
+   - Target: [Value]
+   - Measurement: [Method]
+
+## Domain Context Map
+```mermaid
+graph TD
+    [Context map diagram]
+```
+
+## Integration Points
+1. [Integration Point 1]
+   - Type: [REST|GraphQL|Event|etc.]
+   - Purpose: [Description]
+   - SLA Requirements: [Details]
+```
+
+2. **Ubiquitous Language File (`ubiquitous-language.md`)**
+```markdown
+# Ubiquitous Language: [Domain Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Terms and Definitions
+
+### Business Terms
+| Term | Definition | Context | Examples |
+|------|------------|---------|----------|
+| Term1 | Definition1 | Usage context | Example usage |
+
+### Technical Terms
+| Term | Definition | Context | Examples |
+|------|------------|---------|----------|
+| Term1 | Definition1 | Usage context | Example usage |
+
+## Language Evolution
+### Version History
+| Version | Date | Changes | Rationale |
+|---------|------|---------|-----------|
+| 1.0.0   | Date | Initial | Initial version |
+
+### Deprecated Terms
+| Term | Replacement | Since Version | Rationale |
+|------|------------|---------------|-----------|
+| Old1 | New1 | 1.1.0 | Reason for change |
+```
+
+3. **Entity Documentation File (`entity-name.md`)**
+```markdown
+# Entity: [Entity Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Classification
+- Type: [Aggregate Root|Entity|Value Object]
+- Category: [Business|Technical|Integration]
+- Lifecycle: [Transient|Persistent]
+
+## Properties
+| Property | Type | Constraints | Description | Validation |
+|----------|------|-------------|-------------|------------|
+| prop1 | type1 | constraints1 | description1 | validation1 |
+
+## Invariants
+1. [Invariant name]
+   - Rule: [rule description]
+   - Validation: [validation method]
+   - Error: [error message]
+   - Recovery: [recovery process]
+
+## Relationships
+```mermaid
+classDiagram
+    [Entity relationships diagram]
+```
+
+### Relationship Details
+- [Related Entity]: [Relationship Type] [Cardinality]
+  * Constraints: [List of constraints]
+  * Cascade Rules: [List of rules]
+  * Validation: [Validation rules]
+
+## Lifecycle States
+```mermaid
+stateDiagram-v2
+    [Entity lifecycle diagram]
+```
+
+## Business Rules
+1. [Rule name]
+   - Condition: [condition description]
+   - Action: [action description]
+   - Exception: [exception handling]
+   - Validation: [validation rules]
+```
+
+4. **Event Documentation File (`event-name.md`)**
+```markdown
+# Event: [Event Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Classification
+- Type: [Domain|Integration|System]
+- Category: [Business|Technical]
+- Criticality: [High|Medium|Low]
+
+## Event Data
+| Field | Type | Required | Description | Validation |
+|-------|------|----------|-------------|------------|
+| field1 | type1 | Yes/No | description1 | validation1 |
+
+## Event Flow
+```mermaid
+sequenceDiagram
+    [Event sequence diagram]
+```
+
+### Flow Details
+1. Trigger: [What triggers this event]
+   - Conditions: [List of conditions]
+   - Validation: [Pre-trigger validation]
+
+2. Producer: [Who produces this event]
+   - Component: [Producing component]
+   - Responsibility: [Production responsibility]
+
+3. Consumers: [Who consumes this event]
+   - Primary: [Primary consumer]
+   - Secondary: [Secondary consumers]
+   - Handling: [Handling requirements]
+
+4. Side Effects: [Expected side effects]
+   - Direct: [Immediate effects]
+   - Indirect: [Secondary effects]
+   - Recovery: [Recovery procedures]
+
+## Error Handling
+1. [Error Scenario]
+   - Detection: [How to detect]
+   - Impact: [Business impact]
+   - Resolution: [Resolution steps]
+   - Prevention: [Prevention measures]
+```
+
+5. **Function Documentation File (`function-name.md`)**
+```markdown
+# Function: [Function Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Purpose
+[Clear description of function's purpose]
+
+## Process Flow
+```mermaid
+graph TD
+    [Function flow diagram]
+```
+
+## Input/Output
+### Input
+| Parameter | Type | Required | Description | Validation |
+|-----------|------|----------|-------------|------------|
+| param1 | type1 | Yes/No | description1 | validation1 |
+
+### Output
+| Return | Type | Description | Validation |
+|--------|------|-------------|------------|
+| result1 | type1 | description1 | validation1 |
+
+## Business Rules
+1. [Rule name]
+   - Condition: [condition description]
+   - Action: [action description]
+   - Exception: [exception handling]
+   - Validation: [validation rules]
+```
+
+6. **Integration Documentation File (`integration-name.md`)**
+```markdown
+# Integration: [Integration Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Overview
+[Integration purpose and scope]
+
+## Architecture
+```mermaid
+graph TD
+    [Integration architecture diagram]
+```
+
+## Security
+```mermaid
+graph TD
+    [Security context diagram]
+```
+
+### Security Requirements
+1. Authentication
+   - Method: [Auth method]
+   - Requirements: [Auth requirements]
+   - Implementation: [Implementation details]
+
+2. Authorization
+   - Roles: [Required roles]
+   - Permissions: [Required permissions]
+   - Validation: [Validation process]
+
+## API Specification
+### Endpoints
+| Endpoint | Method | Purpose | Request | Response |
+|----------|--------|---------|----------|-----------|
+| /path | GET | description | request | response |
+
+### Data Formats
+1. Request Format
+```json
+{
+    "example": "request format"
+}
+```
+
+2. Response Format
+```json
+{
+    "example": "response format"
+}
+```
+
+## Error Handling
+1. [Error Scenario]
+   - HTTP Status: [Status code]
+   - Error Code: [Internal code]
+   - Message: [Error message]
+   - Resolution: [Resolution steps]
+```
+
+## Validation Requirements
+
+### Documentation Quality Rules
+1. **Completeness**
+   - All required sections must be present
+   - All fields must be filled with meaningful content
+   - No placeholder text allowed in production
+   - All relationships must be documented
+
+2. **Consistency**
+   - Terminology must match ubiquitous language
+   - Relationships must be documented on both ends
+   - Version numbers must be consistent
+   - Naming conventions must be followed
+
+3. **Clarity**
+   - No ambiguous terms or descriptions
+   - Clear separation of concerns
+   - Explicit rather than implicit rules
+   - Examples provided for complex concepts
+
+### Technical Validation
+1. **Format Validation**
+   - Valid Markdown syntax
+   - Correct file structure
+   - Proper use of code blocks
+   - Valid links and references
+
+2. **Content Validation**
+   - No orphaned references
+   - No circular dependencies
+   - Complete relationship mappings
+   - Valid type references
+
+## Implementation Guidelines
+
+### Documentation Process
+1. **Creation**
+   - Start with domain overview
+   - Define ubiquitous language
+   - Document entities and relationships
+   - Add events and functions
+   - Include validation rules
+
+2. **Review**
+   - Technical review
+   - Domain expert review
+   - Stakeholder approval
+   - Version control
+
+3. **Maintenance**
+   - Regular updates
+   - Version history
+   - Change tracking
+   - Impact analysis
+
+### Best Practices
+1. **Writing Style**
+   - Use active voice
+   - Be concise and clear
+   - Use consistent terminology
+   - Provide examples for clarity
+
+2. **Version Control**
+   - Use semantic versioning
+   - Document breaking changes
+   - Maintain changelog
+   - Track dependencies
+
+3. **Quality Assurance**
+   - Automated validation
+   - Peer review process
+   - Regular audits
+   - Feedback incorporation
+
+### Bounded Context Documentation Files
+
+1. **Bounded Context Overview File (`bounded-context/README.md`)**
+```markdown
+# Bounded Context: [Context Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Overview
+[Concise description of the bounded context and its responsibility]
+
+## Strategic Classification
+- Type: [Core|Supporting|Generic]
+- Business Criticality: [High|Medium|Low]
+- Implementation Complexity: [High|Medium|Low]
+
+## Domain Role
+- Primary Domain: [Domain Name]
+- Related Domains: [List of related domains]
+- Business Capability: [Main business capability]
+
+## Team Ownership
+- Owner Team: [Team name]
+- Supporting Teams: [List of supporting teams]
+- Contact Information: [Key contacts]
+
+## Context Map
+```mermaid
+graph TD
+    subgraph Current Context
+    A[Current BC]
+    end
+
+    subgraph Upstream
+    B[Upstream BC 1]
+    C[Upstream BC 2]
+    end
+
+    subgraph Downstream
+    D[Downstream BC 1]
+    E[Downstream BC 2]
+    end
+
+    B --> A
+    C --> A
+    A --> D
+    A --> E
+```
+
+## Dependencies
+### Upstream Dependencies
+| Bounded Context | Relationship Type | Integration Method | Contract |
+|----------------|-------------------|-------------------|-----------|
+| BC1 | Customer-Supplier | REST API | PaymentConfirmation |
+| Customer | Conformist | GraphQL | CustomerProfile |
+
+### Downstream Dependencies
+| Bounded Context | Relationship Type | Integration Method | Contract |
+|----------------|-------------------|-------------------|-----------|
+| Inventory | Partnership | Event Stream | StockReservation |
+| Shipping | Customer-Supplier | gRPC | ShipmentRequest |
+```
+
+2. **Context Mapping File (`bounded-context/context-map.md`)**
+```markdown
+# Context Map: [Context Name]
+Version: [Semantic Version]
+Last Updated: [ISO Date]
+
+## Relationship Patterns
+
+### Upstream Relationships
+1. **Payment Context**
+   - Pattern: Customer-Supplier
+   - Integration Style: REST API
+   - Contract Type: Published Language
+   ```mermaid
+   graph LR
+       subgraph Payment BC
+       P[Payment Service]
+       end
+
+       subgraph Order BC
+       O[Order Service]
+       ACL[Payment ACL]
+       end
+
+       P -->|PaymentContract| ACL
+       ACL -->|Internal Format| O
+
+       style ACL fill:#f96,stroke:#333,stroke-width:2px
+   ```
+
+   #### Contract Details
+   ```typescript
+   interface PaymentContract {
+       transactionId: string;
+       orderId: string;
+       amount: Money;
+       status: PaymentStatus;
+       timestamp: DateTime;
+   }
+   ```
+
+2. **Customer Context**
+   ```mermaid
+   graph LR
+       subgraph Customer BC
+       C[Customer Service]
+       CP[Customer Profile]
+       end
+
+       subgraph Order BC
+       O[Order Service]
+       CA[Customer Adapter]
+       end
+
+       CP -->|Profile Data| CA
+       CA -->|Mapped Data| O
+
+       style CA fill:#96f,stroke:#333,stroke-width:2px
+   ```
+```
+
+3. **Boundaries Example with Technical Details**
+```markdown
+# Context Boundaries: Order Management
+Version: 1.2.0
+Last Updated: 2024-03-20
+
+## Explicit Boundaries
+
+### Business Boundaries
+1. **Processes Included**
+   ```mermaid
+   graph TD
+       A[Order Creation] --> B[Payment Validation]
+       B --> C[Stock Reservation]
+       C --> D[Shipping Arrangement]
+       D --> E[Order Confirmation]
+
+       style A fill:#9f9,stroke:#333,stroke-width:2px
+       style E fill:#f99,stroke:#333,stroke-width:2px
+   ```
+
+### Data Boundaries
+1. **Owned Data**
+   ```mermaid
+   erDiagram
+       ORDER ||--o{ ORDER_ITEM : contains
+       ORDER ||--o{ PAYMENT : has
+       ORDER ||--|| SHIPPING : requires
+
+       ORDER {
+           string orderId PK
+           string customerId FK
+           datetime createdAt
+           string status
+       }
+   ```
+
+### Technical Boundaries
+```mermaid
+graph TD
+    subgraph Order Domain
+    A[Order API]
+    B[(Order DB)]
+    C{Message Bus}
+    end
+
+    subgraph External
+    D[Payment API]
+    E[Inventory API]
+    F[Customer API]
+    end
+
+    A -->|REST| D
+    A -->|GraphQL| F
+    C -->|Events| E
+```
+```
+
+4. **Interface Example with Contracts**
+```markdown
+# Context Interfaces: Order Management
+
+## Public Interfaces
+
+### Commands
+1. **Create Order**
+   ```typescript
+   interface CreateOrderCommand {
+       customerId: string;
+       items: Array<{
+           productId: string;
+           quantity: number;
+           price: Money;
+       }>;
+       shippingAddress: Address;
+       paymentMethod: PaymentMethod;
+   }
+   ```
+   ```mermaid
+   sequenceDiagram
+       participant C as Client
+       participant API as Order API
+       participant DB as Order DB
+       participant E as Event Bus
+
+       C->>API: CreateOrderCommand
+       API->>DB: Save Order
+       API->>E: OrderCreatedEvent
+       E-->>API: Confirmation
+       API-->>C: OrderCreated
+   ```
+
+### Events
+1. **Order Created Event**
+   ```typescript
+   interface OrderCreatedEvent {
+       eventId: string;
+       orderId: string;
+       timestamp: DateTime;
+       payload: {
+           customerId: string;
+           totalAmount: Money;
+           status: OrderStatus;
+       };
+   }
+   ```
+   ```mermaid
+   graph TD
+       subgraph Publisher
+       A[Order Service]
+       end
+
+       subgraph Event Bus
+       B[Topic: orders]
+       end
+
+       subgraph Subscribers
+       C[Inventory Service]
+       D[Analytics Service]
+       E[Notification Service]
+       end
+
+       A -->|Publish| B
+       B -->|Subscribe| C
+       B -->|Subscribe| D
+       B -->|Subscribe| E
+   ```
+```
+
+### Bounded Context Validation Rules
+
+1. **Context Definition Validation**
+```markdown
+## Validation Checklist
+
+### Strategic Alignment
+- [ ] Context type clearly defined (Core, Supporting, Generic)
+- [ ] Business criticality assessed and documented
+- [ ] Implementation complexity evaluated
+- [ ] Team ownership explicitly assigned
+
+### Boundary Definition
+- [ ] Business processes clearly delineated
+- [ ] Data ownership explicitly defined
+- [ ] Integration points documented
+- [ ] Technical boundaries specified
+
+### Context Mapping
+- [ ] All relationships identified
+- [ ] Integration patterns specified
+- [ ] Contracts defined
+- [ ] ACL requirements documented
+
+### Interface Validation
+- [ ] Public interfaces complete
+- [ ] Contracts version-controlled
+- [ ] Breaking changes documented
+- [ ] Backward compatibility addressed
+```
+
+2. **Relationship Pattern Validation**
+```markdown
+## Pattern Validation Matrix
+
+| Pattern Type | Required Documentation | Validation Rules |
+|--------------|----------------------|------------------|
+| Partnership | - Shared kernel definition<br>- Team collaboration model<br>- Integration tests | - Both contexts must reference shared code<br>- CI/CD must include integration tests<br>- Teams must have documented collaboration |
+| Customer-Supplier | - Service contract<br>- SLA definition<br>- Versioning strategy | - Contract must be version controlled<br>- Breaking changes must be documented<br>- Migration path must be defined |
+| Conformist | - Upstream model documentation<br>- Mapping strategy<br>- Version tracking | - Conformity must be validated<br>- Changes must be tracked<br>- Impact analysis required |
+| Anti-Corruption Layer | - Translation rules<br>- Validation logic<br>- Error handling | - All translations must be tested<br>- Error scenarios must be handled<br>- Performance impact documented |
+```
+
+3. **Integration Pattern Validation**
+```markdown
+## Integration Validation Rules
+
+### REST API Integration
+- [ ] OpenAPI/Swagger documentation complete
+- [ ] Authentication/Authorization defined
+- [ ] Rate limiting specified
+- [ ] Error responses standardized
+- [ ] Versioning strategy documented
+
+### Event-Driven Integration
+- [ ] Event schema documented
+- [ ] Consumer contracts defined
+- [ ] Retry policies specified
+- [ ] Dead letter handling documented
+- [ ] Event versioning strategy defined
+
+### GraphQL Integration
+- [ ] Schema documented
+- [ ] Resolvers defined
+- [ ] N+1 problem addressed
+- [ ] Caching strategy specified
+- [ ] Authorization directives implemented
+
+### gRPC Integration
+- [ ] Protocol buffers defined
+- [ ] Streaming patterns documented
+- [ ] Error handling specified
+- [ ] Performance requirements documented
+- [ ] Backward compatibility ensured
+```
+
+4. **Diagram Validation Rules**
+```markdown
+## Diagram Requirements
+
+### Context Maps
+- [ ] All contexts identified
+- [ ] Relationships clearly shown
+- [ ] Direction of dependencies marked
+- [ ] Integration patterns labeled
+- [ ] Team boundaries indicated
+
+### Flow Diagrams
+- [ ] Start/End points marked
+- [ ] Decision points documented
+- [ ] Error paths included
+- [ ] Async operations marked
+- [ ] Timeouts specified
+
+### Component Diagrams
+- [ ] All components labeled
+- [ ] Interfaces defined
+- [ ] Dependencies shown
+- [ ] Security boundaries marked
+- [ ] Data flow indicated
+
+### Sequence Diagrams
+- [ ] Actors identified
+- [ ] Message types differentiated
+- [ ] Error scenarios included
+- [ ] Timing constraints noted
+- [ ] Async operations marked
+```
+
+### Subdomain Documentation Templates
+
+#### Event-Driven Subdomain Template
+```markdown
+# Subdomain: [Name]
+Version: [Version]
+Last Updated: [Date]
+
+## Classification
+- Type: [Core|Supporting|Generic]
+- Pattern: Event-Driven
+- Business Criticality: [High|Medium|Low]
+
+## Event Flow
+```mermaid
+graph TD
+    subgraph Domain Events
+    A[Primary Events]
+    B[Integration Events]
+    C[System Events]
+    end
+
+    subgraph Event Handlers
+    D[Domain Handlers]
+    E[Integration Handlers]
+    F[System Handlers]
+    end
+
+    A --> D
+    B --> E
+    C --> F
+```
+
+## Event Catalog
+| Event Name | Type | Version | Producers | Consumers | Schema |
+|------------|------|---------|-----------|-----------|--------|
+| Event1 | Domain | 1.0.0 | Service1 | Service2, Service3 | Schema1 |
+| Event2 | Integration | 1.1.0 | Service2 | Service4 | Schema2 |
+
+## Event Handlers
+| Handler | Events | Purpose | Side Effects |
+|---------|--------|---------|--------------|
+| Handler1 | Event1 | Purpose1 | Effect1 |
+| Handler2 | Event2 | Purpose2 | Effect2 |
+
+## Error Handling
+| Scenario | Detection | Recovery | Prevention |
+|----------|-----------|----------|------------|
+| Error1 | Method1 | Action1 | Prevention1 |
+| Error2 | Method2 | Action2 | Prevention2 |
+
+## Performance Requirements
+- Event Processing Latency: [Target]
+- Event Throughput: [Target]
+- Handler Response Time: [Target]
+- Error Recovery Time: [Target]
+```
+
+#### Data-Driven Subdomain Template
+```markdown
+# Subdomain: [Name]
+Version: [Version]
+Last Updated: [Date]
+
+## Classification
+- Type: [Core|Supporting|Generic]
+- Pattern: Data-Driven
+- Business Criticality: [High|Medium|Low]
+
+## Data Flow
+```mermaid
+graph TD
+    subgraph Write Models
+    A[Aggregate1]
+    B[Aggregate2]
+    end
+
+    subgraph Event Store
+    C[Event Stream]
+    end
+
+    subgraph Read Models
+    D[Projection1]
+    E[Projection2]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    C --> E
+```
+
+## Data Models
+### Write Models
+| Model | Purpose | Consistency | Events |
+|-------|---------|-------------|--------|
+| Model1 | Purpose1 | Strong | Event1, Event2 |
+| Model2 | Purpose2 | Strong | Event3, Event4 |
+
+### Read Models
+| Model | Purpose | Update Pattern | Query Pattern |
+|-------|---------|----------------|---------------|
+| Model1 | Purpose1 | Event-Driven | Query1 |
+| Model2 | Purpose2 | Event-Driven | Query2 |
+
+## Projections
+| Projection | Source Events | Update Strategy | Consumers |
+|------------|---------------|-----------------|-----------|
+| Proj1 | Event1, Event2 | Real-time | Service1 |
+| Proj2 | Event3, Event4 | Batch | Service2 |
+
+## Query Patterns
+| Pattern | Use Case | Performance | Consistency |
+|---------|----------|-------------|-------------|
+| Pattern1 | Case1 | Target1 | Level1 |
+| Pattern2 | Case2 | Target2 | Level2 |
+
+## Performance Requirements
+- Write Throughput: [Target]
+- Read Throughput: [Target]
+- Query Response Time: [Target]
+- Projection Latency: [Target]
+```
+
+#### Hybrid Subdomain Template
+```markdown
+# Subdomain: [Name]
+Version: [Version]
+Last Updated: [Date]
+
+## Classification
+- Type: [Core|Supporting|Generic]
+- Pattern: Hybrid (Event-Driven + Data-Driven)
+- Business Criticality: [High|Medium|Low]
+
+## Architecture
+```mermaid
+graph TD
+    subgraph Command Side
+    A[Commands]
+    B[Domain Model]
+    end
+
+    subgraph Event Processing
+    C[Event Store]
+    D[Event Handlers]
+    end
+
+    subgraph Query Side
+    E[Projections]
+    F[Read Models]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+```
+
+## Command Flow
+| Command | Handler | Events | Consistency |
+|---------|---------|--------|-------------|
+| Command1 | Handler1 | Event1 | Strong |
+| Command2 | Handler2 | Event2 | Strong |
+
+## Event Flow
+| Event | Handlers | Projections | Side Effects |
+|-------|----------|-------------|--------------|
+| Event1 | Handler1 | Proj1 | Effect1 |
+| Event2 | Handler2 | Proj2 | Effect2 |
+
+## Query Flow
+| Query | Read Model | Update Pattern | Performance |
+|-------|------------|----------------|-------------|
+| Query1 | Model1 | Real-time | Target1 |
+| Query2 | Model2 | Batch | Target2 |
+
+## Integration Points
+| Point | Pattern | Protocol | SLA |
+|-------|---------|----------|-----|
+| Point1 | Event-Driven | Protocol1 | SLA1 |
+| Point2 | Request-Reply | Protocol2 | SLA2 |
+
+## Performance Requirements
+- Command Processing: [Target]
+- Event Processing: [Target]
+- Query Response: [Target]
+- End-to-End Latency: [Target]
+```
+
+### Implementation Patterns
+
+#### Event-Driven Implementation
+```typescript
+// Core Event Types
+interface DomainEvent {
+    eventId: string;
+    eventType: string;
+    aggregateId: string;
+    version: number;
+    timestamp: Date;
+    metadata: EventMetadata;
+    payload: unknown;
+}
+
+interface EventMetadata {
+    correlationId: string;
+    causationId: string;
+    userId: string;
+    source: string;
+}
+
+// Event Publisher
+interface EventPublisher {
+    publish<T extends DomainEvent>(event: T): Promise<void>;
+    publishBatch<T extends DomainEvent>(events: T[]): Promise<void>;
+}
+
+// Event Handler
+interface EventHandler<T extends DomainEvent> {
+    eventType: string;
+    handle(event: T): Promise<void>;
+    shouldHandle(event: T): boolean;
+}
+
+// Event Store
+interface EventStore {
+    saveEvents(aggregateId: string, events: DomainEvent[]): Promise<void>;
+    getEvents(aggregateId: string, fromVersion?: number): Promise<DomainEvent[]>;
+    getAllEvents(fromTimestamp?: Date): Promise<DomainEvent[]>;
+}
+
+// Event Bus
+interface EventBus {
+    subscribe<T extends DomainEvent>(handler: EventHandler<T>): void;
+    unsubscribe<T extends DomainEvent>(handler: EventHandler<T>): void;
+    publish<T extends DomainEvent>(event: T): Promise<void>;
+}
+```
+
+#### Data-Driven Implementation
+```typescript
+// Write Model
+interface WriteModel<T extends AggregateRoot> {
+    save(aggregate: T): Promise<void>;
+    load(id: string): Promise<T>;
+    delete(id: string): Promise<void>;
+}
+
+// Read Model
+interface ReadModel<T> {
+    query(filter: QueryFilter): Promise<T[]>;
+    project(event: DomainEvent): Promise<void>;
+}
+
+// Projection Engine
+interface ProjectionEngine {
+    project(event: DomainEvent): Promise<void>;
+    rebuild(): Promise<void>;
+    getState(): Promise<ProjectionState>;
+}
+
+// Query Handler
+interface QueryHandler<TQuery, TResult> {
+    handle(query: TQuery): Promise<TResult>;
+}
+
+// Example Implementation
+class OrderReadModel implements ReadModel<OrderProjection> {
+    private readonly store: ProjectionStore;
+
+    async project(event: OrderEvent): Promise<void> {
+        switch (event.type) {
+            case 'OrderCreated':
+                await this.handleOrderCreated(event);
+                break;
+            case 'OrderUpdated':
+                await this.handleOrderUpdated(event);
+                break;
+        }
+    }
+
+    async query(filter: OrderFilter): Promise<OrderProjection[]> {
+        return this.store.query(filter);
+    }
+}
+```
+
+#### Hybrid Implementation
+```typescript
+// Aggregate Root with Event Sourcing
+abstract class AggregateRoot {
+    private version: number = 0;
+    private uncommittedEvents: DomainEvent[] = [];
+
+    protected apply(event: DomainEvent): void {
+        this.version++;
+        this.uncommittedEvents.push(event);
+        this.handle(event);
+    }
+
+    abstract handle(event: DomainEvent): void;
+
+    getUncommittedEvents(): DomainEvent[] {
+        return [...this.uncommittedEvents];
+    }
+
+    clearUncommittedEvents(): void {
+        this.uncommittedEvents = [];
+    }
+}
+
+// Example Order Aggregate
+class Order extends AggregateRoot {
+    private items: OrderItem[] = [];
+    private status: OrderStatus = OrderStatus.Created;
+
+    createOrder(command: CreateOrderCommand): void {
+        this.apply(new OrderCreatedEvent({
+            orderId: command.orderId,
+            items: command.items,
+            customerId: command.customerId
+        }));
+    }
+
+    handle(event: DomainEvent): void {
+        switch (event.type) {
+            case 'OrderCreated':
+                this.handleOrderCreated(event as OrderCreatedEvent);
+                break;
+            case 'OrderUpdated':
+                this.handleOrderUpdated(event as OrderUpdatedEvent);
+                break;
+        }
+    }
+
+    private handleOrderCreated(event: OrderCreatedEvent): void {
+        this.items = event.items;
+        this.status = OrderStatus.Created;
+    }
+}
+
+// Command Handler
+class CreateOrderHandler {
+    private readonly repository: WriteModel<Order>;
+    private readonly eventPublisher: EventPublisher;
+
+    async handle(command: CreateOrderCommand): Promise<void> {
+        // Create and apply command
+        const order = new Order();
+        order.createOrder(command);
+
+        // Save aggregate and publish events
+        await this.repository.save(order);
+        await this.eventPublisher.publishBatch(order.getUncommittedEvents());
+    }
+}
+```
+
+### Testing Patterns
+
+#### Event-Driven Testing
+```typescript
+describe('Order Events', () => {
+    let eventBus: EventBus;
+    let eventStore: EventStore;
+    let orderHandler: OrderEventHandler;
+
+    beforeEach(() => {
+        eventBus = new InMemoryEventBus();
+        eventStore = new InMemoryEventStore();
+        orderHandler = new OrderEventHandler(eventStore);
+        eventBus.subscribe(orderHandler);
+    });
+
+    it('should handle OrderCreated event', async () => {
+        // Arrange
+        const event = new OrderCreatedEvent({
+            orderId: 'order-1',
+            items: [],
+            customerId: 'customer-1'
+        });
+
+        // Act
+        await eventBus.publish(event);
+
+        // Assert
+        const storedEvents = await eventStore.getEvents('order-1');
+        expect(storedEvents).toContainEqual(event);
+    });
+});
+```
+
+#### Data-Driven Testing
+```typescript
+describe('Order Read Model', () => {
+    let readModel: OrderReadModel;
+    let projectionStore: ProjectionStore;
+
+    beforeEach(() => {
+        projectionStore = new InMemoryProjectionStore();
+        readModel = new OrderReadModel(projectionStore);
+    });
+
+    it('should project OrderCreated event', async () => {
+        // Arrange
+        const event = new OrderCreatedEvent({
+            orderId: 'order-1',
+            items: [],
+            customerId: 'customer-1'
+        });
+
+        // Act
+        await readModel.project(event);
+
+        // Assert
+        const projection = await readModel.query({ orderId: 'order-1' });
+        expect(projection).toBeDefined();
+        expect(projection.status).toBe('created');
+    });
+});
+```
+
+### Monitoring and Observability
+
+#### Event Monitoring
+```typescript
+interface EventMonitor {
+    recordEventProcessed(event: DomainEvent, duration: number): void;
+    recordEventFailed(event: DomainEvent, error: Error): void;
+    getEventMetrics(): EventMetrics;
+}
+
+interface EventMetrics {
+    totalEvents: number;
+    failedEvents: number;
+    averageProcessingTime: number;
+    eventsByType: Map<string, number>;
+}
+
+class PrometheusEventMonitor implements EventMonitor {
+    private readonly eventCounter: Counter;
+    private readonly failureCounter: Counter;
+    private readonly processingTime: Histogram;
+
+    recordEventProcessed(event: DomainEvent, duration: number): void {
+        this.eventCounter.inc({ type: event.type });
+        this.processingTime.observe({ type: event.type }, duration);
+    }
+
+    recordEventFailed(event: DomainEvent, error: Error): void {
+        this.failureCounter.inc({ type: event.type, error: error.name });
+    }
+}
+```
+
+#### Data Model Monitoring
+```typescript
+interface ModelMonitor {
+    recordQueryExecuted(query: string, duration: number): void;
+    recordQueryFailed(query: string, error: Error): void;
+    recordProjectionUpdated(model: string, duration: number): void;
+    getModelMetrics(): ModelMetrics;
+}
+
+interface ModelMetrics {
+    totalQueries: number;
+    failedQueries: number;
+    averageQueryTime: number;
+    projectionUpdateTime: number;
+}
+
+class DatadogModelMonitor implements ModelMonitor {
+    private readonly queryTimer: Timer;
+    private readonly failureCounter: Counter;
+    private readonly projectionTimer: Timer;
+
+    recordQueryExecuted(query: string, duration: number): void {
+        this.queryTimer.record(duration, { query });
+    }
+
+    recordProjectionUpdated(model: string, duration: number): void {
+        this.projectionTimer.record(duration, { model });
+    }
+}
+```

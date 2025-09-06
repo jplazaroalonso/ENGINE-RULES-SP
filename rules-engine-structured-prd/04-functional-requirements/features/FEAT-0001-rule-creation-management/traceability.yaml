@@ -1,0 +1,254 @@
+featureId: FEAT-0001
+featureName: "Rule Creation and Management"
+stories:
+  - id: US-0001
+    name: "Create Percentage Discount Rule"
+    criteria:
+      - id: AC-01
+        name: "Rule Template Selection"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-02]
+          behaviour: [TC-BDD-01, TC-BDD-02]
+          unit: [TC-UT-TEMP-01, TC-UT-TEMP-02]
+      - id: AC-02
+        name: "DSL Rule Definition"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-03]
+          behaviour: [TC-BDD-01, TC-BDD-03]
+          unit: [TC-UT-DSL-01, TC-UT-DSL-02]
+      - id: AC-03
+        name: "Rule Validation"
+        tests:
+          functional: [TC-FUNC-03, TC-FUNC-08]
+          behaviour: [TC-BDD-03, TC-BDD-08]
+          unit: [TC-UT-VAL-01, TC-UT-VAL-02]
+      - id: AC-04
+        name: "Rule Testing"
+        tests:
+          functional: [TC-FUNC-04]
+          behaviour: [TC-BDD-04]
+          unit: [TC-UT-TEST-01, TC-UT-TEST-02]
+      - id: AC-05
+        name: "Rule Status Management"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-10]
+          behaviour: [TC-BDD-10]
+          unit: [TC-UT-STATUS-01, TC-UT-STATUS-02]
+
+  - id: US-0002
+    name: "Create Loyalty Points Rule"
+    criteria:
+      - id: AC-01
+        name: "Rule Template Selection"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-02]
+          behaviour: [TC-BDD-01, TC-BDD-02]
+          unit: [TC-UT-TEMP-01, TC-UT-TEMP-02]
+      - id: AC-02
+        name: "DSL Rule Definition"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-03]
+          behaviour: [TC-BDD-01, TC-BDD-03]
+          unit: [TC-UT-DSL-01, TC-UT-DSL-02]
+      - id: AC-03
+        name: "Rule Validation"
+        tests:
+          functional: [TC-FUNC-03, TC-FUNC-08]
+          behaviour: [TC-BDD-03, TC-BDD-08]
+          unit: [TC-UT-VAL-01, TC-UT-VAL-02]
+      - id: AC-04
+        name: "Rule Testing"
+        tests:
+          functional: [TC-FUNC-04]
+          behaviour: [TC-BDD-04]
+          unit: [TC-UT-TEST-01, TC-UT-TEST-02]
+      - id: AC-05
+        name: "Rule Status Management"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-10]
+          behaviour: [TC-BDD-10]
+          unit: [TC-UT-STATUS-01, TC-UT-STATUS-02]
+
+  - id: US-0003
+    name: "Use Rule Templates"
+    criteria:
+      - id: AC-01
+        name: "Rule Template Selection"
+        tests:
+          functional: [TC-FUNC-02]
+          behaviour: [TC-BDD-02]
+          unit: [TC-UT-TEMP-01, TC-UT-TEMP-02]
+      - id: AC-06
+        name: "Template Application"
+        tests:
+          functional: [TC-FUNC-02, TC-FUNC-09]
+          behaviour: [TC-BDD-02, TC-BDD-09]
+          unit: [TC-UT-TEMP-03, TC-UT-TEMP-04]
+
+  - id: US-0004
+    name: "Edit Existing Rules"
+    criteria:
+      - id: AC-01
+        name: "Rule Template Selection"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-02]
+          behaviour: [TC-BDD-01, TC-BDD-02]
+          unit: [TC-UT-TEMP-01, TC-UT-TEMP-02]
+      - id: AC-02
+        name: "DSL Rule Definition"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-03]
+          behaviour: [TC-BDD-01, TC-BDD-03]
+          unit: [TC-UT-DSL-01, TC-UT-DSL-02]
+      - id: AC-03
+        name: "Rule Validation"
+        tests:
+          functional: [TC-FUNC-03, TC-FUNC-08]
+          behaviour: [TC-BDD-03, TC-BDD-08]
+          unit: [TC-UT-VAL-01, TC-UT-VAL-02]
+      - id: AC-04
+        name: "Rule Testing"
+        tests:
+          functional: [TC-FUNC-04]
+          behaviour: [TC-BDD-04]
+          unit: [TC-UT-TEST-01, TC-UT-TEST-02]
+      - id: AC-05
+        name: "Rule Status Management"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-10]
+          behaviour: [TC-BDD-10]
+          unit: [TC-UT-STATUS-01, TC-UT-STATUS-02]
+
+  - id: US-0005
+    name: "Validate Rule Syntax"
+    criteria:
+      - id: AC-03
+        name: "Rule Validation"
+        tests:
+          functional: [TC-FUNC-03, TC-FUNC-08]
+          behaviour: [TC-BDD-03, TC-BDD-08]
+          unit: [TC-UT-VAL-01, TC-UT-VAL-02]
+
+  - id: US-0006
+    name: "Test Rule with Sample Data"
+    criteria:
+      - id: AC-04
+        name: "Rule Testing"
+        tests:
+          functional: [TC-FUNC-04]
+          behaviour: [TC-BDD-04]
+          unit: [TC-UT-TEST-01, TC-UT-TEST-02]
+
+  - id: US-0007
+    name: "Save Rule as Draft"
+    criteria:
+      - id: AC-05
+        name: "Rule Status Management"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-07]
+          behaviour: [TC-BDD-06]
+          unit: [TC-UT-STATUS-01, TC-UT-STATUS-02]
+
+  - id: US-0008
+    name: "Submit Rule for Approval"
+    criteria:
+      - id: AC-01
+        name: "Rule Template Selection"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-02]
+          behaviour: [TC-BDD-01, TC-BDD-02]
+          unit: [TC-UT-TEMP-01, TC-UT-TEMP-02]
+      - id: AC-02
+        name: "DSL Rule Definition"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-03]
+          behaviour: [TC-BDD-01, TC-BDD-03]
+          unit: [TC-UT-DSL-01, TC-UT-DSL-02]
+      - id: AC-03
+        name: "Rule Validation"
+        tests:
+          functional: [TC-FUNC-03, TC-FUNC-08]
+          behaviour: [TC-BDD-03, TC-BDD-08]
+          unit: [TC-UT-VAL-01, TC-UT-VAL-02]
+      - id: AC-04
+        name: "Rule Testing"
+        tests:
+          functional: [TC-FUNC-04]
+          behaviour: [TC-BDD-04]
+          unit: [TC-UT-TEST-01, TC-UT-TEST-02]
+      - id: AC-05
+        name: "Rule Status Management"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-10]
+          behaviour: [TC-BDD-10]
+          unit: [TC-UT-STATUS-01, TC-UT-STATUS-02]
+
+  - id: US-0009
+    name: "View Rule History"
+    criteria:
+      - id: AC-05
+        name: "Rule Status Management"
+        tests:
+          functional: [TC-FUNC-06]
+          behaviour: [TC-BDD-07]
+          unit: [TC-UT-HISTORY-01, TC-UT-HISTORY-02]
+
+  - id: US-0010
+    name: "Clone Existing Rules"
+    criteria:
+      - id: AC-01
+        name: "Rule Template Selection"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-02]
+          behaviour: [TC-BDD-01, TC-BDD-02]
+          unit: [TC-UT-TEMP-01, TC-UT-TEMP-02]
+      - id: AC-02
+        name: "DSL Rule Definition"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-03]
+          behaviour: [TC-BDD-01, TC-BDD-03]
+          unit: [TC-UT-DSL-01, TC-UT-DSL-02]
+      - id: AC-03
+        name: "Rule Validation"
+        tests:
+          functional: [TC-FUNC-03, TC-FUNC-08]
+          behaviour: [TC-BDD-03, TC-BDD-08]
+          unit: [TC-UT-VAL-01, TC-UT-VAL-02]
+      - id: AC-04
+        name: "Rule Testing"
+        tests:
+          functional: [TC-FUNC-04]
+          behaviour: [TC-BDD-04]
+          unit: [TC-UT-TEST-01, TC-UT-TEST-02]
+      - id: AC-05
+        name: "Rule Status Management"
+        tests:
+          functional: [TC-FUNC-01, TC-FUNC-10]
+          behaviour: [TC-BDD-10]
+          unit: [TC-UT-STATUS-01, TC-UT-STATUS-02]
+      - id: AC-08
+        name: "Rule Cloning"
+        tests:
+          functional: [TC-FUNC-05]
+          behaviour: [TC-BDD-05]
+          unit: [TC-UT-CLONE-01, TC-UT-CLONE-02]
+
+successMetrics:
+  - kpi: "Rule Creation Time"
+    target: "80% reduction from baseline"
+    measurement: "Average time to create a rule from template to draft"
+  - kpi: "User Adoption Rate"
+    target: "80% of business users create rules through the system"
+    measurement: "Percentage of eligible users actively using the system"
+  - kpi: "Validation Error Rate"
+    target: "<10% of submitted rules have validation errors"
+    measurement: "Percentage of rules requiring corrections before approval"
+  - kpi: "Template Usage Rate"
+    target: "70% of new rules use templates"
+    measurement: "Percentage of rules created using template system"
+
+coverage:
+  requirements: "100%"
+  functional tests: "100%"
+  behaviour tests: "100%"
+  unit tests: ">=80%"

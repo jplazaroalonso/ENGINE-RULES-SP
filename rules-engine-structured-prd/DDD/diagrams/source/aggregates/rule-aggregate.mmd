@@ -1,0 +1,260 @@
+classDiagram
+    direction TB
+    
+    %% Rule Aggregate Root
+    class Rule {
+        <<AggregateRoot>>
+        +RuleId id
+        +RuleName name
+        +String description
+        +RuleStatus status
+        +Priority priority
+        +DSLContent dslContent
+        +DateTime createdAt
+        +DateTime updatedAt
+        +String createdBy
+        +String approvedBy
+        +DateTime approvedAt
+        +RuleMetadata metadata
+        +List~DomainEvent~ events
+        +activate() Rule
+        +deactivate() Rule
+        +approve(String approver) Rule
+        +reject(String reason) Rule
+        +validate() ValidationResult
+        +updateContent(DSLContent newContent) Rule
+        +changeStatus(RuleStatus newStatus) Rule
+        +test(EvaluationContext context) TestResult
+        +clone() Rule
+        +addDomainEvent(DomainEvent event) void
+        +clearEvents() List~DomainEvent~
+    }
+    
+    %% Value Objects
+    class RuleId {
+        <<ValueObject>>
+        +String value
+        +isValid() boolean
+        +equals(Object other) boolean
+        +hashCode() int
+        +toString() String
+    }
+    
+    class RuleName {
+        <<ValueObject>>
+        +String value
+        +isValidLength() boolean
+        +isUniqueInCategory() boolean
+        +equals(Object other) boolean
+        +hashCode() int
+        +toString() String
+    }
+    
+    class DSLContent {
+        <<ValueObject>>
+        +String content
+        +validateSyntax() ValidationResult
+        +validateSemantics() ValidationResult
+        +getComplexityScore() int
+        +extractDependencies() List~String~
+        +equals(Object other) boolean
+        +hashCode() int
+    }
+    
+    class RuleMetadata {
+        <<ValueObject>>
+        +Map~String, Object~ properties
+        +String category
+        +List~String~ tags
+        +String templateId
+        +String version
+        +addProperty(String key, Object value) RuleMetadata
+        +getProperty(String key) Object
+        +equals(Object other) boolean
+    }
+    
+    %% Enumerations
+    class RuleStatus {
+        <<enumeration>>
+        DRAFT
+        UNDER_REVIEW
+        APPROVED
+        ACTIVE
+        INACTIVE
+        DEPRECATED
+        +isValidTransition(RuleStatus from, RuleStatus to) boolean
+        +getAllowedTransitions(RuleStatus current) List~RuleStatus~
+        +isModifiable() boolean
+        +requiresApproval() boolean
+    }
+    
+    class Priority {
+        <<enumeration>>
+        CRITICAL
+        HIGH
+        MEDIUM
+        LOW
+        +getNumericValue() int
+        +isHigherThan(Priority other) boolean
+        +compare(Priority other) int
+    }
+    
+    %% Domain Services (Interfaces)
+    class RuleValidationService {
+        <<DomainService>>
+        +validateSyntax(DSLContent dsl) ValidationResult
+        +validateSemantics(Rule rule) ValidationResult
+        +detectConflicts(Rule rule, List~Rule~ activeRules) ConflictResult
+        +assessPerformanceImpact(Rule rule) PerformanceAssessment
+    }
+    
+    class RuleTemplateService {
+        <<DomainService>>
+        +getTemplate(String templateId) RuleTemplate
+        +applyTemplate(RuleTemplate template, Map~String, Object~ params) DSLContent
+        +validateTemplateParams(RuleTemplate template, Map~String, Object~ params) ValidationResult
+        +suggestTemplates(String category) List~RuleTemplate~
+    }
+    
+    class RuleConflictDetectionService {
+        <<DomainService>>
+        +detectOverlap(Rule rule1, Rule rule2) ConflictType
+        +resolvePriorityConflict(List~Rule~ conflictingRules) ResolutionStrategy
+        +analyzeBusinessRuleConflicts(Rule rule, List~Rule~ businessRules) ConflictAnalysis
+        +recommendResolution(ConflictResult conflicts) List~ResolutionOption~
+    }
+    
+    %% Supporting Entities
+    class RuleTemplate {
+        <<Entity>>
+        +String id
+        +String name
+        +String description
+        +String category
+        +String dslTemplate
+        +List~TemplateParameter~ parameters
+        +boolean isActive
+        +DateTime createdAt
+        +String createdBy
+        +validate() ValidationResult
+        +generateRule(Map~String, Object~ params) DSLContent
+        +isCompatibleWith(String ruleCategory) boolean
+    }
+    
+    class TemplateParameter {
+        <<ValueObject>>
+        +String name
+        +String type
+        +String description
+        +Object defaultValue
+        +boolean required
+        +List~String~ allowedValues
+        +validate(Object value) boolean
+        +convertValue(String input) Object
+    }
+    
+    %% Domain Events
+    class RuleCreated {
+        <<DomainEvent>>
+        +RuleId ruleId
+        +RuleName ruleName
+        +String category
+        +String createdBy
+        +DateTime createdAt
+        +String templateUsed
+        +EventMetadata metadata
+    }
+    
+    class RuleValidated {
+        <<DomainEvent>>
+        +RuleId ruleId
+        +ValidationResult validationResult
+        +List~ValidationError~ errors
+        +List~ValidationWarning~ warnings
+        +DateTime validatedAt
+        +EventMetadata metadata
+    }
+    
+    class RuleApproved {
+        <<DomainEvent>>
+        +RuleId ruleId
+        +String approvedBy
+        +DateTime approvedAt
+        +String approvalComments
+        +RuleStatus previousStatus
+        +EventMetadata metadata
+    }
+    
+    class RuleActivated {
+        <<DomainEvent>>
+        +RuleId ruleId
+        +RuleName ruleName
+        +DSLContent dslContent
+        +Priority priority
+        +DateTime activatedAt
+        +DateTime effectiveFrom
+        +String activatedBy
+        +EventMetadata metadata
+    }
+    
+    %% Result Objects
+    class ValidationResult {
+        <<ValueObject>>
+        +boolean isValid
+        +List~ValidationError~ errors
+        +List~ValidationWarning~ warnings
+        +PerformanceAssessment performanceImpact
+        +DateTime validatedAt
+        +hasErrors() boolean
+        +hasWarnings() boolean
+        +getErrorSummary() String
+    }
+    
+    class TestResult {
+        <<ValueObject>>
+        +boolean successful
+        +Object result
+        +Duration executionTime
+        +List~String~ appliedActions
+        +String errorMessage
+        +DateTime testedAt
+        +getFormattedResult() String
+        +isWithinPerformanceTarget() boolean
+    }
+    
+    %% Aggregate Relationships
+    Rule ||--|| RuleId : "identified by"
+    Rule ||--|| RuleName : "named with"
+    Rule ||--|| DSLContent : "contains"
+    Rule ||--|| RuleStatus : "has status"
+    Rule ||--|| Priority : "has priority"
+    Rule ||--|| RuleMetadata : "has metadata"
+    Rule ||--o{ DomainEvent : "publishes"
+    
+    %% Template Relationships
+    Rule }o--|| RuleTemplate : "created from"
+    RuleTemplate ||--o{ TemplateParameter : "has parameters"
+    
+    %% Service Dependencies
+    Rule ..> RuleValidationService : "validates with"
+    Rule ..> RuleTemplateService : "uses templates from"
+    Rule ..> RuleConflictDetectionService : "detects conflicts with"
+    
+    %% Domain Events
+    Rule --> RuleCreated : "publishes when created"
+    Rule --> RuleValidated : "publishes when validated"
+    Rule --> RuleApproved : "publishes when approved"
+    Rule --> RuleActivated : "publishes when activated"
+    
+    %% Result Objects
+    RuleValidationService --> ValidationResult : "returns"
+    Rule --> TestResult : "returns when tested"
+    
+    %% Business Invariants (as notes)
+    note for Rule "Business Invariants:\n• Status transitions must follow lifecycle\n• DSL content must be valid for status\n• Only approved rules can be activated\n• Active rules cannot be modified\n• Priority unique within category"
+    
+    note for RuleStatus "Valid Transitions:\nDRAFT → UNDER_REVIEW\nUNDER_REVIEW → APPROVED|REJECTED\nAPPROVED → ACTIVE\nACTIVE → INACTIVE\nINACTIVE → ACTIVE|DEPRECATED"
+    
+    note for DSLContent "Validation Rules:\n• Must pass syntax validation\n• Must pass semantic validation\n• Complexity within limits\n• Valid attribute references"
+    
+    note for Priority "Priority Rules:\n• CRITICAL > HIGH > MEDIUM > LOW\n• Unique within same category\n• Cannot be null\n• Used for conflict resolution"
