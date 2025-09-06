@@ -1,12 +1,16 @@
 # Rules Engine - Product Requirements Document
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](./LICENSE)
 [![Documentation Status](https://img.shields.io/badge/docs-complete-brightgreen.svg)](./rules-engine-structured-prd/README.md)
 [![PRD Version](https://img.shields.io/badge/PRD-v2.0.0-blue.svg)](./rules-engine-structured-prd/README.md)
 
 ## Overview
 
+⚠️ **CONFIDENTIAL - PROPRIETARY SOFTWARE** ⚠️
+
 This repository contains the comprehensive Product Requirements Document (PRD) for a enterprise-grade Rules Engine system. The PRD follows Domain-Driven Design (DDD) principles and provides complete specifications for implementing a high-performance, scalable rules management platform.
+
+**Access to this repository is restricted to authorized personnel only. This software and documentation are proprietary and confidential.**
 
 ## 🚀 Features
 
@@ -164,7 +168,9 @@ This PRD is designed for collaborative development:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is proprietary and confidential. All rights reserved. See the [LICENSE](LICENSE) file for complete terms and restrictions.
+
+**⚠️ CONFIDENTIAL - AUTHORIZED ACCESS ONLY**
 
 ## 📞 Support
 

@@ -30,17 +30,14 @@ git commit -m "Initial commit: Complete Rules Engine PRD with DDD implementation
 4. Fill in the repository details:
    - **Repository name**: `rules-engine-prd`
    - **Description**: `Enterprise Rules Engine - Complete Product Requirements Document with Domain-Driven Design`
-   - **Visibility**: Choose Public or Private
+   - **Visibility**: **PRIVATE** (Required due to proprietary license)
    - **Don't initialize** with README, .gitignore, or license (we already have these)
 5. Click "Create repository"
 
 ### Option B: Using GitHub CLI (if you have gh CLI installed)
 
 ```bash
-# Create repository
-gh repo create rules-engine-prd --public --description "Enterprise Rules Engine - Complete Product Requirements Document with Domain-Driven Design"
-
-# Or for private repository
+# Create PRIVATE repository (required due to proprietary license)
 gh repo create rules-engine-prd --private --description "Enterprise Rules Engine - Complete Product Requirements Document with Domain-Driven Design"
 ```
 
