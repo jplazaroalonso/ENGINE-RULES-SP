@@ -56,6 +56,8 @@ frontend:
   ui_library: "Quasar (Vue), Material-UI (React), Angular Material"
   state_management: "Pinia (Vue), Redux Toolkit (React), NgRx (Angular)"
   testing: "Vitest/Jest (unit), Cypress/Playwright (E2E)"
+  architecture: "2-application structure (Web App + Admin Dashboard) with shared components"
+  screens: "Detailed screen specifications with component breakdowns and user workflows"
 
 infrastructure:
   containers: "Docker with multi-stage builds"
@@ -159,7 +161,48 @@ security_framework:
     scanning: "Secret detection in code and dependencies"
 ```
 
-### **3.4 Testing Strategy (Comprehensive Quality Assurance)**
+### **3.4 Frontend Architecture Framework**
+```yaml
+# Frontend Design Specifications
+frontend_architecture:
+  application_structure:
+    web_app: "Business user interface with detailed screen specifications"
+    admin_dashboard: "System administration interface with comprehensive management tools"
+    shared_components: "Reusable component library for consistency and efficiency"
+    
+  screen_specifications:
+    structure: "Each screen has detailed specification with component breakdown"
+    elements: "Layout, interactions, data management, state handling, accessibility"
+    components: "Specific component usage, props, events, styling requirements"
+    workflows: "User journeys, navigation flows, error handling, performance"
+    
+  component_categories:
+    core_components: "Universal components (buttons, inputs, selects, feedback)"
+    entity_components: "Business-specific (rule cards, campaign cards, customer components)"
+    form_components: "Advanced forms (dynamic forms, DSL editor, validation framework)"
+    data_components: "Data display (tables, charts, export functionality, pagination)"
+    
+  design_patterns:
+    composition_api: "Vue 3 Composition API with script setup syntax"
+    type_safety: "Full TypeScript integration with interface definitions"
+    state_management: "Pinia stores with reactive data and computed properties"
+    real_time: "WebSocket integration for live updates and notifications"
+    
+  user_experience:
+    responsive_design: "Mobile-first approach with progressive enhancement"
+    accessibility: "WCAG compliance with keyboard navigation and screen reader support"
+    performance: "Virtual scrolling, lazy loading, optimistic updates"
+    offline_capability: "PWA features with background sync and caching"
+    
+  screen_examples:
+    dashboard: "Metrics, activities, alerts, quick actions with real-time updates"
+    rules_list: "Advanced filtering, bulk operations, status management, export"
+    rule_detail: "6-tab interface (overview, config, execution, performance, versions, approvals)"
+    rule_form: "Template integration, DSL editor, validation, testing interface"
+    campaigns: "Multi-type management (promotions/loyalty/coupons) with performance metrics"
+```
+
+### **3.5 Testing Strategy (Comprehensive Quality Assurance)**
 ```yaml
 # Comprehensive Testing Framework
 testing_strategy:
@@ -233,13 +276,17 @@ project-name-structured-design/
 ├── frontend/
 │   ├── README.md               # Frontend applications overview
 │   ├── web-app/
-│   │   └── README.md           # Main web application (Vue/React/Angular)
+│   │   ├── README.md           # Main web application (Vue/React/Angular)
+│   │   └── screens/            # Detailed screen specifications
+│   │       ├── dashboard.md    # Main dashboard with metrics and activities
+│   │       ├── rules-list.md   # Rules management with filtering and bulk operations
+│   │       ├── rule-detail.md  # Rule detail with 6-tab interface
+│   │       ├── rule-create-edit.md # Rule form with DSL editor and validation
+│   │       └── campaigns-list.md   # Campaign management for promotions/loyalty/coupons
 │   ├── admin-dashboard/
-│   │   └── README.md           # Administrative interface
-│   ├── mobile-interface/
-│   │   └── README.md           # Mobile-responsive interface
+│   │   └── README.md           # Administrative interface with user/system management
 │   └── shared-components/
-│       └── README.md           # Reusable component library
+│       └── README.md           # Reusable component library with entity/form/data components
 └── deployment/
     ├── README.md               # Infrastructure and deployment overview
     ├── docker/
@@ -276,7 +323,7 @@ implementation_phases:
     
   phase_5_frontend_development:
     duration: "Weeks 15-18"
-    deliverables: "Web app, admin dashboard, mobile interface"
+    deliverables: "Web app with detailed screens, admin dashboard, shared component library"
     team: "Frontend Developers"
     
   phase_6_production_deployment:
@@ -446,6 +493,7 @@ success_criteria:
     security: "Enterprise-grade security framework"
     performance: "Sub-second response times with scaling capability"
     operations: "Comprehensive monitoring and disaster recovery"
+    frontend: "Complete screen specifications with component libraries and user workflows"
     
   business_alignment:
     requirements: "100% PRD requirement coverage"
@@ -461,6 +509,9 @@ success_criteria:
 - **Event-Driven Architecture**: Use domain events for loose coupling between services
 - **Comprehensive Testing**: Implement E2E business workflows and chaos engineering
 - **Gradual Rollout**: Use feature flags and canary deployments for risk mitigation
+- **Detailed Screen Specifications**: Create comprehensive screen designs with component breakdowns before development
+- **Shared Component Library**: Build reusable components first to ensure consistency across applications
+- **User-Centric Design**: Focus on user workflows and accessibility from the beginning
 
 ### **8.2 Common Pitfalls to Avoid**
 - **Over-Engineering**: Don't create 9 services if 6 would suffice for MVP
@@ -468,13 +519,16 @@ success_criteria:
 - **Testing Shortcuts**: Skipping E2E tests, no chaos engineering, insufficient coverage
 - **Performance Assumptions**: Not defining SLAs, missing caching strategy, no load testing
 - **Operational Blindness**: Inadequate monitoring, no disaster recovery, missing runbooks
+- **Generic UI Specifications**: Avoid vague frontend requirements; create detailed screen specifications
+- **Component Duplication**: Don't build similar components in multiple places; use shared library
+- **Accessibility Afterthought**: Don't add accessibility features later; design inclusively from start
 
 ## Conclusion
 
-This rule provides a comprehensive framework for transforming PRDs into enterprise-grade technical designs. Success depends on systematic application of DDD principles, enterprise security frameworks, comprehensive testing strategies, and realistic implementation planning. The goal is to achieve ★★★★★ (5/5) architecture excellence across all dimensions while maintaining practical implementation feasibility.
+This rule provides a comprehensive framework for transforming PRDs into enterprise-grade technical designs. Success depends on systematic application of DDD principles, enterprise security frameworks, comprehensive testing strategies, detailed frontend specifications, and realistic implementation planning. The enhanced framework now includes specific guidance for creating detailed screen specifications, reusable component libraries, and user-centric design patterns. The goal is to achieve ★★★★★ (5/5) architecture excellence across all dimensions while maintaining practical implementation feasibility.
 
 ---
 
-**Rule Version**: 1.0  
-**Last Updated**: Based on Rules Engine successful transformation  
+**Rule Version**: 1.1  
+**Last Updated**: Enhanced with detailed frontend design specifications and screen-level guidance  
 **Success Rate**: ★★★★★ (5/5) - Enterprise Excellence Achieved

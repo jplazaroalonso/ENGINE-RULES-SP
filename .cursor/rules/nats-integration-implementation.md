@@ -1,0 +1,979 @@
+---
+description: NATS Integration Implementation Rule
+globs:
+alwaysApply: false
+---
+# NATS Integration Implementation Rule
+
+## Overview
+
+This rule provides comprehensive guidance for implementing NATS JetStream-based event-driven architecture with proper message handling, error recovery, and monitoring. Based on successful Rules Engine messaging implementation achieving reliable event processing.
+
+## 1. Feedback Section
+
+### Identified Issues in Generic Messaging Integration:
+- **Fire-and-Forget Messaging**: No acknowledgment or error handling for failed events
+- **Message Ordering Issues**: Events processed out of order causing data inconsistencies
+- **Missing Dead Letter Queues**: Failed messages lost without retry mechanisms
+- **No Event Versioning**: Breaking changes in event schemas cause consumer failures
+- **Poor Monitoring**: No visibility into message processing performance and failures
+- **Coupling Issues**: Direct service-to-service dependencies instead of event-driven decoupling
+
+### Recommendations:
+- Implement NATS JetStream for durable event streaming with acknowledgments
+- Use structured event schemas with versioning and backward compatibility
+- Add comprehensive error handling with retry policies and dead letter queues
+- Implement event sourcing patterns for audit trails and system recovery
+- Add detailed monitoring for message processing metrics and alerting
+- Design event-first architecture with proper domain event modeling
+
+## 2. Role and Context Definition
+
+### Target Role: Integration Developer / Event Architect
+### Background Context:
+- **Message Broker**: NATS JetStream with persistence and delivery guarantees
+- **Event Patterns**: Domain events, event sourcing, event-driven architecture
+- **Technology Stack**: NATS Go client, event schemas with JSON/Protobuf
+- **Performance**: High throughput (10K+ msgs/sec), low latency (<10ms)
+- **Reliability**: At-least-once delivery with idempotent consumers
+
+## 3. Objective and Goals
+
+### Primary Objective:
+Implement robust NATS JetStream integration enabling reliable event-driven communication between microservices with proper error handling, monitoring, and schema evolution.
+
+### Success Criteria:
+- **Message Delivery**: At-least-once delivery with consumer acknowledgments
+- **Error Handling**: Automatic retries with exponential backoff and DLQ
+- **Schema Evolution**: Backward-compatible event schemas with versioning
+- **Performance**: <10ms message processing latency, 10K+ msgs/sec throughput
+- **Monitoring**: Complete observability of message flows and consumer health
+- **Recovery**: Automatic recovery from failures with replay capabilities
+
+## 4. Key Terms and Definitions
+
+### Technical Terminology:
+- **Stream**: Durable message store in JetStream with configured retention
+- **Consumer**: Durable subscription that tracks message consumption progress
+- **Subject**: Hierarchical message routing key (e.g., "rules.events.created")
+- **Acknowledgment**: Consumer confirmation of successful message processing
+- **Dead Letter Queue**: Storage for messages that exceed retry attempts
+- **Event Sourcing**: Storing state changes as sequence of events
+- **Idempotency**: Processing same message multiple times has same effect
+
+## 5. Task Decomposition (Chain-of-Thought)
+
+### Step 1: NATS Infrastructure Setup
+- **Input**: NATS server configuration, stream definitions, subject hierarchies
+- **Process**: Configure JetStream with proper streams, consumers, and retention policies
+- **Output**: Running NATS cluster with configured streams and monitoring
+- **Human Validation Point**: Verify NATS cluster health and stream configurations
+
+### Step 2: Event Schema Design
+- **Input**: Domain events from business requirements, versioning strategy
+- **Process**: Design structured event schemas with versioning and validation
+- **Output**: Event schema registry with backward compatibility rules
+- **Human Validation Point**: Review event schemas follow domain boundaries and versioning
+
+### Step 3: Event Publisher Implementation
+- **Input**: Domain events, publisher interfaces, error handling requirements
+- **Process**: Create reliable event publishers with retries and monitoring
+- **Output**: Publisher components with delivery guarantees and metrics
+- **Human Validation Point**: Confirm publishers handle failures gracefully
+
+### Step 4: Event Consumer Implementation
+- **Input**: Event handlers, processing logic, consumer group configurations
+- **Process**: Implement durable consumers with proper acknowledgment patterns
+- **Output**: Consumer components with error handling and backpressure control
+- **Human Validation Point**: Validate consumers process events idempotently
+
+### Step 5: Error Handling and Recovery
+- **Input**: Failure scenarios, retry policies, dead letter queue requirements
+- **Process**: Implement comprehensive error handling with automatic recovery
+- **Output**: Resilient messaging system with failure isolation and recovery
+- **Human Validation Point**: Test failure scenarios and recovery mechanisms
+
+### Step 6: Monitoring and Observability
+- **Input**: Monitoring requirements, alerting policies, performance metrics
+- **Process**: Add distributed tracing, metrics, and health checks for messaging
+- **Output**: Complete observability stack for event-driven system
+- **Human Validation Point**: Verify monitoring captures all critical messaging metrics
+
+## 6. Context and Constraints
+
+### Technical Context:
+- **NATS Version**: 2.10+ with JetStream enabled
+- **Go Client**: nats.go v1.31+ with JetStream support
+- **Message Format**: JSON for external events, Protobuf for internal high-volume
+- **Delivery Semantics**: At-least-once with idempotent consumers
+- **Retention**: Event-based retention with configurable limits
+
+### Business Context:
+- **Event Volume**: 10K+ events/second peak load
+- **Processing Latency**: <10ms average message processing time
+- **Durability**: Events persisted for audit and replay capabilities
+- **Availability**: 99.9% message delivery reliability
+
+### Negative Constraints:
+- **Do NOT** use fire-and-forget messaging without acknowledgments
+- **Do NOT** create circular event dependencies between services
+- **Do NOT** include sensitive data in event payloads
+- **Do NOT** rely on message ordering without explicit sequencing
+- **Do NOT** ignore consumer lag and backpressure signals
+
+## 7. Examples and Illustrations (Few-Shot)
+
+### Example 1: Event Schema Design and Versioning
+
+#### Event Schema Structure:
+```go
+// pkg/events/schemas/rule_events.go
+package schemas
+
+import (
+    "encoding/json"
+    "time"
+    "github.com/google/uuid"
+)
+
+// EventMetadata contains common fields for all events
+type EventMetadata struct {
+    EventID       string    `json:"eventId"`
+    EventType     string    `json:"eventType"`
+    EventVersion  string    `json:"eventVersion"`
+    AggregateID   string    `json:"aggregateId"`
+    AggregateType string    `json:"aggregateType"`
+    Timestamp     time.Time `json:"timestamp"`
+    CorrelationID string    `json:"correlationId,omitempty"`
+    CausationID   string    `json:"causationId,omitempty"`
+    UserID        string    `json:"userId,omitempty"`
+}
+
+// RuleCreatedEventV1 represents version 1 of rule created event
+type RuleCreatedEventV1 struct {
+    EventMetadata
+    Payload RuleCreatedPayloadV1 `json:"payload"`
+}
+
+type RuleCreatedPayloadV1 struct {
+    RuleID      string `json:"ruleId"`
+    Name        string `json:"name"`
+    Description string `json:"description"`
+    Priority    string `json:"priority"`
+    CreatedBy   string `json:"createdBy"`
+}
+
+// RuleCreatedEventV2 adds category field while maintaining backward compatibility
+type RuleCreatedEventV2 struct {
+    EventMetadata
+    Payload RuleCreatedPayloadV2 `json:"payload"`
+}
+
+type RuleCreatedPayloadV2 struct {
+    RuleCreatedPayloadV1        // Embedded for backward compatibility
+    Category             string `json:"category,omitempty"`
+    Tags                 []string `json:"tags,omitempty"`
+}
+
+// NewRuleCreatedEvent creates a new rule created event
+func NewRuleCreatedEvent(ruleID, name, description, priority, createdBy string) *RuleCreatedEventV2 {
+    return &RuleCreatedEventV2{
+        EventMetadata: EventMetadata{
+            EventID:       uuid.New().String(),
+            EventType:     "RuleCreated",
+            EventVersion:  "v2",
+            AggregateID:   ruleID,
+            AggregateType: "Rule",
+            Timestamp:     time.Now().UTC(),
+        },
+        Payload: RuleCreatedPayloadV2{
+            RuleCreatedPayloadV1: RuleCreatedPayloadV1{
+                RuleID:      ruleID,
+                Name:        name,
+                Description: description,
+                Priority:    priority,
+                CreatedBy:   createdBy,
+            },
+        },
+    }
+}
+
+// ToJSON serializes event to JSON
+func (e *RuleCreatedEventV2) ToJSON() ([]byte, error) {
+    return json.Marshal(e)
+}
+
+// FromJSON deserializes event from JSON with version handling
+func FromJSON(data []byte) (interface{}, error) {
+    var metadata EventMetadata
+    if err := json.Unmarshal(data, &metadata); err != nil {
+        return nil, err
+    }
+    
+    switch metadata.EventType {
+    case "RuleCreated":
+        return parseRuleCreatedEvent(data, metadata.EventVersion)
+    case "RuleUpdated":
+        return parseRuleUpdatedEvent(data, metadata.EventVersion)
+    default:
+        return nil, fmt.Errorf("unknown event type: %s", metadata.EventType)
+    }
+}
+
+func parseRuleCreatedEvent(data []byte, version string) (interface{}, error) {
+    switch version {
+    case "v1":
+        var event RuleCreatedEventV1
+        err := json.Unmarshal(data, &event)
+        return &event, err
+    case "v2", "": // Default to latest version
+        var event RuleCreatedEventV2
+        err := json.Unmarshal(data, &event)
+        return &event, err
+    default:
+        return nil, fmt.Errorf("unsupported event version: %s", version)
+    }
+}
+```
+
+#### NATS Configuration:
+```go
+// pkg/messaging/config.go
+package messaging
+
+import (
+    "time"
+    "github.com/nats-io/nats.go"
+)
+
+// NATSConfig contains NATS connection and stream configuration
+type NATSConfig struct {
+    URL                string
+    ClusterName        string
+    ClientID           string
+    MaxReconnectAttempts int
+    ReconnectWait      time.Duration
+    ConnectionTimeout  time.Duration
+    
+    // JetStream configuration
+    Streams []StreamConfig `yaml:"streams"`
+}
+
+type StreamConfig struct {
+    Name        string            `yaml:"name"`
+    Subjects    []string          `yaml:"subjects"`
+    Retention   nats.RetentionPolicy `yaml:"retention"`
+    MaxAge      time.Duration     `yaml:"maxAge"`
+    MaxBytes    int64             `yaml:"maxBytes"`
+    MaxMsgs     int64             `yaml:"maxMsgs"`
+    Replicas    int               `yaml:"replicas"`
+    
+    Consumers []ConsumerConfig    `yaml:"consumers"`
+}
+
+type ConsumerConfig struct {
+    Name          string               `yaml:"name"`
+    Description   string               `yaml:"description"`
+    DeliverSubject string              `yaml:"deliverSubject"`
+    DurableName   string               `yaml:"durableName"`
+    AckPolicy     nats.AckPolicy       `yaml:"ackPolicy"`
+    AckWait       time.Duration        `yaml:"ackWait"`
+    MaxDeliver    int                  `yaml:"maxDeliver"`
+    FilterSubject string               `yaml:"filterSubject"`
+    ReplayPolicy  nats.ReplayPolicy    `yaml:"replayPolicy"`
+}
+
+// Default configuration for Rules Engine
+func DefaultNATSConfig() *NATSConfig {
+    return &NATSConfig{
+        URL:                  "nats://localhost:4222",
+        ClusterName:         "rules-engine-cluster",
+        MaxReconnectAttempts: 5,
+        ReconnectWait:       time.Second * 2,
+        ConnectionTimeout:   time.Second * 10,
+        Streams: []StreamConfig{
+            {
+                Name:      "RULES_EVENTS",
+                Subjects:  []string{"rules.events.>"},
+                Retention: nats.InterestPolicy,
+                MaxAge:    time.Hour * 24 * 30, // 30 days
+                MaxBytes:  1024 * 1024 * 1024,  // 1GB
+                MaxMsgs:   1000000,
+                Replicas:  3,
+                Consumers: []ConsumerConfig{
+                    {
+                        Name:          "promotions-consumer",
+                        Description:   "Processes rule events for promotions service",
+                        DurableName:   "promotions-rules-consumer",
+                        AckPolicy:     nats.AckExplicitPolicy,
+                        AckWait:       time.Second * 30,
+                        MaxDeliver:    3,
+                        FilterSubject: "rules.events.>",
+                        ReplayPolicy:  nats.ReplayInstantPolicy,
+                    },
+                },
+            },
+            {
+                Name:      "CAMPAIGNS_EVENTS",
+                Subjects:  []string{"campaigns.events.>"},
+                Retention: nats.InterestPolicy,
+                MaxAge:    time.Hour * 24 * 90, // 90 days
+                MaxBytes:  2048 * 1024 * 1024,  // 2GB
+                MaxMsgs:   5000000,
+                Replicas:  3,
+            },
+        },
+    }
+}
+```
+
+### Example 2: Event Publisher Implementation
+
+```go
+// pkg/messaging/publisher.go
+package messaging
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "time"
+    
+    "github.com/nats-io/nats.go"
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/trace"
+    "rules-engine/pkg/events/schemas"
+    "rules-engine/pkg/logging"
+)
+
+// EventPublisher handles publishing domain events to NATS
+type EventPublisher struct {
+    js     nats.JetStreamContext
+    logger logging.Logger
+    tracer trace.Tracer
+    config PublisherConfig
+}
+
+type PublisherConfig struct {
+    MaxRetries      int
+    RetryBackoff    time.Duration
+    AckTimeout      time.Duration
+    PublishTimeout  time.Duration
+}
+
+func NewEventPublisher(js nats.JetStreamContext, logger logging.Logger) *EventPublisher {
+    return &EventPublisher{
+        js:     js,
+        logger: logger,
+        tracer: otel.Tracer("event-publisher"),
+        config: PublisherConfig{
+            MaxRetries:     3,
+            RetryBackoff:   time.Millisecond * 100,
+            AckTimeout:     time.Second * 5,
+            PublishTimeout: time.Second * 10,
+        },
+    }
+}
+
+// PublishEvent publishes a domain event with retries and monitoring
+func (p *EventPublisher) PublishEvent(ctx context.Context, event interface{}) error {
+    ctx, span := p.tracer.Start(ctx, "publish_event")
+    defer span.End()
+    
+    // Serialize event
+    eventData, subject, err := p.serializeEvent(event)
+    if err != nil {
+        span.RecordError(err)
+        return fmt.Errorf("failed to serialize event: %w", err)
+    }
+    
+    // Add tracing headers
+    headers := nats.Header{}
+    p.injectTraceHeaders(ctx, headers)
+    
+    // Publish with retries
+    return p.publishWithRetries(ctx, subject, eventData, headers)
+}
+
+// PublishEventAsync publishes event asynchronously for high-throughput scenarios
+func (p *EventPublisher) PublishEventAsync(ctx context.Context, event interface{}) (<-chan error, error) {
+    eventData, subject, err := p.serializeEvent(event)
+    if err != nil {
+        return nil, fmt.Errorf("failed to serialize event: %w", err)
+    }
+    
+    headers := nats.Header{}
+    p.injectTraceHeaders(ctx, headers)
+    
+    msg := &nats.Msg{
+        Subject: subject,
+        Data:    eventData,
+        Header:  headers,
+    }
+    
+    // Publish async and return acknowledgment channel
+    ackFuture, err := p.js.PublishMsgAsync(msg)
+    if err != nil {
+        return nil, fmt.Errorf("failed to publish async: %w", err)
+    }
+    
+    // Convert to error channel
+    errChan := make(chan error, 1)
+    go func() {
+        defer close(errChan)
+        select {
+        case <-ackFuture.Ok():
+            errChan <- nil
+        case err := <-ackFuture.Err():
+            errChan <- err
+        case <-time.After(p.config.AckTimeout):
+            errChan <- fmt.Errorf("publish acknowledgment timeout")
+        }
+    }()
+    
+    return errChan, nil
+}
+
+func (p *EventPublisher) serializeEvent(event interface{}) ([]byte, string, error) {
+    switch e := event.(type) {
+    case *schemas.RuleCreatedEventV2:
+        data, err := e.ToJSON()
+        return data, "rules.events.created", err
+        
+    case *schemas.RuleUpdatedEventV1:
+        data, err := e.ToJSON()
+        return data, "rules.events.updated", err
+        
+    case *schemas.CampaignLaunchedEventV1:
+        data, err := e.ToJSON()
+        return data, "campaigns.events.launched", err
+        
+    default:
+        return nil, "", fmt.Errorf("unknown event type: %T", event)
+    }
+}
+
+func (p *EventPublisher) publishWithRetries(ctx context.Context, subject string, data []byte, headers nats.Header) error {
+    var lastErr error
+    
+    for attempt := 0; attempt <= p.config.MaxRetries; attempt++ {
+        if attempt > 0 {
+            // Exponential backoff
+            backoff := time.Duration(attempt) * p.config.RetryBackoff
+            select {
+            case <-time.After(backoff):
+            case <-ctx.Done():
+                return ctx.Err()
+            }
+            
+            p.logger.Warn("Retrying event publication", map[string]interface{}{
+                "attempt": attempt,
+                "subject": subject,
+                "backoff": backoff,
+            })
+        }
+        
+        msg := &nats.Msg{
+            Subject: subject,
+            Data:    data,
+            Header:  headers,
+        }
+        
+        // Set publish timeout
+        publishCtx, cancel := context.WithTimeout(ctx, p.config.PublishTimeout)
+        
+        _, err := p.js.PublishMsg(msg, nats.Context(publishCtx))
+        cancel()
+        
+        if err == nil {
+            // Success
+            p.logger.Debug("Event published successfully", map[string]interface{}{
+                "subject": subject,
+                "attempt": attempt,
+            })
+            return nil
+        }
+        
+        lastErr = err
+        p.logger.Error("Failed to publish event", err, map[string]interface{}{
+            "subject": subject,
+            "attempt": attempt,
+        })
+        
+        // Don't retry on certain errors
+        if isNonRetryableError(err) {
+            break
+        }
+    }
+    
+    return fmt.Errorf("failed to publish after %d attempts: %w", p.config.MaxRetries, lastErr)
+}
+
+func (p *EventPublisher) injectTraceHeaders(ctx context.Context, headers nats.Header) {
+    // Inject OpenTelemetry trace context into message headers
+    carrier := &headerCarrier{headers: headers}
+    otel.GetTextMapPropagator().Inject(ctx, carrier)
+}
+
+func isNonRetryableError(err error) bool {
+    // Determine which errors should not be retried
+    errStr := err.Error()
+    return strings.Contains(errStr, "invalid subject") ||
+           strings.Contains(errStr, "permission denied") ||
+           strings.Contains(errStr, "message too large")
+}
+
+// headerCarrier implements the TextMapCarrier interface for NATS headers
+type headerCarrier struct {
+    headers nats.Header
+}
+
+func (c *headerCarrier) Get(key string) string {
+    return c.headers.Get(key)
+}
+
+func (c *headerCarrier) Set(key, value string) {
+    c.headers.Set(key, value)
+}
+
+func (c *headerCarrier) Keys() []string {
+    var keys []string
+    for key := range c.headers {
+        keys = append(keys, key)
+    }
+    return keys
+}
+```
+
+### Example 3: Event Consumer Implementation
+
+```go
+// pkg/messaging/consumer.go
+package messaging
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "time"
+    
+    "github.com/nats-io/nats.go"
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/trace"
+    "rules-engine/pkg/events/schemas"
+    "rules-engine/pkg/logging"
+)
+
+// EventHandler defines the interface for handling domain events
+type EventHandler interface {
+    Handle(ctx context.Context, event interface{}) error
+    CanHandle(eventType string) bool
+}
+
+// EventConsumer handles consuming events from NATS with proper acknowledgments
+type EventConsumer struct {
+    js       nats.JetStreamContext
+    logger   logging.Logger
+    tracer   trace.Tracer
+    handlers map[string]EventHandler
+    config   ConsumerConfig
+}
+
+type ConsumerConfig struct {
+    ConsumerName    string
+    FilterSubject   string
+    AckWait         time.Duration
+    MaxDeliver      int
+    ProcessTimeout  time.Duration
+    BatchSize       int
+}
+
+func NewEventConsumer(js nats.JetStreamContext, logger logging.Logger, config ConsumerConfig) *EventConsumer {
+    return &EventConsumer{
+        js:       js,
+        logger:   logger,
+        tracer:   otel.Tracer("event-consumer"),
+        handlers: make(map[string]EventHandler),
+        config:   config,
+    }
+}
+
+// RegisterHandler registers an event handler for specific event types
+func (c *EventConsumer) RegisterHandler(handler EventHandler) {
+    // This is a simplified approach - in production, you might want more sophisticated routing
+    c.handlers[fmt.Sprintf("%T", handler)] = handler
+}
+
+// Start begins consuming events from the specified stream
+func (c *EventConsumer) Start(ctx context.Context) error {
+    c.logger.Info("Starting event consumer", map[string]interface{}{
+        "consumer": c.config.ConsumerName,
+        "subject":  c.config.FilterSubject,
+    })
+    
+    // Create or get existing consumer
+    consumer, err := c.js.ConsumerInfo("RULES_EVENTS", c.config.ConsumerName)
+    if err != nil {
+        // Consumer doesn't exist, create it
+        consumerConfig := &nats.ConsumerConfig{
+            Name:           c.config.ConsumerName,
+            Durable:        c.config.ConsumerName,
+            FilterSubject:  c.config.FilterSubject,
+            AckPolicy:      nats.AckExplicitPolicy,
+            AckWait:        c.config.AckWait,
+            MaxDeliver:     c.config.MaxDeliver,
+            DeliverPolicy:  nats.DeliverAllPolicy,
+            ReplayPolicy:   nats.ReplayInstantPolicy,
+        }
+        
+        consumer, err = c.js.AddConsumer("RULES_EVENTS", consumerConfig)
+        if err != nil {
+            return fmt.Errorf("failed to create consumer: %w", err)
+        }
+    }
+    
+    // Start subscription with pull-based consumption
+    return c.startPullSubscription(ctx, consumer.Name)
+}
+
+func (c *EventConsumer) startPullSubscription(ctx context.Context, consumerName string) error {
+    subscription, err := c.js.PullSubscribe("", consumerName)
+    if err != nil {
+        return fmt.Errorf("failed to create pull subscription: %w", err)
+    }
+    
+    // Start message processing loop
+    go c.messageProcessingLoop(ctx, subscription)
+    
+    return nil
+}
+
+func (c *EventConsumer) messageProcessingLoop(ctx context.Context, sub *nats.Subscription) {
+    for {
+        select {
+        case <-ctx.Done():
+            c.logger.Info("Stopping event consumer due to context cancellation")
+            return
+        default:
+            // Fetch messages in batches
+            messages, err := sub.Fetch(c.config.BatchSize, nats.MaxWait(time.Second*5))
+            if err != nil {
+                if err == nats.ErrTimeout {
+                    continue // No messages available, continue polling
+                }
+                c.logger.Error("Failed to fetch messages", err, nil)
+                continue
+            }
+            
+            // Process each message
+            for _, msg := range messages {
+                c.processMessage(ctx, msg)
+            }
+        }
+    }
+}
+
+func (c *EventConsumer) processMessage(ctx context.Context, msg *nats.Msg) {
+    // Extract trace context from message headers
+    msgCtx := c.extractTraceContext(ctx, msg)
+    
+    _, span := c.tracer.Start(msgCtx, "process_event")
+    defer span.End()
+    
+    // Add processing timeout
+    processCtx, cancel := context.WithTimeout(msgCtx, c.config.ProcessTimeout)
+    defer cancel()
+    
+    // Process message with error handling
+    err := c.handleMessage(processCtx, msg)
+    if err != nil {
+        span.RecordError(err)
+        c.handleProcessingError(msg, err)
+        return
+    }
+    
+    // Acknowledge successful processing
+    if err := msg.Ack(); err != nil {
+        c.logger.Error("Failed to acknowledge message", err, map[string]interface{}{
+            "subject": msg.Subject,
+        })
+    }
+}
+
+func (c *EventConsumer) handleMessage(ctx context.Context, msg *nats.Msg) error {
+    // Deserialize event
+    event, err := schemas.FromJSON(msg.Data)
+    if err != nil {
+        return fmt.Errorf("failed to deserialize event: %w", err)
+    }
+    
+    // Extract event metadata
+    eventType := c.extractEventType(event)
+    if eventType == "" {
+        return fmt.Errorf("could not determine event type")
+    }
+    
+    // Find appropriate handler
+    handler := c.findHandler(eventType)
+    if handler == nil {
+        c.logger.Warn("No handler found for event type", map[string]interface{}{
+            "eventType": eventType,
+            "subject":   msg.Subject,
+        })
+        return nil // Not an error - just no handler for this event type
+    }
+    
+    // Handle the event
+    if err := handler.Handle(ctx, event); err != nil {
+        return fmt.Errorf("handler failed to process event: %w", err)
+    }
+    
+    c.logger.Debug("Event processed successfully", map[string]interface{}{
+        "eventType": eventType,
+        "subject":   msg.Subject,
+    })
+    
+    return nil
+}
+
+func (c *EventConsumer) handleProcessingError(msg *nats.Msg, err error) {
+    c.logger.Error("Failed to process message", err, map[string]interface{}{
+        "subject":     msg.Subject,
+        "deliveries":  msg.Header.Get("Nats-Delivered-Count"),
+    })
+    
+    // Check if message has exceeded max delivery attempts
+    deliveryCount := msg.Header.Get("Nats-Delivered-Count")
+    if deliveryCount != "" {
+        var count int
+        if json.Unmarshal([]byte(deliveryCount), &count) == nil {
+            if count >= c.config.MaxDeliver {
+                c.logger.Error("Message exceeded max delivery attempts, sending to DLQ", nil, map[string]interface{}{
+                    "subject":       msg.Subject,
+                    "deliveryCount": count,
+                })
+                // In production, implement dead letter queue handling here
+                msg.Ack() // Acknowledge to prevent further redelivery
+                return
+            }
+        }
+    }
+    
+    // Nack the message for retry
+    if err := msg.Nak(); err != nil {
+        c.logger.Error("Failed to nack message", err, nil)
+    }
+}
+
+func (c *EventConsumer) findHandler(eventType string) EventHandler {
+    for _, handler := range c.handlers {
+        if handler.CanHandle(eventType) {
+            return handler
+        }
+    }
+    return nil
+}
+
+func (c *EventConsumer) extractEventType(event interface{}) string {
+    switch e := event.(type) {
+    case *schemas.RuleCreatedEventV1:
+        return e.EventType
+    case *schemas.RuleCreatedEventV2:
+        return e.EventType
+    case *schemas.RuleUpdatedEventV1:
+        return e.EventType
+    default:
+        return ""
+    }
+}
+
+func (c *EventConsumer) extractTraceContext(ctx context.Context, msg *nats.Msg) context.Context {
+    if msg.Header == nil {
+        return ctx
+    }
+    
+    carrier := &headerCarrier{headers: msg.Header}
+    return otel.GetTextMapPropagator().Extract(ctx, carrier)
+}
+```
+
+### Example 4: Behavioral Test for Event Processing
+
+```gherkin
+# tests/behavioral/event_processing.feature
+Feature: Event Processing
+  As a system
+  I want to process domain events reliably
+  So that services stay synchronized
+
+  Background:
+    Given NATS JetStream is running
+    And the event streams are configured
+    And event handlers are registered
+
+  Scenario: Successfully process rule created event
+    Given a rule created event is published
+    When the promotions service consumes the event
+    Then the event should be processed successfully
+    And the message should be acknowledged
+    And the promotions service should update its rule cache
+
+  Scenario: Handle duplicate event processing idempotently
+    Given a rule created event with ID "rule-123" has been processed
+    When the same event is consumed again
+    Then the event should be processed without errors
+    And no duplicate side effects should occur
+    And the message should be acknowledged
+
+  Scenario: Retry failed event processing
+    Given a rule created event is published
+    And the event handler is configured to fail initially
+    When the event is consumed
+    Then the message should be nacked for retry
+    And the event should be redelivered
+    And after the handler recovers, the event should be processed successfully
+
+  Scenario: Send message to dead letter queue after max retries
+    Given a rule created event is published
+    And the event handler always fails
+    When the event exceeds maximum delivery attempts
+    Then the message should be sent to the dead letter queue
+    And an alert should be generated for manual intervention
+
+  Scenario: Maintain event ordering within subject
+    Given multiple rule events are published in sequence:
+      | eventType    | ruleId  | sequence |
+      | RuleCreated  | rule-1  | 1        |
+      | RuleUpdated  | rule-1  | 2        |
+      | RuleApproved | rule-1  | 3        |
+    When the events are consumed
+    Then the events should be processed in the correct order
+    And the final rule state should be consistent
+```
+
+## 8. Output Specifications
+
+### Format Requirements:
+- **Stream Configuration**: YAML configuration files for all NATS streams and consumers
+- **Event Schemas**: Structured JSON schemas with versioning and validation
+- **Publisher/Consumer Code**: Go implementations with comprehensive error handling
+- **Monitoring Setup**: Prometheus metrics and Grafana dashboards for message flow
+
+### Quality Criteria:
+- **Reliability**: At-least-once delivery with proper acknowledgment patterns
+- **Performance**: <10ms average message processing latency
+- **Error Handling**: Automatic retries with exponential backoff and DLQ
+- **Monitoring**: Complete visibility into message flows and consumer health
+
+## 9. Validation Checkpoints
+
+### Pre-execution Validation:
+- [ ] NATS JetStream cluster properly configured and running
+- [ ] Event schemas designed with backward compatibility
+- [ ] Subject hierarchy follows domain boundaries
+- [ ] Consumer groups configured for proper load distribution
+
+### Mid-execution Validation:
+- [ ] Publishers successfully send events with acknowledgments
+- [ ] Consumers process events with proper error handling
+- [ ] Failed messages are retried with appropriate backoff
+- [ ] Event schemas validate correctly with version handling
+
+### Post-execution Validation:
+- [ ] End-to-end event flow working correctly
+- [ ] Performance metrics meet SLA requirements
+- [ ] Error scenarios handled gracefully with recovery
+- [ ] Monitoring dashboards show healthy message processing
+
+## Implementation Tasks Breakdown
+
+### Phase 1: NATS Infrastructure (Days 1-2)
+1. **Cluster Setup**
+   - Deploy NATS JetStream cluster (3 nodes)
+   - Configure persistence and replication
+   - Setup monitoring with Prometheus exporter
+   - Create health check endpoints
+
+2. **Stream Configuration**
+   - Define subject hierarchies by domain
+   - Configure streams with appropriate retention
+   - Setup consumer groups for each service
+   - Test stream creation and basic connectivity
+
+### Phase 2: Event Schema Design (Days 3-4)
+1. **Schema Definition**
+   - Design event structures with metadata
+   - Implement versioning strategy
+   - Create schema validation rules
+   - Document event catalog
+
+2. **Schema Evolution**
+   - Implement backward compatibility checks
+   - Create schema migration tools
+   - Test version handling scenarios
+   - Setup schema registry service
+
+### Phase 3: Publisher Implementation (Days 5-6)
+1. **Event Publisher**
+   - Implement reliable event publishing
+   - Add retry logic with exponential backoff
+   - Create async publishing for high throughput
+   - Add distributed tracing integration
+
+2. **Publisher Testing**
+   - Unit tests for serialization and routing
+   - Integration tests with NATS cluster
+   - Performance tests for throughput
+   - Failure scenario testing
+
+### Phase 4: Consumer Implementation (Days 7-8)
+1. **Event Consumer**
+   - Implement pull-based consumption
+   - Add proper acknowledgment handling
+   - Create handler registration system
+   - Implement idempotency checks
+
+2. **Error Handling**
+   - Add retry mechanisms with backoff
+   - Implement dead letter queue handling
+   - Create circuit breaker for failing handlers
+   - Add consumer health monitoring
+
+### Phase 5: Monitoring and Operations (Days 9-10)
+1. **Observability**
+   - Add Prometheus metrics for all operations
+   - Create Grafana dashboards
+   - Implement distributed tracing
+   - Setup alerting rules
+
+2. **Operational Tools**
+   - Create message replay tools
+   - Add consumer lag monitoring
+   - Implement stream management tools
+   - Create runbooks for common operations
+
+## Best Practices
+
+### Event Design:
+- Use strong typing for event schemas
+- Include correlation and causation IDs
+- Keep events immutable and append-only
+- Avoid including large payloads in events
+
+### Performance Optimization:
+- Use async publishing for high throughput
+- Implement batching for bulk operations
+- Monitor consumer lag and scale accordingly
+- Use appropriate retention policies
+
+### Error Handling:
+- Implement idempotent event handlers
+- Use circuit breakers for external dependencies
+- Monitor and alert on DLQ usage
+- Have manual intervention procedures for poison messages
+
+### Security Considerations:
+- Encrypt sensitive data in event payloads
+- Implement authentication for NATS connections
+- Use TLS for all NATS communication
+- Audit event access and consumption patterns
