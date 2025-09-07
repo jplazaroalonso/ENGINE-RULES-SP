@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: Rules Management API
+  description: API for managing business rules, templates, and workflows.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/v1
+    description: Development server
+tags:
+  - name: Rules
+    description: Business rule management operations
+paths:
+  /rules:
+    get:
+      tags: [Rules]
+      summary: List rules
+      operationId: listRules
+      responses:
+        '200':
+          description: A list of rules.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rule'
+    post:
+      tags: [Rules]
+      summary: Create a new rule
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRuleRequest'
+      responses:
+        '201':
+          description: Rule created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+  /rules/{ruleId}:
+    get:
+      tags: [Rules]
+      summary: Get rule by ID
+      operationId: getRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Rule details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+        '404':
+          description: Rule not found
+    put:
+      tags: [Rules]
+      summary: Update a rule
+      operationId: updateRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRuleRequest'
+      responses:
+        '200':
+          description: Rule updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+    delete:
+      tags: [Rules]
+      summary: Delete a rule
+      operationId: deleteRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Rule deleted successfully
+
+components:
+  schemas:
+    Rule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        dsl_content:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        version:
+          type: integer
+        created_by:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    CreateRuleRequest:
+      type: object
+      required:
+        - name
+        - dsl_content
+        - priority
+        - created_by
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        dsl_content:
+          type: string
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        created_by:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    UpdateRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        dsl_content:
+          type: string
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string

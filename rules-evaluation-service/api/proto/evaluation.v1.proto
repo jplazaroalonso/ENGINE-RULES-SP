@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package evaluation.v1;
+
+option go_package = "rules-evaluation-service/internal/infra/grpc/proto/evaluation/v1";
+
+import "google/protobuf/struct.proto";
+
+service EvaluationService {
+  rpc EvaluateRule(EvaluateRuleRequest) returns (EvaluateRuleResponse);
+}
+
+message EvaluateRuleRequest {
+  string rule_category = 1;
+  string dsl_content = 2;
+  google.protobuf.Struct context = 3;
+}
+
+message EvaluateRuleResponse {
+  google.protobuf.Struct result = 1;
+}

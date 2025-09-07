@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: Rules Evaluation API
+  description: API for evaluating business rules.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081/v1
+    description: Development server
+tags:
+  - name: Evaluation
+    description: Rule evaluation operations
+paths:
+  /evaluate:
+    post:
+      tags: [Evaluation]
+      summary: Evaluate a rule
+      operationId: evaluateRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationRequest'
+      responses:
+        '200':
+          description: Evaluation result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationResponse'
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    EvaluationRequest:
+      type: object
+      required:
+        - rule_category
+        - dsl_content
+        - context
+      properties:
+        rule_category:
+          type: string
+          description: The category of the rule (e.g., "PROMOTIONS", "TAXES").
+        dsl_content:
+          type: string
+          description: The DSL of the rule to be evaluated.
+        context:
+          type: object
+          description: A map of key-value pairs representing the context for the evaluation.
+          additionalProperties: true
+    EvaluationResponse:
+      type: object
+      properties:
+        result:
+          type: object
+          description: A map of key-value pairs representing the result of the evaluation.
+          additionalProperties: true
