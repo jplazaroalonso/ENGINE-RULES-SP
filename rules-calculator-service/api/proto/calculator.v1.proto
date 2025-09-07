@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package calculator.v1;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/juanpablolazaro/ENGINE-RULES-SP/rules-calculator-service/api/proto/gen;calculatorv1";
+
+// CalculatorService is the service for calculating rules.
+service CalculatorService {
+  // Calculate evaluates a set of rules and returns the result.
+  rpc Calculate(CalculateRequest) returns (CalculateResponse);
+}
+
+// CalculateRequest is the request for the Calculate RPC.
+message CalculateRequest {
+  repeated string rule_ids = 1;
+  google.protobuf.Struct context = 2;
+}
+
+// CalculateResponse is the response for the Calculate RPC.
+message CalculateResponse {
+  string calculation_id = 1;
+  double value = 2;
+  map<string, double> breakdown = 3;
+}

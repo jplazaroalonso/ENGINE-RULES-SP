@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: Rules Calculator API
+  description: API for calculating the result of a set of business rules.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8082/v1
+tags:
+  - name: Calculator
+    description: Rule calculation operations
+paths:
+  /calculate:
+    post:
+      tags:
+        - Calculator
+      summary: Calculate the result of a set of rules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculationRequest'
+      responses:
+        '200':
+          description: Calculation result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculationResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    CalculationRequest:
+      type: object
+      required:
+        - rule_ids
+        - context
+      properties:
+        rule_ids:
+          type: array
+          items:
+            type: string
+          description: "A list of rule IDs to be evaluated and calculated."
+        context:
+          type: object
+          additionalProperties: true
+          description: "The context data to be used for rule evaluation."
+    CalculationResponse:
+      type: object
+      properties:
+        calculation_id:
+          type: string
+          format: uuid
+        value:
+          type: number
+          format: double
+        breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
