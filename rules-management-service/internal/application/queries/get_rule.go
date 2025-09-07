@@ -3,8 +3,9 @@ package queries
 import (
 	"context"
 
-	"rules-management-service/internal/domain/rule"
-	"rules-management-service/internal/domain/shared"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/rule"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // GetRuleQuery represents the query to get a rule by ID
@@ -33,10 +34,16 @@ func NewGetRuleHandler(ruleRepo rule.Repository) *GetRuleHandler {
 }
 
 // Handle processes the get rule query
-func (h *GetRuleHandler) Handle(ctx context.Context, query GetRuleQuery) (*GetRuleResult, error) {
+func (h *GetRuleHandler) Handle(ctx context.Context, query GetRuleQuery) (*rule.Rule, error) {
+	tr := otel.Tracer("application")
+	ctx, span := tr.Start(ctx, "GetRuleHandler.Handle")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("rule.id", query.RuleID))
+
 	ruleID, err := rule.RuleIDFromStr(query.RuleID)
 	if err != nil {
-		return nil, shared.NewValidationError("invalid rule id", err)
+		return nil, err // Can be NotFoundError or InfrastructureError
 	}
 
 	foundRule, err := h.ruleRepo.FindByID(ctx, ruleID)
@@ -44,13 +51,5 @@ func (h *GetRuleHandler) Handle(ctx context.Context, query GetRuleQuery) (*GetRu
 		return nil, err // Can be NotFoundError or InfrastructureError
 	}
 
-	return &GetRuleResult{
-		RuleID:      foundRule.ID().String(),
-		Name:        foundRule.Name(),
-		Description: foundRule.Description(),
-		DSLContent:  foundRule.DSLContent(),
-		Status:      string(foundRule.Status()),
-		Priority:    string(foundRule.Priority()),
-		Version:     foundRule.Version(),
-	}, nil
+	return foundRule, nil
 }

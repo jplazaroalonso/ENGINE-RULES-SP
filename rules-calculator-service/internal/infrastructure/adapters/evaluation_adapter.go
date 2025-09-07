@@ -6,6 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-calculator-service/internal/infrastructure/telemetry"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // HTTPEvaluationAdapter is an adapter to the rule evaluation service.
@@ -18,7 +24,7 @@ type HTTPEvaluationAdapter struct {
 func NewHTTPEvaluationAdapter(baseURL string) *HTTPEvaluationAdapter {
 	return &HTTPEvaluationAdapter{
 		baseURL: baseURL,
-		client:  &http.Client{},
+		client:  &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
 	}
 }
 
@@ -33,6 +39,17 @@ type evaluationResponse struct {
 
 // Evaluate evaluates a rule using the rule evaluation service.
 func (a *HTTPEvaluationAdapter) Evaluate(ctx context.Context, ruleID string, context map[string]interface{}) (float64, error) {
+	tr := otel.Tracer("adapter")
+	ctx, span := tr.Start(ctx, "HTTPEvaluationAdapter.Evaluate")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("rule.id", ruleID))
+
+	startTime := time.Now()
+	defer func() {
+		telemetry.RuleEvaluationDuration.WithLabelValues(ruleID).Observe(time.Since(startTime).Seconds())
+	}()
+
 	// This is a mock implementation.
 	// It does not actually call the evaluation service.
 	// It returns a dummy value.

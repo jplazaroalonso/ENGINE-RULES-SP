@@ -1,23 +1,34 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	// "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"rules-management-service/internal/application/commands"
-	"rules-management-service/internal/application/queries"
-	"rules-management-service/internal/infrastructure/config"
-	"rules-management-service/internal/infrastructure/dsl"
-	"rules-management-service/internal/infrastructure/messaging/nats"
-	db "rules-management-service/internal/infrastructure/persistence/postgres"
-	"rules-management-service/internal/interfaces/rest/handlers"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/application/commands"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/application/queries"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/config"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/dsl"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/messaging/nats"
+	persistence "github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/persistence/postgres"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/persistence/postgres/migrations"
+
+	// "github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/telemetry"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/shared"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/validation"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/interfaces/rest/handlers"
 )
 
 // AppValidator wraps the go-playground/validator.
@@ -30,80 +41,94 @@ func (v *AppValidator) Validate(s interface{}) error {
 }
 
 func main() {
-	// Load configuration
 	cfg := config.DefaultConfig()
 
-	// In a real app, you would connect to PostgreSQL.
-	// DSN might come from environment variables.
-	dsn := "host=localhost user=user password=password dbname=rules_db port=5432 sslmode=disable"
-	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// Setup OpenTelemetry - temporarily disabled
+	// tp, err := telemetry.InitTracer(cfg.Telemetry.ServiceName, cfg.Telemetry.Exporter)
+	// if err != nil {
+	// 	log.Fatalf("failed to initialize tracer: %v", err)
+	// }
+	// defer func() {
+	// 	if err := tp.Shutdown(context.Background()); err != nil {
+	// 		log.Printf("Error shutting down tracer provider: %v", err)
+	// 	}
+	// }()
+
+	// Database setup
+	db, err := gorm.Open(postgres.Open(cfg.Database.DSN), &gorm.Config{})
 	if err != nil {
-		log.Printf("failed to connect to postgresql, falling back to sqlite: %v", err)
-		// Fallback to SQLite for local development if PostgreSQL is not available.
+		log.Fatalf("failed to connect to database: %v", err)
 	}
-	// In a production environment, you would run migrations using a tool like goose or golang-migrate.
-	// For example: `goose -dir ./migrations up`
-	// For simplicity in this example, we continue to use AutoMigrate.
-	err = gormDB.AutoMigrate(&db.RuleDBModel{})
-	if err != nil {
-		log.Fatalf("failed to migrate database: %v", err)
+	migrations.ApplyMigrations(db)
+
+	// Infrastructure
+	ruleRepo := persistence.NewRuleRepository(db)
+	var eventPublisher shared.EventBus
+	if cfg.NATS.URL != "" {
+		publisher, err := nats.NewEventPublisher(cfg.NATS)
+		if err != nil {
+			log.Printf("Warning: failed to create event publisher: %v", err)
+			eventPublisher = &nats.NoOpEventPublisher{}
+		} else {
+			eventPublisher = publisher
+		}
+	} else {
+		log.Println("NATS URL not configured, event publishing disabled")
+		eventPublisher = &nats.NoOpEventPublisher{}
 	}
 
-	// Initialize validator
-	validate := validator.New()
-	appValidator := &AppValidator{validate: validate}
-
-	// Initialize services
+	// Application
+	validator := validation.NewStructValidator()
 	validationService := dsl.NewSimpleValidator()
-
-	// Initialize repositories
-	ruleRepo := db.NewRuleRepository(gormDB)
-
-	// Initialize NATS Publisher (Event Bus)
-	eventPublisher, err := nats.NewEventPublisher(cfg.NATS)
-	if err != nil {
-		log.Fatalf("failed to create NATS publisher: %v", err)
-	}
-	defer eventPublisher.Close()
-
-	// Initialize application handlers
-	createRuleHandler := commands.NewCreateRuleHandler(ruleRepo, appValidator, eventPublisher, cfg.App.ReplicationEnabled, validationService)
+	createRuleHandler := commands.NewCreateRuleHandler(ruleRepo, validator, eventPublisher, true, validationService) // Assuming replication is enabled
 	getRuleHandler := queries.NewGetRuleHandler(ruleRepo)
-	validateRuleHandler := commands.NewValidateRuleHandler(appValidator, validationService)
+	validateRuleHandler := commands.NewValidateRuleHandler(validator, validationService)
 
-	// Initialize NATS Subscriber
-	commandSubscriber, err := nats.NewCommandSubscriber(cfg.NATS, createRuleHandler)
-	if err != nil {
-		log.Fatalf("failed to create NATS subscriber: %v", err)
-	}
-	commandSubscriber.Start()
-	defer commandSubscriber.Close()
-
-	// Initialize HTTP handlers
+	// Interfaces
 	ruleHandler := handlers.NewRuleHandler(createRuleHandler, getRuleHandler, validateRuleHandler)
 
-	// Setup Gin router
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	// router.Use(otelgin.Middleware(cfg.Telemetry.ServiceName))
+
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "healthy", "service": "rules-management-service"})
+	})
+
+	// Prometheus metrics endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	v1 := router.Group("/v1")
 	{
-		rules := v1.Group("/rules")
-		{
-			rules.POST("", ruleHandler.CreateRule)
-			rules.POST("/validate", ruleHandler.ValidateRule)
-			rules.GET("/:id", ruleHandler.GetRule)
-		}
+		v1.POST("/rules", ruleHandler.CreateRule)
+		v1.GET("/rules/:id", ruleHandler.GetRule)
 	}
 
-	// Start server in a goroutine
+	srv := &http.Server{
+		Addr:    ":" + cfg.Server.Port,
+		Handler: router,
+	}
+
+	// Graceful shutdown
 	go func() {
-		if err := router.Run(":8080"); err != nil {
-			log.Fatalf("failed to run server: %v", err)
+		log.Printf("Starting Rules Management Service on port %s", cfg.Server.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
 }

@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rules-calculator-service
+  namespace: rules-engine
+  labels:
+    app: rules-calculator-service
+    service: rules-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rules-calculator-service
+  template:
+    metadata:
+      labels:
+        app: rules-calculator-service
+        service: rules-engine
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: rules-calculator-service
+        image: localhost:5000/rules-calculator-service:latest
+        ports:
+        - containerPort: 8082
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: CALCULATOR_PORT
+        - name: EVALUATION_SERVICE_URL
+          value: "http://rules-evaluation-service.rules-engine.svc.cluster.local:8081"
+        - name: TELEMETRY_SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: TELEMETRY_SERVICE_NAME
+        - name: TELEMETRY_EXPORTER
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: TELEMETRY_EXPORTER
+        - name: JAEGER_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: JAEGER_ENDPOINT
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8082
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rules-calculator-service
+  namespace: rules-engine
+  labels:
+    app: rules-calculator-service
+    service: rules-engine
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8082
+    targetPort: 8082
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: rules-calculator-service

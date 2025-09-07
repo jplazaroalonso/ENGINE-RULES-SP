@@ -4,9 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
-	"rules-management-service/internal/domain/rule"
-	"rules-management-service/internal/domain/shared"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/rule"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/shared"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/telemetry"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // CreateRuleCommand represents the command to create a new rule
@@ -55,6 +59,22 @@ func NewCreateRuleHandler(
 
 // Handle processes the create rule command
 func (h *CreateRuleHandler) Handle(ctx context.Context, cmd CreateRuleCommand) (*CreateRuleResult, error) {
+	tr := otel.Tracer("application")
+	ctx, span := tr.Start(ctx, "CreateRuleHandler.Handle")
+	defer span.End()
+
+	telemetry.RulesCreated.Inc()
+	startTime := time.Now()
+	defer func() {
+		telemetry.RuleCreationDuration.Observe(time.Since(startTime).Seconds())
+	}()
+
+	span.SetAttributes(
+		attribute.String("rule.name", cmd.Name),
+		attribute.String("rule.category", cmd.Category),
+	)
+
+	// Validate command input
 	if err := h.validator.Validate(cmd); err != nil {
 		return nil, shared.NewValidationError("invalid create rule command", err)
 	}

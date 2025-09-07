@@ -1,0 +1,146 @@
+# Certificate for rules-engine services
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rules-engine-tls
+  namespace: rules-engine
+  labels:
+    app: rules-engine
+spec:
+  secretName: rules-engine-tls
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - rules-management.local.dev
+  - rules-evaluation.local.dev
+  - rules-calculator.local.dev
+  - rules-engine.local.dev
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+---
+# Emissary Ingress Mapping for Rules Management Service
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: rules-management-mapping
+  namespace: rules-engine
+spec:
+  hostname: rules-management.local.dev
+  prefix: /
+  service: rules-management-service:8080
+  timeout_ms: 30000
+  connect_timeout_ms: 10000
+  idle_timeout_ms: 60000
+  tls: rules-engine-tls
+  add_request_headers:
+    x-forwarded-proto: https
+  add_response_headers:
+    access-control-allow-origin: "*"
+    access-control-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    access-control-allow-headers: "Content-Type,Authorization,X-Requested-With"
+---
+# Emissary Ingress Mapping for Rules Evaluation Service
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: rules-evaluation-mapping
+  namespace: rules-engine
+spec:
+  hostname: rules-evaluation.local.dev
+  prefix: /
+  service: rules-evaluation-service:8081
+  timeout_ms: 30000
+  connect_timeout_ms: 10000
+  idle_timeout_ms: 60000
+  tls: rules-engine-tls
+  add_request_headers:
+    x-forwarded-proto: https
+  add_response_headers:
+    access-control-allow-origin: "*"
+    access-control-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    access-control-allow-headers: "Content-Type,Authorization,X-Requested-With"
+---
+# Emissary Ingress Mapping for Rules Calculator Service
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: rules-calculator-mapping
+  namespace: rules-engine
+spec:
+  hostname: rules-calculator.local.dev
+  prefix: /
+  service: rules-calculator-service:8082
+  timeout_ms: 30000
+  connect_timeout_ms: 10000
+  idle_timeout_ms: 60000
+  tls: rules-engine-tls
+  add_request_headers:
+    x-forwarded-proto: https
+  add_response_headers:
+    access-control-allow-origin: "*"
+    access-control-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    access-control-allow-headers: "Content-Type,Authorization,X-Requested-With"
+---
+# Emissary Ingress Mapping for Rules Engine API Gateway (aggregated)
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: rules-engine-gateway-mapping
+  namespace: rules-engine
+spec:
+  hostname: rules-engine.local.dev
+  prefix: /api/v1/rules
+  service: rules-management-service:8080
+  timeout_ms: 30000
+  connect_timeout_ms: 10000
+  idle_timeout_ms: 60000
+  tls: rules-engine-tls
+  add_request_headers:
+    x-forwarded-proto: https
+  add_response_headers:
+    access-control-allow-origin: "*"
+    access-control-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    access-control-allow-headers: "Content-Type,Authorization,X-Requested-With"
+---
+# Emissary Ingress Mapping for Rules Engine Evaluation API
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: rules-engine-evaluation-mapping
+  namespace: rules-engine
+spec:
+  hostname: rules-engine.local.dev
+  prefix: /api/v1/evaluate
+  service: rules-evaluation-service:8081
+  timeout_ms: 30000
+  connect_timeout_ms: 10000
+  idle_timeout_ms: 60000
+  tls: rules-engine-tls
+  add_request_headers:
+    x-forwarded-proto: https
+  add_response_headers:
+    access-control-allow-origin: "*"
+    access-control-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    access-control-allow-headers: "Content-Type,Authorization,X-Requested-With"
+---
+# Emissary Ingress Mapping for Rules Engine Calculator API
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: rules-engine-calculator-mapping
+  namespace: rules-engine
+spec:
+  hostname: rules-engine.local.dev
+  prefix: /api/v1/calculate
+  service: rules-calculator-service:8082
+  timeout_ms: 30000
+  connect_timeout_ms: 10000
+  idle_timeout_ms: 60000
+  tls: rules-engine-tls
+  add_request_headers:
+    x-forwarded-proto: https
+  add_response_headers:
+    access-control-allow-origin: "*"
+    access-control-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    access-control-allow-headers: "Content-Type,Authorization,X-Requested-With"

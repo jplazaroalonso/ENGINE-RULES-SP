@@ -9,8 +9,8 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"rules-management-service/internal/domain/rule"
-	"rules-management-service/internal/infrastructure/persistence/postgres"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/rule"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/persistence/postgres"
 )
 
 func setupTestDB(t *testing.T) *gorm.DB {

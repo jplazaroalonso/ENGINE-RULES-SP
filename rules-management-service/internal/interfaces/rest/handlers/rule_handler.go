@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"rules-management-service/internal/application/commands"
-	"rules-management-service/internal/application/queries"
-	"rules-management-service/internal/domain/shared"
-	"rules-management-service/internal/interfaces/rest/dto"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/application/commands"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/application/queries"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/shared"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/interfaces/rest/dto"
 
 	"github.com/gin-gonic/gin"
 )

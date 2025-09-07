@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"rules-management-service/internal/domain/shared"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/shared"
 
 	"github.com/google/uuid"
 )

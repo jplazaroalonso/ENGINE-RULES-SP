@@ -1,0 +1,92 @@
+-- Rules Engine Database Initialization Script
+-- This script creates the necessary database and user for the rules engine services
+
+-- Create database
+CREATE DATABASE IF NOT EXISTS rules_engine;
+
+-- Create user
+CREATE USER IF NOT EXISTS 'rules_user'@'%' IDENTIFIED BY 'rules_password';
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON rules_engine.* TO 'rules_user'@'%';
+
+-- Use the database
+USE rules_engine;
+
+-- Create rules table
+CREATE TABLE IF NOT EXISTS rules (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    dsl_content TEXT NOT NULL,
+    status ENUM('DRAFT', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'INACTIVE', 'DEPRECATED') NOT NULL DEFAULT 'DRAFT',
+    priority ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL DEFAULT 'MEDIUM',
+    category VARCHAR(50),
+    version INT NOT NULL DEFAULT 1,
+    template_id VARCHAR(36),
+    tags JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    approved_by VARCHAR(100),
+    approved_at TIMESTAMP NULL,
+    INDEX idx_status (status),
+    INDEX idx_priority (priority),
+    INDEX idx_category (category),
+    INDEX idx_created_by (created_by),
+    INDEX idx_created_at (created_at)
+);
+
+-- Create rule_templates table (for future use)
+CREATE TABLE IF NOT EXISTS rule_templates (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    template_content TEXT NOT NULL,
+    parameters JSON,
+    category VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by VARCHAR(100)
+);
+
+-- Create rule_evaluations table (for audit trail)
+CREATE TABLE IF NOT EXISTS rule_evaluations (
+    id VARCHAR(36) PRIMARY KEY,
+    rule_id VARCHAR(36) NOT NULL,
+    context JSON,
+    result JSON,
+    execution_time_ms DECIMAL(10,3),
+    success BOOLEAN NOT NULL,
+    error_message TEXT,
+    evaluated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    evaluated_by VARCHAR(100),
+    FOREIGN KEY (rule_id) REFERENCES rules(id) ON DELETE CASCADE,
+    INDEX idx_rule_id (rule_id),
+    INDEX idx_evaluated_at (evaluated_at),
+    INDEX idx_success (success)
+);
+
+-- Create rule_calculations table (for audit trail)
+CREATE TABLE IF NOT EXISTS rule_calculations (
+    id VARCHAR(36) PRIMARY KEY,
+    rule_ids JSON NOT NULL,
+    context JSON,
+    result JSON,
+    execution_time_ms DECIMAL(10,3),
+    success BOOLEAN NOT NULL,
+    error_message TEXT,
+    calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    calculated_by VARCHAR(100),
+    INDEX idx_calculated_at (calculated_at),
+    INDEX idx_success (success)
+);
+
+-- Insert some sample data
+INSERT IGNORE INTO rules (id, name, description, dsl_content, status, priority, category, created_by) VALUES
+('rule-001', 'VIP Customer Discount', 'Apply 20% discount for VIP customers', 'IF customer.tier == "VIP" THEN discount.percentage = 20', 'ACTIVE', 'HIGH', 'customer-loyalty', 'system'),
+('rule-002', 'New Customer Welcome', 'Apply 10% discount for new customers', 'IF customer.isNew == true THEN discount.percentage = 10', 'ACTIVE', 'MEDIUM', 'customer-acquisition', 'system'),
+('rule-003', 'High Value Order', 'Free shipping for orders over $100', 'IF order.amount > 100 THEN shipping.cost = 0', 'ACTIVE', 'MEDIUM', 'shipping', 'system');
+
+-- Flush privileges
+FLUSH PRIVILEGES;

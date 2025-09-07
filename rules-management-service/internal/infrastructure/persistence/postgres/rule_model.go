@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	"rules-management-service/internal/domain/rule"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/rule"
 )
 
 // RuleDBModel is the GORM model for the Rule entity

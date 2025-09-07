@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rules-engine
+  labels:
+    name: rules-engine
+    purpose: business-rules-engine
+    environment: local-dev
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rules-engine-quota
+  namespace: rules-engine
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: "4Gi"
+    limits.cpu: "4"
+    limits.memory: "8Gi"
+    persistentvolumeclaims: "5"
+    services: "10"
+    configmaps: "20"
+    secrets: "10"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: rules-engine-limits
+  namespace: rules-engine
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "256Mi"
+    type: Container

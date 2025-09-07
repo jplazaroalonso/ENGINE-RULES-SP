@@ -1,0 +1,147 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rules-management-service
+  namespace: rules-engine
+  labels:
+    app: rules-management-service
+    service: rules-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rules-management-service
+  template:
+    metadata:
+      labels:
+        app: rules-management-service
+        service: rules-engine
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: rules-management-service
+        image: localhost:5000/rules-management-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: MANAGEMENT_PORT
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: DB_NAME
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: rules-engine-secrets
+              key: DB_PASSWORD
+        - name: DB_SSL_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: DB_SSL_MODE
+        - name: NATS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: NATS_URL
+        - name: TELEMETRY_SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: TELEMETRY_SERVICE_NAME
+        - name: TELEMETRY_EXPORTER
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: TELEMETRY_EXPORTER
+        - name: JAEGER_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: rules-engine-config
+              key: JAEGER_ENDPOINT
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rules-management-service
+  namespace: rules-engine
+  labels:
+    app: rules-management-service
+    service: rules-engine
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: rules-management-service

@@ -7,8 +7,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"rules-management-service/internal/application/commands"
-	"rules-management-service/internal/infrastructure/config"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/application/commands"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/config"
 )
 
 // CommandSubscriber listens for commands on NATS subjects and executes them.

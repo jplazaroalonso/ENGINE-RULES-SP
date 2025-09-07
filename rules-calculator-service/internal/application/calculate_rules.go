@@ -3,7 +3,12 @@ package application
 import (
 	"context"
 
+	"time"
+
 	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-calculator-service/internal/domain/calculation"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-calculator-service/internal/infrastructure/telemetry"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // CalculateRulesCommand is the command for calculating rules.
@@ -38,6 +43,18 @@ func NewCalculateRulesHandler(evaluator RuleEvaluator) *CalculateRulesHandler {
 
 // Handle handles the CalculateRulesCommand.
 func (h *CalculateRulesHandler) Handle(ctx context.Context, cmd CalculateRulesCommand) (*CalculateRulesResult, error) {
+	tr := otel.Tracer("application")
+	ctx, span := tr.Start(ctx, "CalculateRulesHandler.Handle")
+	defer span.End()
+
+	span.SetAttributes(attribute.Int("rules.count", len(cmd.RuleIDs)))
+
+	telemetry.CalculationsTotal.Inc()
+	startTime := time.Now()
+	defer func() {
+		telemetry.CalculationDuration.Observe(time.Since(startTime).Seconds())
+	}()
+
 	calc, err := calculation.NewCalculation(cmd.RuleIDs, cmd.Context)
 	if err != nil {
 		return nil, err

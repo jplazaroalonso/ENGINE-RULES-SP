@@ -1,0 +1,72 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rules-engine-ingress
+  namespace: rules-engine
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - rules-management.local.dev
+    - rules-evaluation.local.dev
+    - rules-calculator.local.dev
+    - rules-engine.local.dev
+    secretName: rules-engine-tls
+  rules:
+  - host: rules-management.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-management-service
+            port:
+              number: 8080
+  - host: rules-evaluation.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-evaluation-service
+            port:
+              number: 8081
+  - host: rules-calculator.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-calculator-service
+            port:
+              number: 8082
+  - host: rules-engine.local.dev
+    http:
+      paths:
+      - path: /api/v1/rules
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-management-service
+            port:
+              number: 8080
+      - path: /api/v1/evaluate
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-evaluation-service
+            port:
+              number: 8081
+      - path: /api/v1/calculate
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-calculator-service
+            port:
+              number: 8082

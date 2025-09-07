@@ -1,0 +1,81 @@
+# Traefik IngressRoute for Rules Management Service
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rules-management-ingress
+  namespace: rules-engine
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`rules-management.local.dev`)
+    kind: Rule
+    services:
+    - name: rules-management-service
+      port: 8080
+  tls:
+    secretName: rules-engine-tls
+---
+# Traefik IngressRoute for Rules Evaluation Service
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rules-evaluation-ingress
+  namespace: rules-engine
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`rules-evaluation.local.dev`)
+    kind: Rule
+    services:
+    - name: rules-evaluation-service
+      port: 8081
+  tls:
+    secretName: rules-engine-tls
+---
+# Traefik IngressRoute for Rules Calculator Service
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rules-calculator-ingress
+  namespace: rules-engine
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`rules-calculator.local.dev`)
+    kind: Rule
+    services:
+    - name: rules-calculator-service
+      port: 8082
+  tls:
+    secretName: rules-engine-tls
+---
+# Traefik IngressRoute for Rules Engine Gateway (aggregated)
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: rules-engine-gateway-ingress
+  namespace: rules-engine
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`rules-engine.local.dev`) && PathPrefix(`/api/v1/rules`)
+    kind: Rule
+    services:
+    - name: rules-management-service
+      port: 8080
+  - match: Host(`rules-engine.local.dev`) && PathPrefix(`/api/v1/evaluate`)
+    kind: Rule
+    services:
+    - name: rules-evaluation-service
+      port: 8081
+  - match: Host(`rules-engine.local.dev`) && PathPrefix(`/api/v1/calculate`)
+    kind: Rule
+    services:
+    - name: rules-calculator-service
+      port: 8082
+  tls:
+    secretName: rules-engine-tls

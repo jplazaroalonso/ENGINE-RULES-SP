@@ -1,28 +1,33 @@
 package strategies
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"rules-evaluation-service/internal/domain/evaluation"
+
+	"go.opentelemetry.io/otel"
 )
 
-// PromotionsStrategy implements the evaluation logic for promotional rules.
+// PromotionsStrategy is a strategy for evaluating promotions rules.
 type PromotionsStrategy struct{}
 
 func NewPromotionsStrategy() *PromotionsStrategy {
 	return &PromotionsStrategy{}
 }
 
-// Evaluate for promotions will check if the transaction amount is over a certain threshold.
-// This is a simplified example. A real implementation would parse the DSL properly.
-func (s *PromotionsStrategy) Evaluate(dslContent string, context evaluation.Context) (evaluation.Result, error) {
+// Evaluate evaluates a promotions rule.
+func (s *PromotionsStrategy) Evaluate(dslContent string, evalContext evaluation.Context) (evaluation.Result, error) {
+	ctx := context.Background()
+	_, span := otel.Tracer("strategy").Start(ctx, "PromotionsStrategy.Evaluate")
+	defer span.End()
 	// Example DSL: "IF order.amount > 100 THEN discount.percentage = 10"
 	if !strings.Contains(dslContent, "order.amount >") {
 		return nil, fmt.Errorf("invalid promotions DSL: missing 'order.amount >'")
 	}
 
-	orderAmount, ok := context["order_amount"].(float64)
+	orderAmount, ok := evalContext["order_amount"].(float64)
 	if !ok {
 		return evaluation.Result{"eligible": false, "reason": "Missing order_amount in context"}, nil
 	}

@@ -2,8 +2,9 @@ package commands
 
 import (
 	"context"
-	"rules-management-service/internal/domain/rule"
-	"rules-management-service/internal/domain/shared"
+
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/rule"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/shared"
 )
 
 // ValidateRuleCommand represents the command to validate a rule's DSL.

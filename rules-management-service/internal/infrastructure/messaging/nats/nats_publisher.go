@@ -7,8 +7,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"rules-management-service/internal/domain/shared"
-	"rules-management-service/internal/infrastructure/config"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/domain/shared"
+	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/infrastructure/config"
 )
 
 // EventPublisher is a NATS-based event publisher.
@@ -58,4 +58,12 @@ func (p *EventPublisher) Close() {
 	if p.conn != nil {
 		p.conn.Close()
 	}
+}
+
+// NoOpEventPublisher is a no-op implementation of EventPublisher for when NATS is not available
+type NoOpEventPublisher struct{}
+
+func (p *NoOpEventPublisher) Publish(event shared.DomainEvent) error {
+	log.Printf("NoOpEventPublisher: Event %s would be published (NATS not available)", event.EventType())
+	return nil
 }
