@@ -23,7 +23,8 @@ spec:
     spec:
       containers:
       - name: rules-evaluation-service
-        image: localhost:5000/rules-evaluation-service:latest
+        image: rules-evaluation:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8081
           name: http

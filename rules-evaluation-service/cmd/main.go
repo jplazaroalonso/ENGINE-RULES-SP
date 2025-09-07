@@ -71,6 +71,12 @@ func main() {
 		v1.POST("/evaluate", evaluationHandler.EvaluateRule)
 	}
 
+	// API Gateway routes
+	apiV1 := router.Group("/api/v1")
+	{
+		apiV1.POST("/evaluate", evaluationHandler.EvaluateRule)
+	}
+
 	srv := &http.Server{
 		Addr:    ":" + cfg.Server.Port,
 		Handler: router,

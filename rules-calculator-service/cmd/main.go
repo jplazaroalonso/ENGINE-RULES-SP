@@ -61,6 +61,12 @@ func main() {
 		v1.POST("/calculate", httpHandler.Calculate)
 	}
 
+	// API Gateway routes
+	apiV1 := router.Group("/api/v1")
+	{
+		apiV1.POST("/calculate", httpHandler.Calculate)
+	}
+
 	srv := &http.Server{
 		Addr:    ":" + cfg.Server.Port,
 		Handler: router,

@@ -11,7 +11,7 @@ RUN adduser -D -s /bin/sh appuser
 WORKDIR /app
 
 # Copy pre-built binary
-COPY rules-evaluation-service .
+COPY rules-evaluation .
 
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app
@@ -27,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
 
 # Run the application
-CMD ["./rules-evaluation-service"]
+CMD ["./rules-evaluation"]

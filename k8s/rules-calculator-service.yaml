@@ -23,7 +23,8 @@ spec:
     spec:
       containers:
       - name: rules-calculator-service
-        image: localhost:5000/rules-calculator-service:latest
+        image: rules-calculator:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8082
           name: http

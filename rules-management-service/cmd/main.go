@@ -106,6 +106,13 @@ func main() {
 		v1.GET("/rules/:id", ruleHandler.GetRule)
 	}
 
+	// API Gateway routes
+	apiV1 := router.Group("/api/v1")
+	{
+		apiV1.POST("/rules", ruleHandler.CreateRule)
+		apiV1.GET("/rules/:id", ruleHandler.GetRule)
+	}
+
 	srv := &http.Server{
 		Addr:    ":" + cfg.Server.Port,
 		Handler: router,

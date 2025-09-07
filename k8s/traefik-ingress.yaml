@@ -1,81 +1,76 @@
-# Traefik IngressRoute for Rules Management Service
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: rules-management-ingress
+  name: rules-engine-traefik-ingress
   namespace: rules-engine
+  annotations:
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+    # Path rewriting for API gateway
+    traefik.ingress.kubernetes.io/rewrite-target: "/$2"
 spec:
-  entryPoints:
-    - websecure
-  routes:
-  - match: Host(`rules-management.local.dev`)
-    kind: Rule
-    services:
-    - name: rules-management-service
-      port: 8080
+  ingressClassName: traefik
   tls:
+  - hosts:
+    - rules-management.local.dev
+    - rules-evaluation.local.dev
+    - rules-calculator.local.dev
+    - rules-engine.local.dev
     secretName: rules-engine-tls
----
-# Traefik IngressRoute for Rules Evaluation Service
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: rules-evaluation-ingress
-  namespace: rules-engine
-spec:
-  entryPoints:
-    - websecure
-  routes:
-  - match: Host(`rules-evaluation.local.dev`)
-    kind: Rule
-    services:
-    - name: rules-evaluation-service
-      port: 8081
-  tls:
-    secretName: rules-engine-tls
----
-# Traefik IngressRoute for Rules Calculator Service
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: rules-calculator-ingress
-  namespace: rules-engine
-spec:
-  entryPoints:
-    - websecure
-  routes:
-  - match: Host(`rules-calculator.local.dev`)
-    kind: Rule
-    services:
-    - name: rules-calculator-service
-      port: 8082
-  tls:
-    secretName: rules-engine-tls
----
-# Traefik IngressRoute for Rules Engine Gateway (aggregated)
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: rules-engine-gateway-ingress
-  namespace: rules-engine
-spec:
-  entryPoints:
-    - websecure
-  routes:
-  - match: Host(`rules-engine.local.dev`) && PathPrefix(`/api/v1/rules`)
-    kind: Rule
-    services:
-    - name: rules-management-service
-      port: 8080
-  - match: Host(`rules-engine.local.dev`) && PathPrefix(`/api/v1/evaluate`)
-    kind: Rule
-    services:
-    - name: rules-evaluation-service
-      port: 8081
-  - match: Host(`rules-engine.local.dev`) && PathPrefix(`/api/v1/calculate`)
-    kind: Rule
-    services:
-    - name: rules-calculator-service
-      port: 8082
-  tls:
-    secretName: rules-engine-tls
+  rules:
+  # Direct service access
+  - host: rules-management.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-management-service
+            port:
+              number: 8080
+  - host: rules-evaluation.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-evaluation-service
+            port:
+              number: 8081
+  - host: rules-calculator.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-calculator-service
+            port:
+              number: 8082
+  # API Gateway routing with path rewriting
+  - host: rules-engine.local.dev
+    http:
+      paths:
+      - path: /api/v1/rules(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-management-service
+            port:
+              number: 8080
+      - path: /api/v1/evaluate(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-evaluation-service
+            port:
+              number: 8081
+      - path: /api/v1/calculate(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-calculator-service
+            port:
+              number: 8082

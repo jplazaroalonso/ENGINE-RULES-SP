@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rules-engine-tls
+  namespace: rules-engine
+  labels:
+    app: rules-engine
+spec:
+  secretName: rules-engine-tls
+  issuerRef:
+    name: local-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - rules-management.local.dev
+  - rules-evaluation.local.dev
+  - rules-calculator.local.dev
+  - rules-engine.local.dev
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days

@@ -23,7 +23,8 @@ spec:
     spec:
       containers:
       - name: rules-management-service
-        image: localhost:5000/rules-management-service:latest
+        image: rules-management:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8080
           name: http
