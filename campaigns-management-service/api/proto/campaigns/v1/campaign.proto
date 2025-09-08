@@ -1,0 +1,246 @@
+syntax = "proto3";
+
+package campaigns.v1;
+
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/juanpablolazaro/ENGINE-RULES-SP/campaigns-management-service/api/gen/go/campaigns/v1;campaignsv1";
+option java_package = "com.campaignsengine.api.campaigns.v1";
+option java_multiple_files = true;
+
+// Campaign represents a marketing campaign entity
+message Campaign {
+  // Unique campaign identifier
+  string id = 1 [(validate.rules).string.uuid = true];
+
+  // Human-readable campaign name
+  string name = 2 [
+    (validate.rules).string.min_len = 3,
+    (validate.rules).string.max_len = 255
+  ];
+
+  // Detailed campaign description
+  string description = 3 [(validate.rules).string.max_len = 1000];
+
+  // Campaign lifecycle status
+  CampaignStatus status = 4 [(validate.rules).enum.defined_only = true];
+
+  // Campaign type classification
+  CampaignType type = 5 [(validate.rules).enum.defined_only = true];
+
+  // List of targeting rule IDs from Rules Engine
+  repeated string targeting_rule_ids = 6 [
+    (validate.rules).repeated.items.string.uuid = true
+  ];
+
+  // Campaign start date
+  google.protobuf.Timestamp start_date = 7 [(validate.rules).timestamp.required = true];
+
+  // Campaign end date (optional)
+  google.protobuf.Timestamp end_date = 8;
+
+  // Campaign budget (optional)
+  Money budget = 9;
+
+  // User who created the campaign
+  string created_by = 10 [
+    (validate.rules).string.min_len = 1,
+    (validate.rules).string.max_len = 100
+  ];
+
+  // Campaign creation timestamp
+  google.protobuf.Timestamp created_at = 11 [(validate.rules).timestamp.required = true];
+
+  // Last modification timestamp
+  google.protobuf.Timestamp updated_at = 12 [(validate.rules).timestamp.required = true];
+
+  // Campaign configuration settings
+  CampaignSettings settings = 13 [(validate.rules).message.required = true];
+
+  // Campaign performance metrics
+  CampaignMetrics metrics = 14 [(validate.rules).message.required = true];
+
+  // Campaign version number for optimistic locking
+  int32 version = 15 [(validate.rules).int32.gte = 1];
+}
+
+// CampaignStatus represents the lifecycle status of a campaign
+enum CampaignStatus {
+  CAMPAIGN_STATUS_UNSPECIFIED = 0;
+  CAMPAIGN_STATUS_DRAFT = 1;
+  CAMPAIGN_STATUS_ACTIVE = 2;
+  CAMPAIGN_STATUS_PAUSED = 3;
+  CAMPAIGN_STATUS_COMPLETED = 4;
+  CAMPAIGN_STATUS_CANCELLED = 5;
+}
+
+// CampaignType represents the type of campaign
+enum CampaignType {
+  CAMPAIGN_TYPE_UNSPECIFIED = 0;
+  CAMPAIGN_TYPE_PROMOTION = 1;
+  CAMPAIGN_TYPE_LOYALTY = 2;
+  CAMPAIGN_TYPE_COUPON = 3;
+  CAMPAIGN_TYPE_SEGMENTATION = 4;
+  CAMPAIGN_TYPE_RETARGETING = 5;
+}
+
+// Money represents a monetary value with currency
+message Money {
+  // Monetary amount
+  double amount = 1 [(validate.rules).double.gte = 0];
+
+  // ISO 4217 currency code
+  string currency = 2 [
+    (validate.rules).string.len = 3,
+    (validate.rules).string.pattern = "^[A-Z]{3}$"
+  ];
+}
+
+// CampaignSettings represents campaign configuration settings
+message CampaignSettings {
+  // Target audience segments
+  repeated string target_audience = 1;
+
+  // Communication channels
+  repeated Channel channels = 2 [
+    (validate.rules).repeated.min_items = 1,
+    (validate.rules).repeated.items.enum.defined_only = true
+  ];
+
+  // Campaign execution frequency
+  Frequency frequency = 3 [(validate.rules).enum.defined_only = true];
+
+  // Maximum impressions per user
+  int32 max_impressions = 4 [(validate.rules).int32.gte = 1];
+
+  // Budget limit for the campaign
+  Money budget_limit = 5;
+
+  // A/B testing configuration
+  ABTestSettings ab_test_settings = 6;
+
+  // Personalization configuration
+  PersonalizationConfig personalization = 7 [(validate.rules).message.required = true];
+}
+
+// Channel represents a communication channel
+enum Channel {
+  CHANNEL_UNSPECIFIED = 0;
+  CHANNEL_EMAIL = 1;
+  CHANNEL_SMS = 2;
+  CHANNEL_PUSH = 3;
+  CHANNEL_WEB = 4;
+  CHANNEL_SOCIAL = 5;
+  CHANNEL_DISPLAY = 6;
+}
+
+// Frequency represents campaign execution frequency
+enum Frequency {
+  FREQUENCY_UNSPECIFIED = 0;
+  FREQUENCY_ONCE = 1;
+  FREQUENCY_DAILY = 2;
+  FREQUENCY_WEEKLY = 3;
+  FREQUENCY_MONTHLY = 4;
+}
+
+// ABTestSettings represents A/B testing configuration
+message ABTestSettings {
+  // Whether A/B testing is enabled
+  bool enabled = 1;
+
+  // Test variants
+  repeated ABTestVariant variants = 2 [
+    (validate.rules).repeated.min_items = 2,
+    (validate.rules).repeated.max_items = 10
+  ];
+
+  // Traffic split percentages for each variant
+  repeated int32 traffic_split = 3 [
+    (validate.rules).repeated.items.int32.gte = 0,
+    (validate.rules).repeated.items.int32.lte = 100
+  ];
+
+  // Metric used to determine winning variant
+  string success_metric = 4 [(validate.rules).string.max_len = 50];
+
+  // Test duration in days
+  int32 duration_days = 5 [(validate.rules).int32.gte = 1];
+}
+
+// ABTestVariant represents an A/B test variant
+message ABTestVariant {
+  // Variant identifier
+  string id = 1 [(validate.rules).string.min_len = 1];
+
+  // Variant name
+  string name = 2 [
+    (validate.rules).string.min_len = 1,
+    (validate.rules).string.max_len = 100
+  ];
+
+  // Variant description
+  string description = 3 [(validate.rules).string.max_len = 500];
+
+  // Variant-specific settings
+  map<string, string> settings = 4;
+
+  // Traffic weight for this variant
+  int32 weight = 5 [(validate.rules).int32.gte = 0];
+}
+
+// PersonalizationConfig represents personalization settings
+message PersonalizationConfig {
+  // Whether personalization is enabled
+  bool enabled = 1;
+
+  // Personalization rule IDs
+  repeated string rules = 2 [
+    (validate.rules).repeated.items.string.uuid = true
+  ];
+
+  // Fallback configuration when personalization fails
+  string fallback = 3 [(validate.rules).string.max_len = 100];
+
+  // Maximum number of variants to generate
+  int32 max_variants = 4 [(validate.rules).int32.gte = 1, (validate.rules).int32.lte = 10];
+}
+
+// CampaignMetrics represents campaign performance metrics
+message CampaignMetrics {
+  // Total impressions
+  int64 impressions = 1 [(validate.rules).int64.gte = 0];
+
+  // Total clicks
+  int64 clicks = 2 [(validate.rules).int64.gte = 0];
+
+  // Total conversions
+  int64 conversions = 3 [(validate.rules).int64.gte = 0];
+
+  // Total revenue
+  Money revenue = 4 [(validate.rules).message.required = true];
+
+  // Total cost
+  Money cost = 5 [(validate.rules).message.required = true];
+
+  // Click-through rate percentage
+  double ctr = 6 [(validate.rules).double.gte = 0, (validate.rules).double.lte = 100];
+
+  // Conversion rate percentage
+  double conversion_rate = 7 [(validate.rules).double.gte = 0, (validate.rules).double.lte = 100];
+
+  // Cost per click
+  Money cost_per_click = 8 [(validate.rules).message.required = true];
+
+  // Cost per conversion
+  Money cost_per_conversion = 9 [(validate.rules).message.required = true];
+
+  // Return on ad spend percentage
+  double roas = 10 [(validate.rules).double.gte = 0];
+
+  // Return on investment percentage
+  double roi = 11;
+
+  // Last metrics update timestamp
+  google.protobuf.Timestamp last_updated = 12 [(validate.rules).timestamp.required = true];
+}

@@ -1,0 +1,1452 @@
+openapi: 3.0.3
+info:
+  title: Campaigns Management API
+  description: |
+    Comprehensive API for managing marketing campaigns, targeting rules, and performance metrics.
+    
+    ## Authentication
+    All endpoints require Bearer token authentication except for health checks.
+    
+    ## Rate Limiting
+    - 1000 requests per minute for authenticated users
+    - 100 requests per minute for unauthenticated health checks
+    
+    ## Error Handling
+    All errors follow RFC 7807 Problem Details format with structured responses.
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://api-docs.campaigns-engine.com
+    email: api-support@campaigns-engine.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.campaigns-engine.com/v1
+    description: Production server
+  - url: https://staging-api.campaigns-engine.com/v1
+    description: Staging server
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Campaigns
+    description: Campaign management operations
+    externalDocs:
+      description: Find out more
+      url: https://docs.campaigns-engine.com/campaigns
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /campaigns:
+    get:
+      tags: [Campaigns]
+      summary: List campaigns
+      description: |
+        Retrieve a paginated list of campaigns with optional filtering and sorting.
+        
+        ## Filtering
+        - Filter by status, type, creator, or date range
+        - Search by name or description using the `search` parameter
+        - Combine multiple filters for precise results
+        
+        ## Sorting
+        - Sort by any field using `sortBy` parameter
+        - Use `sortOrder` to specify ascending or descending order
+        
+      operationId: listCampaigns
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+        - name: status
+          in: query
+          description: Filter by campaign status
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/CampaignStatus'
+          example: ["ACTIVE", "DRAFT"]
+        - name: type
+          in: query
+          description: Filter by campaign type
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/CampaignType'
+          example: ["PROMOTION", "LOYALTY"]
+        - name: createdBy
+          in: query
+          description: Filter by campaign creator
+          schema:
+            type: string
+          example: "john.doe"
+        - name: search
+          in: query
+          description: Search in campaign name and description
+          schema:
+            type: string
+          example: "summer sale"
+        - name: startDate
+          in: query
+          description: Filter campaigns starting after this date
+          schema:
+            type: string
+            format: date-time
+          example: "2024-01-01T00:00:00Z"
+        - name: endDate
+          in: query
+          description: Filter campaigns ending before this date
+          schema:
+            type: string
+            format: date-time
+          example: "2024-12-31T23:59:59Z"
+      responses:
+        '200':
+          description: Campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignListResponse'
+              examples:
+                success:
+                  summary: Successful response with campaigns
+                  value:
+                    data:
+                      - id: "campaign-123"
+                        name: "Summer Sale 2024"
+                        description: "Summer promotion campaign with 20% discount"
+                        status: "ACTIVE"
+                        type: "PROMOTION"
+                        targetingRules: ["rule-456", "rule-789"]
+                        startDate: "2024-06-01T00:00:00Z"
+                        endDate: "2024-08-31T23:59:59Z"
+                        budget:
+                          amount: 10000.00
+                          currency: "EUR"
+                        createdBy: "john.doe"
+                        createdAt: "2024-05-15T10:30:00Z"
+                        updatedAt: "2024-05-15T10:30:00Z"
+                        settings:
+                          targetAudience: ["vip-customers", "new-customers"]
+                          channels: ["EMAIL", "WEB"]
+                          frequency: "DAILY"
+                          maxImpressions: 1000
+                        metrics:
+                          impressions: 5000
+                          clicks: 250
+                          conversions: 50
+                          revenue:
+                            amount: 2500.00
+                            currency: "EUR"
+                          ctr: 5.0
+                          conversionRate: 2.0
+                        version: 1
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 45
+                      totalPages: 3
+                    links:
+                      self: "/api/v1/campaigns?page=1&limit=20"
+                      next: "/api/v1/campaigns?page=2&limit=20"
+                      last: "/api/v1/campaigns?page=3&limit=20"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      tags: [Campaigns]
+      summary: Create a new campaign
+      description: |
+        Create a new marketing campaign with validation and optional template usage.
+        
+        ## Validation
+        - Campaign name must be unique within the organization
+        - Targeting rules must reference valid rules from the Rules Engine
+        - Budget and date constraints must be valid
+        
+        ## Business Rules
+        - Only users with 'campaign_creator' role can create campaigns
+        - Campaigns start in 'DRAFT' status by default
+        - At least one targeting rule must be specified
+        
+      operationId: createCampaign
+      requestBody:
+        description: Campaign creation data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCampaignRequest'
+            examples:
+              basic_campaign:
+                summary: Basic campaign creation
+                value:
+                  name: "Black Friday 2024"
+                  description: "Black Friday promotion with special discounts"
+                  type: "PROMOTION"
+                  targetingRules: ["rule-123", "rule-456"]
+                  startDate: "2024-11-24T00:00:00Z"
+                  endDate: "2024-11-30T23:59:59Z"
+                  budget:
+                    amount: 50000.00
+                    currency: "EUR"
+                  createdBy: "jane.smith"
+                  settings:
+                    targetAudience: ["all-customers"]
+                    channels: ["EMAIL", "SMS", "WEB"]
+                    frequency: "DAILY"
+                    maxImpressions: 10000
+                    abTestSettings:
+                      enabled: true
+                      variants: ["control", "variant-a"]
+                      trafficSplit: [50, 50]
+                      successMetric: "conversionRate"
+                    personalization:
+                      enabled: true
+                      rules: ["rule-personalization-1"]
+      responses:
+        '201':
+          description: Campaign created successfully
+          headers:
+            Location:
+              description: URL of the created campaign
+              schema:
+                type: string
+              example: "/api/v1/campaigns/campaign-789"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+              examples:
+                success:
+                  summary: Successfully created campaign
+                  value:
+                    data:
+                      id: "campaign-789"
+                      name: "Black Friday 2024"
+                      description: "Black Friday promotion with special discounts"
+                      status: "DRAFT"
+                      type: "PROMOTION"
+                      targetingRules: ["rule-123", "rule-456"]
+                      startDate: "2024-11-24T00:00:00Z"
+                      endDate: "2024-11-30T23:59:59Z"
+                      budget:
+                        amount: 50000.00
+                        currency: "EUR"
+                      createdBy: "jane.smith"
+                      createdAt: "2024-10-20T14:30:00Z"
+                      updatedAt: "2024-10-20T14:30:00Z"
+                      settings:
+                        targetAudience: ["all-customers"]
+                        channels: ["EMAIL", "SMS", "WEB"]
+                        frequency: "DAILY"
+                        maxImpressions: 10000
+                      metrics:
+                        impressions: 0
+                        clicks: 0
+                        conversions: 0
+                        revenue:
+                          amount: 0.00
+                          currency: "EUR"
+                        ctr: 0.0
+                        conversionRate: 0.0
+                      version: 1
+                    links:
+                      self: "/api/v1/campaigns/campaign-789"
+                      edit: "/api/v1/campaigns/campaign-789"
+                      activate: "/api/v1/campaigns/campaign-789/activate"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Campaign name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              examples:
+                duplicate_name:
+                  summary: Duplicate campaign name
+                  value:
+                    type: "https://api.campaigns-engine.com/problems/duplicate-campaign-name"
+                    title: "Campaign Name Already Exists"
+                    status: 409
+                    detail: "A campaign with the name 'Black Friday 2024' already exists"
+                    instance: "/api/v1/campaigns"
+                    errors:
+                      name: ["Campaign name must be unique"]
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+              examples:
+                validation_errors:
+                  summary: Multiple validation errors
+                  value:
+                    type: "https://api.campaigns-engine.com/problems/validation-error"
+                    title: "Validation Failed"
+                    status: 422
+                    detail: "The request contains invalid data"
+                    instance: "/api/v1/campaigns"
+                    errors:
+                      name: ["Name is required", "Name must be at least 3 characters"]
+                      targetingRules: ["At least one targeting rule must be specified"]
+                      startDate: ["Start date cannot be in the past"]
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /campaigns/{campaignId}:
+    get:
+      tags: [Campaigns]
+      summary: Get campaign by ID
+      description: |
+        Retrieve a specific campaign by its unique identifier.
+        
+        ## Response Details
+        - Includes complete campaign information
+        - Contains metadata about creation and modifications
+        - Provides links to related operations
+        
+      operationId: getCampaign
+      parameters:
+        - $ref: '#/components/parameters/CampaignIdParam'
+      responses:
+        '200':
+          description: Campaign retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    put:
+      tags: [Campaigns]
+      summary: Update campaign
+      description: |
+        Update an existing campaign with validation and version control.
+        
+        ## Business Rules
+        - Only draft campaigns can be fully updated
+        - Active campaigns require approval workflow for changes
+        - Version is automatically incremented on successful update
+        
+      operationId: updateCampaign
+      parameters:
+        - $ref: '#/components/parameters/CampaignIdParam'
+      requestBody:
+        description: Campaign update data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCampaignRequest'
+      responses:
+        '200':
+          description: Campaign updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Campaign cannot be updated in current state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    delete:
+      tags: [Campaigns]
+      summary: Delete campaign
+      description: |
+        Delete a campaign (soft delete with audit trail).
+        
+        ## Business Rules
+        - Only draft campaigns can be deleted
+        - Active campaigns must be deactivated first
+        - Deletion creates audit log entry
+        
+      operationId: deleteCampaign
+      parameters:
+        - $ref: '#/components/parameters/CampaignIdParam'
+      requestBody:
+        description: Deletion request data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteCampaignRequest'
+      responses:
+        '200':
+          description: Campaign deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteCampaignResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Campaign cannot be deleted in current state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /campaigns/{campaignId}/activate:
+    post:
+      tags: [Campaigns]
+      summary: Activate campaign
+      description: |
+        Activate a campaign, changing its status from DRAFT to ACTIVE.
+        
+        ## Business Rules
+        - Only draft campaigns can be activated
+        - Campaign must have valid start date
+        - All targeting rules must be valid
+        
+      operationId: activateCampaign
+      parameters:
+        - $ref: '#/components/parameters/CampaignIdParam'
+      requestBody:
+        description: Activation request data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateCampaignRequest'
+      responses:
+        '200':
+          description: Campaign activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Campaign cannot be activated in current state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /campaigns/{campaignId}/pause:
+    post:
+      tags: [Campaigns]
+      summary: Pause campaign
+      description: |
+        Pause an active campaign, changing its status to PAUSED.
+        
+        ## Business Rules
+        - Only active campaigns can be paused
+        - Paused campaigns can be resumed later
+        
+      operationId: pauseCampaign
+      parameters:
+        - $ref: '#/components/parameters/CampaignIdParam'
+      requestBody:
+        description: Pause request data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PauseCampaignRequest'
+      responses:
+        '200':
+          description: Campaign paused successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Campaign cannot be paused in current state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /campaigns/{campaignId}/metrics:
+    get:
+      tags: [Campaigns]
+      summary: Get campaign metrics
+      description: |
+        Retrieve performance metrics for a specific campaign.
+        
+        ## Metrics Included
+        - Impressions, clicks, conversions
+        - Revenue and cost data
+        - Performance indicators (CTR, conversion rate, ROAS, ROI)
+        - Cost per click and cost per conversion
+        
+      operationId: getCampaignMetrics
+      parameters:
+        - $ref: '#/components/parameters/CampaignIdParam'
+      responses:
+        '200':
+          description: Campaign metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignMetricsResponse'
+              examples:
+                success:
+                  summary: Campaign metrics
+                  value:
+                    data:
+                      impressions: 10000
+                      clicks: 500
+                      conversions: 50
+                      revenue:
+                        amount: 5000.00
+                        currency: "EUR"
+                      cost:
+                        amount: 1000.00
+                        currency: "EUR"
+                      ctr: 5.0
+                      conversionRate: 10.0
+                      costPerClick:
+                        amount: 2.00
+                        currency: "EUR"
+                      costPerConversion:
+                        amount: 20.00
+                        currency: "EUR"
+                      roas: 500.0
+                      roi: 400.0
+                      lastUpdated: "2024-01-20T15:30:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Check API health and dependencies
+      operationId: healthCheck
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token authentication. Include the token in the Authorization header:
+        `Authorization: Bearer <token>`
+
+  parameters:
+    CampaignIdParam:
+      name: campaignId
+      in: path
+      description: Unique campaign identifier
+      required: true
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    
+    PageParam:
+      name: page
+      in: query
+      description: Page number (1-based)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+    
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+    
+    SortByParam:
+      name: sortBy
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        enum: [name, status, type, createdAt, updatedAt]
+        default: createdAt
+      example: "name"
+    
+    SortOrderParam:
+      name: sortOrder
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      example: "asc"
+
+  schemas:
+    Campaign:
+      type: object
+      description: Marketing campaign entity
+      required:
+        - id
+        - name
+        - status
+        - type
+        - targetingRules
+        - startDate
+        - createdBy
+        - createdAt
+        - updatedAt
+        - settings
+        - metrics
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique campaign identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255
+          description: Human-readable campaign name
+          example: "Summer Sale 2024"
+        description:
+          type: string
+          maxLength: 1000
+          description: Detailed campaign description
+          example: "Summer promotion campaign with 20% discount for all customers"
+        status:
+          $ref: '#/components/schemas/CampaignStatus'
+        type:
+          $ref: '#/components/schemas/CampaignType'
+        targetingRules:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: List of targeting rule IDs from Rules Engine
+          example: ["456e7890-e89b-12d3-a456-426614174111", "789e0123-e89b-12d3-a456-426614174222"]
+        startDate:
+          type: string
+          format: date-time
+          description: Campaign start date
+          example: "2024-06-01T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          description: Campaign end date (optional)
+          example: "2024-08-31T23:59:59Z"
+        budget:
+          $ref: '#/components/schemas/Money'
+        createdBy:
+          type: string
+          description: User who created the campaign
+          example: "john.doe"
+        createdAt:
+          type: string
+          format: date-time
+          description: Campaign creation timestamp
+          example: "2024-05-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+          example: "2024-05-15T10:30:00Z"
+        settings:
+          $ref: '#/components/schemas/CampaignSettings'
+        metrics:
+          $ref: '#/components/schemas/CampaignMetrics'
+        version:
+          type: integer
+          minimum: 1
+          description: Campaign version number
+          example: 1
+
+    CampaignStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED]
+      description: Campaign lifecycle status
+      example: "ACTIVE"
+
+    CampaignType:
+      type: string
+      enum: [PROMOTION, LOYALTY, COUPON, SEGMENTATION, RETARGETING]
+      description: Campaign type classification
+      example: "PROMOTION"
+
+    Money:
+      type: object
+      description: Monetary value with currency
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Monetary amount
+          example: 1000.50
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO 4217 currency code
+          example: "EUR"
+
+    CampaignSettings:
+      type: object
+      description: Campaign configuration settings
+      required:
+        - channels
+        - frequency
+      properties:
+        targetAudience:
+          type: array
+          items:
+            type: string
+          description: Target audience segments
+          example: ["vip-customers", "new-customers"]
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+          minItems: 1
+          description: Communication channels
+          example: ["EMAIL", "SMS", "WEB"]
+        frequency:
+          $ref: '#/components/schemas/Frequency'
+        maxImpressions:
+          type: integer
+          minimum: 1
+          description: Maximum impressions per user
+          example: 1000
+        budgetLimit:
+          $ref: '#/components/schemas/Money'
+        abTestSettings:
+          $ref: '#/components/schemas/ABTestSettings'
+        personalization:
+          $ref: '#/components/schemas/PersonalizationConfig'
+
+    Channel:
+      type: string
+      enum: [EMAIL, SMS, PUSH, WEB, SOCIAL, DISPLAY]
+      description: Communication channel
+      example: "EMAIL"
+
+    Frequency:
+      type: string
+      enum: [ONCE, DAILY, WEEKLY, MONTHLY]
+      description: Campaign execution frequency
+      example: "DAILY"
+
+    ABTestSettings:
+      type: object
+      description: A/B testing configuration
+      required:
+        - enabled
+        - variants
+        - trafficSplit
+      properties:
+        enabled:
+          type: boolean
+          description: Whether A/B testing is enabled
+          example: true
+        variants:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          description: Test variants
+          example: ["control", "variant-a", "variant-b"]
+        trafficSplit:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 100
+          description: Traffic split percentages for each variant
+          example: [50, 30, 20]
+        successMetric:
+          type: string
+          description: Metric used to determine winning variant
+          example: "conversionRate"
+
+    PersonalizationConfig:
+      type: object
+      description: Personalization settings
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Whether personalization is enabled
+          example: true
+        rules:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Personalization rule IDs
+          example: ["rule-personalization-1", "rule-personalization-2"]
+
+    CampaignMetrics:
+      type: object
+      description: Campaign performance metrics
+      required:
+        - impressions
+        - clicks
+        - conversions
+        - revenue
+        - cost
+        - ctr
+        - conversionRate
+        - costPerClick
+        - costPerConversion
+        - roas
+        - roi
+        - lastUpdated
+      properties:
+        impressions:
+          type: integer
+          minimum: 0
+          description: Total impressions
+          example: 10000
+        clicks:
+          type: integer
+          minimum: 0
+          description: Total clicks
+          example: 500
+        conversions:
+          type: integer
+          minimum: 0
+          description: Total conversions
+          example: 50
+        revenue:
+          $ref: '#/components/schemas/Money'
+        cost:
+          $ref: '#/components/schemas/Money'
+        ctr:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Click-through rate percentage
+          example: 5.0
+        conversionRate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Conversion rate percentage
+          example: 10.0
+        costPerClick:
+          $ref: '#/components/schemas/Money'
+        costPerConversion:
+          $ref: '#/components/schemas/Money'
+        roas:
+          type: number
+          format: float
+          minimum: 0
+          description: Return on ad spend percentage
+          example: 500.0
+        roi:
+          type: number
+          format: float
+          description: Return on investment percentage
+          example: 400.0
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Last metrics update timestamp
+          example: "2024-01-20T15:30:00Z"
+
+    CreateCampaignRequest:
+      type: object
+      description: Request to create a new campaign
+      required:
+        - name
+        - type
+        - targetingRules
+        - startDate
+        - createdBy
+        - settings
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255
+          description: Campaign name (must be unique)
+          example: "Black Friday 2024"
+        description:
+          type: string
+          maxLength: 1000
+          description: Campaign description
+          example: "Black Friday promotion with special discounts"
+        type:
+          $ref: '#/components/schemas/CampaignType'
+        targetingRules:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: Targeting rule IDs
+          example: ["rule-123", "rule-456"]
+        startDate:
+          type: string
+          format: date-time
+          description: Campaign start date
+          example: "2024-11-24T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          description: Campaign end date (optional)
+          example: "2024-11-30T23:59:59Z"
+        budget:
+          $ref: '#/components/schemas/Money'
+        createdBy:
+          type: string
+          description: User creating the campaign
+          example: "jane.smith"
+        settings:
+          $ref: '#/components/schemas/CampaignSettings'
+
+    UpdateCampaignRequest:
+      type: object
+      description: Request to update an existing campaign
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255
+          description: Updated campaign name
+          example: "Updated Black Friday 2024"
+        description:
+          type: string
+          maxLength: 1000
+          description: Updated campaign description
+          example: "Updated Black Friday promotion with special discounts"
+        type:
+          $ref: '#/components/schemas/CampaignType'
+        targetingRules:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: Updated targeting rule IDs
+          example: ["rule-123", "rule-456", "rule-789"]
+        startDate:
+          type: string
+          format: date-time
+          description: Updated campaign start date
+          example: "2024-11-24T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          description: Updated campaign end date
+          example: "2024-12-01T23:59:59Z"
+        budget:
+          $ref: '#/components/schemas/Money'
+        settings:
+          $ref: '#/components/schemas/CampaignSettings'
+
+    ActivateCampaignRequest:
+      type: object
+      description: Request to activate a campaign
+      required:
+        - activatedBy
+      properties:
+        activatedBy:
+          type: string
+          description: User activating the campaign
+          example: "john.manager"
+
+    PauseCampaignRequest:
+      type: object
+      description: Request to pause a campaign
+      required:
+        - pausedBy
+      properties:
+        pausedBy:
+          type: string
+          description: User pausing the campaign
+          example: "jane.manager"
+
+    DeleteCampaignRequest:
+      type: object
+      description: Request to delete a campaign
+      required:
+        - deletedBy
+      properties:
+        deletedBy:
+          type: string
+          description: User deleting the campaign
+          example: "admin.user"
+        reason:
+          type: string
+          maxLength: 500
+          description: Reason for deletion
+          example: "Campaign no longer needed"
+
+    CampaignResponse:
+      type: object
+      description: Campaign response with data and links
+      required:
+        - data
+        - links
+      properties:
+        data:
+          $ref: '#/components/schemas/Campaign'
+        links:
+          type: object
+          description: HATEOAS links for related operations
+          properties:
+            self:
+              type: string
+              format: uri
+              example: "/api/v1/campaigns/123e4567-e89b-12d3-a456-426614174000"
+            edit:
+              type: string
+              format: uri
+              example: "/api/v1/campaigns/123e4567-e89b-12d3-a456-426614174000"
+            activate:
+              type: string
+              format: uri
+              example: "/api/v1/campaigns/123e4567-e89b-12d3-a456-426614174000/activate"
+            pause:
+              type: string
+              format: uri
+              example: "/api/v1/campaigns/123e4567-e89b-12d3-a456-426614174000/pause"
+            metrics:
+              type: string
+              format: uri
+              example: "/api/v1/campaigns/123e4567-e89b-12d3-a456-426614174000/metrics"
+
+    CampaignListResponse:
+      type: object
+      description: Paginated list of campaigns
+      required:
+        - data
+        - pagination
+        - links
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Campaign'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+
+    CampaignMetricsResponse:
+      type: object
+      description: Campaign metrics response
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/CampaignMetrics'
+
+    DeleteCampaignResponse:
+      type: object
+      description: Campaign deletion response
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Whether deletion was successful
+          example: true
+        message:
+          type: string
+          description: Deletion confirmation message
+          example: "Campaign deleted successfully"
+
+    PaginationInfo:
+      type: object
+      description: Pagination metadata
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          description: Items per page
+          example: 20
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items
+          example: 45
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+          example: 3
+
+    PaginationLinks:
+      type: object
+      description: HATEOAS pagination links
+      required:
+        - self
+      properties:
+        self:
+          type: string
+          format: uri
+          description: Current page link
+          example: "/api/v1/campaigns?page=1&limit=20"
+        first:
+          type: string
+          format: uri
+          description: First page link
+          example: "/api/v1/campaigns?page=1&limit=20"
+        prev:
+          type: string
+          format: uri
+          description: Previous page link
+          example: "/api/v1/campaigns?page=1&limit=20"
+        next:
+          type: string
+          format: uri
+          description: Next page link
+          example: "/api/v1/campaigns?page=2&limit=20"
+        last:
+          type: string
+          format: uri
+          description: Last page link
+          example: "/api/v1/campaigns?page=3&limit=20"
+
+    HealthResponse:
+      type: object
+      description: Health check response
+      required:
+        - status
+        - timestamp
+        - version
+        - dependencies
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, DEGRADED]
+          description: Overall service status
+          example: "UP"
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+          example: "2024-01-20T15:30:00Z"
+        version:
+          type: string
+          description: API version
+          example: "1.0.0"
+        uptime:
+          type: integer
+          description: Service uptime in seconds
+          example: 86400
+        dependencies:
+          type: object
+          description: Dependency health status
+          properties:
+            database:
+              $ref: '#/components/schemas/DependencyHealth'
+            cache:
+              $ref: '#/components/schemas/DependencyHealth'
+            messaging:
+              $ref: '#/components/schemas/DependencyHealth'
+            rulesEngine:
+              $ref: '#/components/schemas/DependencyHealth'
+
+    DependencyHealth:
+      type: object
+      description: Individual dependency health
+      required:
+        - status
+        - responseTime
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, DEGRADED]
+          description: Dependency status
+          example: "UP"
+        responseTime:
+          type: number
+          description: Response time in milliseconds
+          example: 15.2
+        lastCheck:
+          type: string
+          format: date-time
+          description: Last health check timestamp
+          example: "2024-01-20T15:30:00Z"
+        error:
+          type: string
+          description: Error message (if status is DOWN)
+          example: "Connection timeout"
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 Problem Details for HTTP APIs
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Problem type identifier
+          example: "https://api.campaigns-engine.com/problems/duplicate-campaign-name"
+        title:
+          type: string
+          description: Short, human-readable summary
+          example: "Campaign Name Already Exists"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 409
+        detail:
+          type: string
+          description: Human-readable explanation
+          example: "A campaign with the name 'Black Friday 2024' already exists"
+        instance:
+          type: string
+          format: uri
+          description: URI reference to specific occurrence
+          example: "/api/v1/campaigns"
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-01-20T15:30:00Z"
+        traceId:
+          type: string
+          description: Request trace identifier
+          example: "123e4567-e89b-12d3-a456-426614174000"
+
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            errors:
+              type: object
+              description: Field-specific validation errors
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              example:
+                name: ["Name is required", "Name must be unique"]
+                targetingRules: ["At least one targeting rule must be specified"]
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            invalid_parameter:
+              summary: Invalid parameter value
+              value:
+                type: "https://api.campaigns-engine.com/problems/invalid-parameter"
+                title: "Invalid Parameter"
+                status: 400
+                detail: "The parameter 'limit' must be between 1 and 100"
+                instance: "/api/v1/campaigns"
+
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            missing_token:
+              summary: Missing authentication token
+              value:
+                type: "https://api.campaigns-engine.com/problems/unauthorized"
+                title: "Authentication Required"
+                status: 401
+                detail: "Access token is required"
+                instance: "/api/v1/campaigns"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            insufficient_permissions:
+              summary: Insufficient permissions
+              value:
+                type: "https://api.campaigns-engine.com/problems/forbidden"
+                title: "Insufficient Permissions"
+                status: 403
+                detail: "User does not have permission to perform this action"
+                instance: "/api/v1/campaigns"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            campaign_not_found:
+              summary: Campaign not found
+              value:
+                type: "https://api.campaigns-engine.com/problems/resource-not-found"
+                title: "Campaign Not Found"
+                status: 404
+                detail: "Campaign with ID '123e4567-e89b-12d3-a456-426614174000' was not found"
+                instance: "/api/v1/campaigns/123e4567-e89b-12d3-a456-426614174000"
+
+    ValidationError:
+      description: Validation error - request data is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+
+    TooManyRequests:
+      description: Too many requests - rate limit exceeded
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying
+          schema:
+            type: integer
+          example: 60
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            rate_limit_exceeded:
+              summary: Rate limit exceeded
+              value:
+                type: "https://api.campaigns-engine.com/problems/rate-limit-exceeded"
+                title: "Rate Limit Exceeded"
+                status: 429
+                detail: "Rate limit of 1000 requests per minute exceeded"
+                instance: "/api/v1/campaigns"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            internal_error:
+              summary: Internal server error
+              value:
+                type: "https://api.campaigns-engine.com/problems/internal-error"
+                title: "Internal Server Error"
+                status: 500
+                detail: "An unexpected error occurred while processing the request"
+                instance: "/api/v1/campaigns"

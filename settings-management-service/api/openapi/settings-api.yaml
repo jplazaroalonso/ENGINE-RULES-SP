@@ -1,0 +1,1152 @@
+openapi: 3.0.3
+info:
+  title: Settings Management Service API
+  description: API for managing configurations, feature flags, user preferences, and organization settings
+  version: 1.0.0
+  contact:
+    name: Rules Engine Team
+    email: support@rulesengine.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.rulesengine.com
+    description: Production server
+
+paths:
+  # Configuration endpoints
+  /v1/configurations:
+    get:
+      summary: List configurations
+      description: Retrieve a paginated list of configurations
+      tags:
+        - Configurations
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+        - name: environment
+          in: query
+          description: Filter by environment
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of configurations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create configuration
+      description: Create a new configuration
+      tags:
+        - Configurations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConfigurationRequest'
+      responses:
+        '201':
+          description: Configuration created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/configurations/{id}:
+    get:
+      summary: Get configuration
+      description: Retrieve a configuration by ID
+      tags:
+        - Configurations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Configuration ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Configuration details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: Update configuration
+      description: Update an existing configuration
+      tags:
+        - Configurations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Configuration ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConfigurationRequest'
+      responses:
+        '200':
+          description: Configuration updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete configuration
+      description: Delete a configuration
+      tags:
+        - Configurations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Configuration ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Configuration deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Feature Flag endpoints
+  /v1/feature-flags:
+    get:
+      summary: List feature flags
+      description: Retrieve a paginated list of feature flags
+      tags:
+        - Feature Flags
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          description: Filter by status
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        '200':
+          description: List of feature flags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlagListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create feature flag
+      description: Create a new feature flag
+      tags:
+        - Feature Flags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeatureFlagRequest'
+      responses:
+        '201':
+          description: Feature flag created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlagResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/feature-flags/{id}:
+    get:
+      summary: Get feature flag
+      description: Retrieve a feature flag by ID
+      tags:
+        - Feature Flags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Feature flag ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feature flag details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlagResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: Update feature flag
+      description: Update an existing feature flag
+      tags:
+        - Feature Flags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Feature flag ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFeatureFlagRequest'
+      responses:
+        '200':
+          description: Feature flag updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlagResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete feature flag
+      description: Delete a feature flag
+      tags:
+        - Feature Flags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Feature flag ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Feature flag deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # User Preference endpoints
+  /v1/user-preferences:
+    get:
+      summary: List user preferences
+      description: Retrieve a paginated list of user preferences
+      tags:
+        - User Preferences
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: user_id
+          in: query
+          description: Filter by user ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of user preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferenceListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create user preference
+      description: Create a new user preference
+      tags:
+        - User Preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserPreferenceRequest'
+      responses:
+        '201':
+          description: User preference created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferenceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/user-preferences/{id}:
+    get:
+      summary: Get user preference
+      description: Retrieve a user preference by ID
+      tags:
+        - User Preferences
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User preference ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User preference details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferenceResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: Update user preference
+      description: Update an existing user preference
+      tags:
+        - User Preferences
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User preference ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserPreferenceRequest'
+      responses:
+        '200':
+          description: User preference updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferenceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete user preference
+      description: Delete a user preference
+      tags:
+        - User Preferences
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User preference ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: User preference deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Organization Setting endpoints
+  /v1/organization-settings:
+    get:
+      summary: List organization settings
+      description: Retrieve a paginated list of organization settings
+      tags:
+        - Organization Settings
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: organization_id
+          in: query
+          description: Filter by organization ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of organization settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSettingListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create organization setting
+      description: Create a new organization setting
+      tags:
+        - Organization Settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationSettingRequest'
+      responses:
+        '201':
+          description: Organization setting created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSettingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/organization-settings/{id}:
+    get:
+      summary: Get organization setting
+      description: Retrieve an organization setting by ID
+      tags:
+        - Organization Settings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Organization setting ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Organization setting details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSettingResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: Update organization setting
+      description: Update an existing organization setting
+      tags:
+        - Organization Settings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Organization setting ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationSettingRequest'
+      responses:
+        '200':
+          description: Organization setting updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSettingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete organization setting
+      description: Delete an organization setting
+      tags:
+        - Organization Settings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Organization setting ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Organization setting deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    # Configuration schemas
+    Configuration:
+      type: object
+      required:
+        - id
+        - key
+        - value
+        - category
+        - environment
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the configuration
+        key:
+          type: string
+          description: Configuration key
+        value:
+          type: object
+          description: Configuration value (JSON object)
+        category:
+          type: string
+          description: Configuration category
+        environment:
+          type: string
+          description: Environment (development, staging, production)
+        description:
+          type: string
+          description: Configuration description
+        is_encrypted:
+          type: boolean
+          description: Whether the value is encrypted
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    CreateConfigurationRequest:
+      type: object
+      required:
+        - key
+        - value
+        - category
+        - environment
+      properties:
+        key:
+          type: string
+          description: Configuration key
+        value:
+          type: object
+          description: Configuration value (JSON object)
+        category:
+          type: string
+          description: Configuration category
+        environment:
+          type: string
+          description: Environment (development, staging, production)
+        description:
+          type: string
+          description: Configuration description
+        is_encrypted:
+          type: boolean
+          description: Whether the value is encrypted
+          default: false
+
+    UpdateConfigurationRequest:
+      type: object
+      properties:
+        value:
+          type: object
+          description: Configuration value (JSON object)
+        category:
+          type: string
+          description: Configuration category
+        environment:
+          type: string
+          description: Environment (development, staging, production)
+        description:
+          type: string
+          description: Configuration description
+        is_encrypted:
+          type: boolean
+          description: Whether the value is encrypted
+
+    ConfigurationResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Configuration'
+
+    ConfigurationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Configuration'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Feature Flag schemas
+    FeatureFlag:
+      type: object
+      required:
+        - id
+        - name
+        - key
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the feature flag
+        name:
+          type: string
+          description: Feature flag name
+        key:
+          type: string
+          description: Feature flag key
+        description:
+          type: string
+          description: Feature flag description
+        status:
+          type: string
+          enum: [active, inactive]
+          description: Feature flag status
+        rollout_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Rollout percentage (0-100)
+        target_audience:
+          type: object
+          description: Target audience configuration
+        conditions:
+          type: object
+          description: Feature flag conditions
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    CreateFeatureFlagRequest:
+      type: object
+      required:
+        - name
+        - key
+        - status
+      properties:
+        name:
+          type: string
+          description: Feature flag name
+        key:
+          type: string
+          description: Feature flag key
+        description:
+          type: string
+          description: Feature flag description
+        status:
+          type: string
+          enum: [active, inactive]
+          description: Feature flag status
+        rollout_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Rollout percentage (0-100)
+          default: 100
+        target_audience:
+          type: object
+          description: Target audience configuration
+        conditions:
+          type: object
+          description: Feature flag conditions
+
+    UpdateFeatureFlagRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Feature flag name
+        description:
+          type: string
+          description: Feature flag description
+        status:
+          type: string
+          enum: [active, inactive]
+          description: Feature flag status
+        rollout_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Rollout percentage (0-100)
+        target_audience:
+          type: object
+          description: Target audience configuration
+        conditions:
+          type: object
+          description: Feature flag conditions
+
+    FeatureFlagResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/FeatureFlag'
+
+    FeatureFlagListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureFlag'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # User Preference schemas
+    UserPreference:
+      type: object
+      required:
+        - id
+        - user_id
+        - key
+        - value
+        - category
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user preference
+        user_id:
+          type: string
+          format: uuid
+          description: User ID
+        key:
+          type: string
+          description: Preference key
+        value:
+          type: object
+          description: Preference value (JSON object)
+        category:
+          type: string
+          description: Preference category
+        description:
+          type: string
+          description: Preference description
+        is_public:
+          type: boolean
+          description: Whether the preference is public
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    CreateUserPreferenceRequest:
+      type: object
+      required:
+        - user_id
+        - key
+        - value
+        - category
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: User ID
+        key:
+          type: string
+          description: Preference key
+        value:
+          type: object
+          description: Preference value (JSON object)
+        category:
+          type: string
+          description: Preference category
+        description:
+          type: string
+          description: Preference description
+        is_public:
+          type: boolean
+          description: Whether the preference is public
+          default: false
+
+    UpdateUserPreferenceRequest:
+      type: object
+      properties:
+        value:
+          type: object
+          description: Preference value (JSON object)
+        category:
+          type: string
+          description: Preference category
+        description:
+          type: string
+          description: Preference description
+        is_public:
+          type: boolean
+          description: Whether the preference is public
+
+    UserPreferenceResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/UserPreference'
+
+    UserPreferenceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserPreference'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Organization Setting schemas
+    OrganizationSetting:
+      type: object
+      required:
+        - id
+        - organization_id
+        - key
+        - value
+        - category
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the organization setting
+        organization_id:
+          type: string
+          format: uuid
+          description: Organization ID
+        key:
+          type: string
+          description: Setting key
+        value:
+          type: object
+          description: Setting value (JSON object)
+        category:
+          type: string
+          description: Setting category
+        description:
+          type: string
+          description: Setting description
+        is_encrypted:
+          type: boolean
+          description: Whether the value is encrypted
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    CreateOrganizationSettingRequest:
+      type: object
+      required:
+        - organization_id
+        - key
+        - value
+        - category
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+          description: Organization ID
+        key:
+          type: string
+          description: Setting key
+        value:
+          type: object
+          description: Setting value (JSON object)
+        category:
+          type: string
+          description: Setting category
+        description:
+          type: string
+          description: Setting description
+        is_encrypted:
+          type: boolean
+          description: Whether the value is encrypted
+          default: false
+
+    UpdateOrganizationSettingRequest:
+      type: object
+      properties:
+        value:
+          type: object
+          description: Setting value (JSON object)
+        category:
+          type: string
+          description: Setting category
+        description:
+          type: string
+          description: Setting description
+        is_encrypted:
+          type: boolean
+          description: Whether the value is encrypted
+
+    OrganizationSettingResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/OrganizationSetting'
+
+    OrganizationSettingListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationSetting'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    # Common schemas
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Number of items per page
+        total:
+          type: integer
+          description: Total number of items
+        total_pages:
+          type: integer
+          description: Total number of pages
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invalid request parameters"
+            code: "BAD_REQUEST"
+            details:
+              field: "key"
+              message: "Key is required"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Resource not found"
+            code: "NOT_FOUND"
+
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Resource already exists"
+            code: "CONFLICT"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Internal server error"
+            code: "INTERNAL_SERVER_ERROR"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Configurations
+    description: Configuration management operations
+  - name: Feature Flags
+    description: Feature flag management operations
+  - name: User Preferences
+    description: User preference management operations
+  - name: Organization Settings
+    description: Organization setting management operations

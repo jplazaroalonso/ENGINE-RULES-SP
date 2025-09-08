@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rules-engine-frontend
+  namespace: rules-engine-frontend
+  labels:
+    app.kubernetes.io/name: rules-engine-frontend
+    app.kubernetes.io/component: frontend
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - rules-engine.local.dev
+    secretName: rules-engine-frontend-tls
+  rules:
+  - host: rules-engine.local.dev
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rules-engine-frontend
+            port:
+              number: 80

@@ -61,6 +61,71 @@ func (r *RuleRepository) ExistsByName(ctx context.Context, name string) (bool, e
 	return count > 0, nil
 }
 
+func (r *RuleRepository) List(ctx context.Context, options rule.ListOptions) ([]rule.Rule, error) {
+	defer telemetry.DBQueryDuration.WithLabelValues("List").Observe(time.Since(time.Now()).Seconds())
+	
+	var rulesDB []RuleDBModel
+	query := r.db.WithContext(ctx).Model(&RuleDBModel{})
+	
+	// Apply filters
+	if options.Filters.Status != "" {
+		query = query.Where("status = ?", options.Filters.Status)
+	}
+	if options.Filters.Category != "" {
+		query = query.Where("category = ?", options.Filters.Category)
+	}
+	if options.Filters.Search != "" {
+		query = query.Where("name ILIKE ? OR description ILIKE ?", "%"+options.Filters.Search+"%", "%"+options.Filters.Search+"%")
+	}
+	
+	// Apply sorting
+	sortOrder := "ASC"
+	if options.SortOrder == "desc" {
+		sortOrder = "DESC"
+	}
+	query = query.Order(options.SortBy + " " + sortOrder)
+	
+	// Apply pagination
+	offset := (options.Page - 1) * options.Limit
+	query = query.Offset(offset).Limit(options.Limit)
+	
+	if err := query.Find(&rulesDB).Error; err != nil {
+		return nil, shared.NewInfrastructureError("failed to list rules", err)
+	}
+	
+	// Convert to domain entities
+	rules := make([]rule.Rule, len(rulesDB))
+	for i, ruleDB := range rulesDB {
+		rules[i] = *toDomainEntity(&ruleDB)
+	}
+	
+	return rules, nil
+}
+
+func (r *RuleRepository) Count(ctx context.Context, filters rule.ListFilters) (int, error) {
+	defer telemetry.DBQueryDuration.WithLabelValues("Count").Observe(time.Since(time.Now()).Seconds())
+	
+	var count int64
+	query := r.db.WithContext(ctx).Model(&RuleDBModel{})
+	
+	// Apply filters
+	if filters.Status != "" {
+		query = query.Where("status = ?", filters.Status)
+	}
+	if filters.Category != "" {
+		query = query.Where("category = ?", filters.Category)
+	}
+	if filters.Search != "" {
+		query = query.Where("name ILIKE ? OR description ILIKE ?", "%"+filters.Search+"%", "%"+filters.Search+"%")
+	}
+	
+	if err := query.Count(&count).Error; err != nil {
+		return 0, shared.NewInfrastructureError("failed to count rules", err)
+	}
+	
+	return int(count), nil
+}
+
 func (r *RuleRepository) Delete(ctx context.Context, id rule.RuleID) error {
 	defer telemetry.DBQueryDuration.WithLabelValues("Delete").Observe(time.Since(time.Now()).Seconds())
 	if err := r.db.WithContext(ctx).Delete(&RuleDBModel{}, "id = ?", id.String()).Error; err != nil {

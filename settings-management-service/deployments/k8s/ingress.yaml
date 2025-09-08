@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: settings-management-service
+  namespace: rules-engine
+  labels:
+    app: settings-management-service
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - settings-api.rulesengine.local
+    secretName: settings-management-service-tls
+  rules:
+  - host: settings-api.rulesengine.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: settings-management-service
+            port:
+              number: 8080

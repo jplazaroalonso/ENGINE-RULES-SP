@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/application/commands"
 	"github.com/juanpablolazaro/ENGINE-RULES-SP/rules-management-service/internal/application/queries"
@@ -15,17 +16,20 @@ import (
 type RuleHandler struct {
 	createRuleHandler   *commands.CreateRuleHandler
 	getRuleHandler      *queries.GetRuleHandler
+	listRulesHandler    *queries.ListRulesHandler
 	validateRuleHandler *commands.ValidateRuleHandler
 }
 
 func NewRuleHandler(
 	createRuleHandler *commands.CreateRuleHandler,
 	getRuleHandler *queries.GetRuleHandler,
+	listRulesHandler *queries.ListRulesHandler,
 	validateRuleHandler *commands.ValidateRuleHandler,
 ) *RuleHandler {
 	return &RuleHandler{
 		createRuleHandler:   createRuleHandler,
 		getRuleHandler:      getRuleHandler,
+		listRulesHandler:    listRulesHandler,
 		validateRuleHandler: validateRuleHandler,
 	}
 }
@@ -87,6 +91,28 @@ func (h *RuleHandler) ValidateRule(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// ListRules handles GET /api/v1/rules
+func (h *RuleHandler) ListRules(c *gin.Context) {
+	// Parse query parameters
+	query := queries.ListRulesQuery{
+		Page:      parseIntParam(c, "page", 1),
+		Limit:     parseIntParam(c, "limit", 20),
+		SortBy:    c.Query("sort_by"),
+		SortOrder: c.Query("sort_order"),
+		Status:    c.Query("status"),
+		Category:  c.Query("category"),
+		Search:    c.Query("search"),
+	}
+
+	result, err := h.listRulesHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 // GetRule handles GET /api/v1/rules/:id
 func (h *RuleHandler) GetRule(c *gin.Context) {
 	ruleID := c.Param("id")
@@ -115,4 +141,19 @@ func handleError(c *gin.Context, err error) {
 	default:
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "An unexpected error occurred"})
 	}
+}
+
+// parseIntParam parses an integer parameter from query string with a default value
+func parseIntParam(c *gin.Context, param string, defaultValue int) int {
+	value := c.Query(param)
+	if value == "" {
+		return defaultValue
+	}
+	
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+	
+	return parsed
 }

@@ -1,0 +1,91 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: settings-management-service-alerts
+  namespace: rules-engine
+  labels:
+    app: settings-management-service
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: settings-management-service
+    rules:
+    - alert: SettingsManagementServiceDown
+      expr: up{job="settings-management-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: settings-management-service
+      annotations:
+        summary: "Settings Management Service is down"
+        description: "Settings Management Service has been down for more than 1 minute."
+
+    - alert: SettingsManagementServiceHighErrorRate
+      expr: rate(http_requests_total{job="settings-management-service",status=~"5.."}[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        service: settings-management-service
+      annotations:
+        summary: "High error rate in Settings Management Service"
+        description: "Settings Management Service is experiencing a high error rate of {{ $value }} errors per second."
+
+    - alert: SettingsManagementServiceHighResponseTime
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="settings-management-service"}[5m])) > 1
+      for: 2m
+      labels:
+        severity: warning
+        service: settings-management-service
+      annotations:
+        summary: "High response time in Settings Management Service"
+        description: "Settings Management Service is experiencing high response times. 95th percentile is {{ $value }} seconds."
+
+    - alert: SettingsManagementServiceHighMemoryUsage
+      expr: (container_memory_usage_bytes{container="settings-management-service"} / container_spec_memory_limit_bytes{container="settings-management-service"}) > 0.8
+      for: 2m
+      labels:
+        severity: warning
+        service: settings-management-service
+      annotations:
+        summary: "High memory usage in Settings Management Service"
+        description: "Settings Management Service is using {{ $value }}% of its memory limit."
+
+    - alert: SettingsManagementServiceHighCPUUsage
+      expr: (rate(container_cpu_usage_seconds_total{container="settings-management-service"}[5m]) / container_spec_cpu_quota{container="settings-management-service"} * container_spec_cpu_period{container="settings-management-service"}) > 0.8
+      for: 2m
+      labels:
+        severity: warning
+        service: settings-management-service
+      annotations:
+        summary: "High CPU usage in Settings Management Service"
+        description: "Settings Management Service is using {{ $value }}% of its CPU limit."
+
+    - alert: SettingsManagementServiceDatabaseConnectionFailure
+      expr: increase(database_connection_failures_total{job="settings-management-service"}[5m]) > 0
+      for: 1m
+      labels:
+        severity: critical
+        service: settings-management-service
+      annotations:
+        summary: "Database connection failures in Settings Management Service"
+        description: "Settings Management Service is experiencing database connection failures."
+
+    - alert: SettingsManagementServiceEventBusConnectionFailure
+      expr: increase(event_bus_connection_failures_total{job="settings-management-service"}[5m]) > 0
+      for: 1m
+      labels:
+        severity: warning
+        service: settings-management-service
+      annotations:
+        summary: "Event bus connection failures in Settings Management Service"
+        description: "Settings Management Service is experiencing event bus connection failures."
+
+    - alert: SettingsManagementServiceCacheConnectionFailure
+      expr: increase(cache_connection_failures_total{job="settings-management-service"}[5m]) > 0
+      for: 1m
+      labels:
+        severity: warning
+        service: settings-management-service
+      annotations:
+        summary: "Cache connection failures in Settings Management Service"
+        description: "Settings Management Service is experiencing cache connection failures."

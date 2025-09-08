@@ -82,10 +82,11 @@ func main() {
 	validationService := dsl.NewSimpleValidator()
 	createRuleHandler := commands.NewCreateRuleHandler(ruleRepo, validator, eventPublisher, true, validationService) // Assuming replication is enabled
 	getRuleHandler := queries.NewGetRuleHandler(ruleRepo)
+	listRulesHandler := queries.NewListRulesHandler(ruleRepo)
 	validateRuleHandler := commands.NewValidateRuleHandler(validator, validationService)
 
 	// Interfaces
-	ruleHandler := handlers.NewRuleHandler(createRuleHandler, getRuleHandler, validateRuleHandler)
+	ruleHandler := handlers.NewRuleHandler(createRuleHandler, getRuleHandler, listRulesHandler, validateRuleHandler)
 
 	router := gin.New()
 	router.Use(gin.Logger())
@@ -94,7 +95,13 @@ func main() {
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "healthy", "service": "rules-management-service"})
+		c.JSON(200, gin.H{"status": "healthy", "service": "rules-management-service", "version": "2.0"})
+	})
+	
+	// Test endpoint to verify code updates
+	router.GET("/test", func(c *gin.Context) {
+		log.Println("TEST ENDPOINT CALLED - CODE IS UPDATED")
+		c.JSON(200, gin.H{"message": "test endpoint working", "timestamp": "2025-09-07-21:30"})
 	})
 
 	// Prometheus metrics endpoint
@@ -102,6 +109,8 @@ func main() {
 
 	v1 := router.Group("/v1")
 	{
+		log.Println("Registering v1.GET /rules route")
+		v1.GET("/rules", ruleHandler.ListRules)
 		v1.POST("/rules", ruleHandler.CreateRule)
 		v1.GET("/rules/:id", ruleHandler.GetRule)
 	}
@@ -109,6 +118,9 @@ func main() {
 	// API Gateway routes
 	apiV1 := router.Group("/api/v1")
 	{
+		log.Println("Registering apiV1.GET /rules route")
+		log.Printf("RuleHandler.ListRules method exists: %t", ruleHandler.ListRules != nil)
+		apiV1.GET("/rules", ruleHandler.ListRules)
 		apiV1.POST("/rules", ruleHandler.CreateRule)
 		apiV1.GET("/rules/:id", ruleHandler.GetRule)
 	}

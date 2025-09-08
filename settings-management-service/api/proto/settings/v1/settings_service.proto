@@ -1,0 +1,267 @@
+syntax = "proto3";
+
+package settings.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "common/v1/pagination.proto";
+
+option go_package = "github.com/juanpablolazaro/ENGINE-RULES-SP/settings-management-service/api/proto/settings/v1;settingsv1";
+
+// Settings Management Service
+service SettingsService {
+  // Configuration operations
+  rpc CreateConfiguration(CreateConfigurationRequest) returns (ConfigurationResponse);
+  rpc GetConfiguration(GetConfigurationRequest) returns (ConfigurationResponse);
+  rpc UpdateConfiguration(UpdateConfigurationRequest) returns (ConfigurationResponse);
+  rpc DeleteConfiguration(DeleteConfigurationRequest) returns (google.protobuf.Empty);
+  rpc ListConfigurations(ListConfigurationsRequest) returns (ListConfigurationsResponse);
+
+  // Feature Flag operations
+  rpc CreateFeatureFlag(CreateFeatureFlagRequest) returns (FeatureFlagResponse);
+  rpc GetFeatureFlag(GetFeatureFlagRequest) returns (FeatureFlagResponse);
+  rpc UpdateFeatureFlag(UpdateFeatureFlagRequest) returns (FeatureFlagResponse);
+  rpc DeleteFeatureFlag(DeleteFeatureFlagRequest) returns (google.protobuf.Empty);
+  rpc ListFeatureFlags(ListFeatureFlagsRequest) returns (ListFeatureFlagsResponse);
+
+  // User Preference operations
+  rpc CreateUserPreference(CreateUserPreferenceRequest) returns (UserPreferenceResponse);
+  rpc GetUserPreference(GetUserPreferenceRequest) returns (UserPreferenceResponse);
+  rpc UpdateUserPreference(UpdateUserPreferenceRequest) returns (UserPreferenceResponse);
+  rpc DeleteUserPreference(DeleteUserPreferenceRequest) returns (google.protobuf.Empty);
+  rpc ListUserPreferences(ListUserPreferencesRequest) returns (ListUserPreferencesResponse);
+
+  // Organization Setting operations
+  rpc CreateOrganizationSetting(CreateOrganizationSettingRequest) returns (OrganizationSettingResponse);
+  rpc GetOrganizationSetting(GetOrganizationSettingRequest) returns (OrganizationSettingResponse);
+  rpc UpdateOrganizationSetting(UpdateOrganizationSettingRequest) returns (OrganizationSettingResponse);
+  rpc DeleteOrganizationSetting(DeleteOrganizationSettingRequest) returns (google.protobuf.Empty);
+  rpc ListOrganizationSettings(ListOrganizationSettingsRequest) returns (ListOrganizationSettingsResponse);
+}
+
+// Configuration messages
+message Configuration {
+  string id = 1;
+  string key = 2;
+  google.protobuf.Struct value = 3;
+  string category = 4;
+  string environment = 5;
+  string description = 6;
+  bool is_encrypted = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateConfigurationRequest {
+  string key = 1;
+  google.protobuf.Struct value = 2;
+  string category = 3;
+  string environment = 4;
+  string description = 5;
+  bool is_encrypted = 6;
+}
+
+message GetConfigurationRequest {
+  string id = 1;
+}
+
+message UpdateConfigurationRequest {
+  string id = 1;
+  google.protobuf.Struct value = 2;
+  string category = 3;
+  string environment = 4;
+  string description = 5;
+  bool is_encrypted = 6;
+}
+
+message DeleteConfigurationRequest {
+  string id = 1;
+}
+
+message ListConfigurationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string category = 3;
+  string environment = 4;
+}
+
+message ConfigurationResponse {
+  Configuration data = 1;
+}
+
+message ListConfigurationsResponse {
+  repeated Configuration data = 1;
+  common.v1.Pagination pagination = 2;
+}
+
+// Feature Flag messages
+message FeatureFlag {
+  string id = 1;
+  string name = 2;
+  string key = 3;
+  string description = 4;
+  FeatureFlagStatus status = 5;
+  int32 rollout_percentage = 6;
+  google.protobuf.Struct target_audience = 7;
+  google.protobuf.Struct conditions = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+enum FeatureFlagStatus {
+  FEATURE_FLAG_STATUS_UNSPECIFIED = 0;
+  FEATURE_FLAG_STATUS_ACTIVE = 1;
+  FEATURE_FLAG_STATUS_INACTIVE = 2;
+}
+
+message CreateFeatureFlagRequest {
+  string name = 1;
+  string key = 2;
+  string description = 3;
+  FeatureFlagStatus status = 4;
+  int32 rollout_percentage = 5;
+  google.protobuf.Struct target_audience = 6;
+  google.protobuf.Struct conditions = 7;
+}
+
+message GetFeatureFlagRequest {
+  string id = 1;
+}
+
+message UpdateFeatureFlagRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  FeatureFlagStatus status = 4;
+  int32 rollout_percentage = 5;
+  google.protobuf.Struct target_audience = 6;
+  google.protobuf.Struct conditions = 7;
+}
+
+message DeleteFeatureFlagRequest {
+  string id = 1;
+}
+
+message ListFeatureFlagsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  FeatureFlagStatus status = 3;
+}
+
+message FeatureFlagResponse {
+  FeatureFlag data = 1;
+}
+
+message ListFeatureFlagsResponse {
+  repeated FeatureFlag data = 1;
+  common.v1.Pagination pagination = 2;
+}
+
+// User Preference messages
+message UserPreference {
+  string id = 1;
+  string user_id = 2;
+  string key = 3;
+  google.protobuf.Struct value = 4;
+  string category = 5;
+  string description = 6;
+  bool is_public = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateUserPreferenceRequest {
+  string user_id = 1;
+  string key = 2;
+  google.protobuf.Struct value = 3;
+  string category = 4;
+  string description = 5;
+  bool is_public = 6;
+}
+
+message GetUserPreferenceRequest {
+  string id = 1;
+}
+
+message UpdateUserPreferenceRequest {
+  string id = 1;
+  google.protobuf.Struct value = 2;
+  string category = 3;
+  string description = 4;
+  bool is_public = 5;
+}
+
+message DeleteUserPreferenceRequest {
+  string id = 1;
+}
+
+message ListUserPreferencesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string user_id = 3;
+  string category = 4;
+}
+
+message UserPreferenceResponse {
+  UserPreference data = 1;
+}
+
+message ListUserPreferencesResponse {
+  repeated UserPreference data = 1;
+  common.v1.Pagination pagination = 2;
+}
+
+// Organization Setting messages
+message OrganizationSetting {
+  string id = 1;
+  string organization_id = 2;
+  string key = 3;
+  google.protobuf.Struct value = 4;
+  string category = 5;
+  string description = 6;
+  bool is_encrypted = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateOrganizationSettingRequest {
+  string organization_id = 1;
+  string key = 2;
+  google.protobuf.Struct value = 3;
+  string category = 4;
+  string description = 5;
+  bool is_encrypted = 6;
+}
+
+message GetOrganizationSettingRequest {
+  string id = 1;
+}
+
+message UpdateOrganizationSettingRequest {
+  string id = 1;
+  google.protobuf.Struct value = 2;
+  string category = 3;
+  string description = 4;
+  bool is_encrypted = 5;
+}
+
+message DeleteOrganizationSettingRequest {
+  string id = 1;
+}
+
+message ListOrganizationSettingsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string organization_id = 3;
+  string category = 4;
+}
+
+message OrganizationSettingResponse {
+  OrganizationSetting data = 1;
+}
+
+message ListOrganizationSettingsResponse {
+  repeated OrganizationSetting data = 1;
+  common.v1.Pagination pagination = 2;
+}

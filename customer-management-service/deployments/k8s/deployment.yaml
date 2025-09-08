@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-management-service
+  namespace: rules-engine
+  labels:
+    app: customer-management-service
+    version: v1.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-management-service
+  template:
+    metadata:
+      labels:
+        app: customer-management-service
+        version: v1.0.0
+    spec:
+      containers:
+      - name: customer-management-service
+        image: customer-management:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: dsn
+        - name: NATS_URL
+          value: "nats://nats-service:4222"
+        - name: RULES_ENGINE_URL
+          value: "http://rules-management-service:8080"
+        - name: RULES_ENGINE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rules-engine-secret
+              key: api-key
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001

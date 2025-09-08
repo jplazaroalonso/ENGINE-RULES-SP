@@ -1,0 +1,627 @@
+syntax = "proto3";
+
+package campaigns.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "validate/validate.proto";
+import "campaigns/v1/campaign.proto";
+import "common/v1/pagination.proto";
+
+option go_package = "github.com/juanpablolazaro/ENGINE-RULES-SP/campaigns-management-service/api/gen/go/campaigns/v1;campaignsv1";
+option java_package = "com.campaignsengine.api.campaigns.v1";
+option java_multiple_files = true;
+
+// CampaignsService provides high-performance campaign management operations
+// for internal service-to-service communication.
+//
+// This service is optimized for:
+// - High throughput campaign operations (>5,000 TPS)
+// - Low latency operations (<100ms P95)
+// - Reliable campaign lifecycle management
+// - Efficient batch operations
+service CampaignsService {
+  // GetCampaign retrieves a single campaign by ID with caching optimization
+  rpc GetCampaign(GetCampaignRequest) returns (GetCampaignResponse) {
+    option (google.api.http) = {
+      get: "/v1/campaigns/{campaign_id}"
+    };
+  }
+
+  // ListCampaigns retrieves paginated campaigns with advanced filtering
+  rpc ListCampaigns(ListCampaignsRequest) returns (ListCampaignsResponse) {
+    option (google.api.http) = {
+      get: "/v1/campaigns"
+    };
+  }
+
+  // CreateCampaign creates a new campaign with validation
+  rpc CreateCampaign(CreateCampaignRequest) returns (CreateCampaignResponse) {
+    option (google.api.http) = {
+      post: "/v1/campaigns"
+      body: "*"
+    };
+  }
+
+  // UpdateCampaign updates an existing campaign with version control
+  rpc UpdateCampaign(UpdateCampaignRequest) returns (UpdateCampaignResponse) {
+    option (google.api.http) = {
+      put: "/v1/campaigns/{campaign_id}"
+      body: "*"
+    };
+  }
+
+  // DeleteCampaign soft-deletes a campaign with audit trail
+  rpc DeleteCampaign(DeleteCampaignRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/campaigns/{campaign_id}"
+    };
+  }
+
+  // ActivateCampaign activates a campaign (DRAFT -> ACTIVE)
+  rpc ActivateCampaign(ActivateCampaignRequest) returns (ActivateCampaignResponse) {
+    option (google.api.http) = {
+      post: "/v1/campaigns/{campaign_id}/activate"
+      body: "*"
+    };
+  }
+
+  // PauseCampaign pauses an active campaign (ACTIVE -> PAUSED)
+  rpc PauseCampaign(PauseCampaignRequest) returns (PauseCampaignResponse) {
+    option (google.api.http) = {
+      post: "/v1/campaigns/{campaign_id}/pause"
+      body: "*"
+    };
+  }
+
+  // GetCampaignMetrics retrieves performance metrics for a campaign
+  rpc GetCampaignMetrics(GetCampaignMetricsRequest) returns (GetCampaignMetricsResponse) {
+    option (google.api.http) = {
+      get: "/v1/campaigns/{campaign_id}/metrics"
+    };
+  }
+
+  // BatchGetCampaigns retrieves multiple campaigns in a single request
+  // for improved performance and reduced network overhead
+  rpc BatchGetCampaigns(BatchGetCampaignsRequest) returns (BatchGetCampaignsResponse) {
+    option (google.api.http) = {
+      post: "/v1/campaigns/batch"
+      body: "*"
+    };
+  }
+
+  // SubscribeCampaignChanges provides real-time campaign change notifications
+  // using server-side streaming for event-driven architectures
+  rpc SubscribeCampaignChanges(SubscribeCampaignChangesRequest) returns (stream CampaignChangeEvent);
+
+  // ValidateCampaign performs campaign validation and rule checking
+  rpc ValidateCampaign(ValidateCampaignRequest) returns (ValidateCampaignResponse) {
+    option (google.api.http) = {
+      post: "/v1/campaigns/{campaign_id}/validate"
+      body: "*"
+    };
+  }
+}
+
+// GetCampaignRequest specifies the campaign ID to retrieve
+message GetCampaignRequest {
+  // Unique campaign identifier
+  string campaign_id = 1 [(validate.rules).string.uuid = true];
+
+  // Include related entities in response
+  bool include_metrics = 2;
+  bool include_settings = 3;
+}
+
+// GetCampaignResponse contains the requested campaign data
+message GetCampaignResponse {
+  // The requested campaign
+  Campaign campaign = 1;
+
+  // Campaign metrics if requested
+  CampaignMetrics metrics = 2;
+}
+
+// ListCampaignsRequest defines filtering and pagination options
+message ListCampaignsRequest {
+  // Pagination parameters
+  common.v1.PaginationRequest pagination = 1;
+
+  // Filtering options
+  CampaignFilter filter = 2;
+
+  // Sorting options
+  CampaignSorting sorting = 3;
+
+  // Fields to include in response for performance optimization
+  repeated string include_fields = 4;
+}
+
+// CampaignFilter defines available filtering criteria
+message CampaignFilter {
+  // Filter by campaign status
+  repeated CampaignStatus status = 1;
+
+  // Filter by campaign type
+  repeated CampaignType type = 2;
+
+  // Filter by creator
+  repeated string created_by = 3;
+
+  // Filter by creation date range
+  google.protobuf.Timestamp created_after = 4;
+  google.protobuf.Timestamp created_before = 5;
+
+  // Filter by start date range
+  google.protobuf.Timestamp start_date_after = 6;
+  google.protobuf.Timestamp start_date_before = 7;
+
+  // Filter by end date range
+  google.protobuf.Timestamp end_date_after = 8;
+  google.protobuf.Timestamp end_date_before = 9;
+
+  // Search in name and description
+  string search_query = 10 [(validate.rules).string.max_len = 100];
+
+  // Filter by targeting rule IDs
+  repeated string targeting_rule_ids = 11;
+}
+
+// CampaignSorting defines sorting options
+message CampaignSorting {
+  // Field to sort by
+  enum SortField {
+    SORT_FIELD_UNSPECIFIED = 0;
+    SORT_FIELD_NAME = 1;
+    SORT_FIELD_STATUS = 2;
+    SORT_FIELD_TYPE = 3;
+    SORT_FIELD_CREATED_AT = 4;
+    SORT_FIELD_UPDATED_AT = 5;
+    SORT_FIELD_START_DATE = 6;
+  }
+
+  // Sort direction
+  enum SortDirection {
+    SORT_DIRECTION_UNSPECIFIED = 0;
+    SORT_DIRECTION_ASC = 1;
+    SORT_DIRECTION_DESC = 2;
+  }
+
+  SortField field = 1;
+  SortDirection direction = 2;
+}
+
+// ListCampaignsResponse contains paginated campaign results
+message ListCampaignsResponse {
+  // List of campaigns matching the criteria
+  repeated Campaign campaigns = 1;
+
+  // Pagination information
+  common.v1.PaginationResponse pagination = 2;
+}
+
+// CreateCampaignRequest defines data for creating a new campaign
+message CreateCampaignRequest {
+  // Campaign name (must be unique within organization)
+  string name = 1 [
+    (validate.rules).string.min_len = 3,
+    (validate.rules).string.max_len = 255
+  ];
+
+  // Campaign description
+  string description = 2 [(validate.rules).string.max_len = 1000];
+
+  // Campaign type
+  CampaignType type = 3 [(validate.rules).enum.defined_only = true];
+
+  // Targeting rule IDs from Rules Engine
+  repeated string targeting_rule_ids = 4 [
+    (validate.rules).repeated.min_items = 1,
+    (validate.rules).repeated.items.string.uuid = true
+  ];
+
+  // Campaign start date
+  google.protobuf.Timestamp start_date = 5 [(validate.rules).timestamp.required = true];
+
+  // Campaign end date (optional)
+  google.protobuf.Timestamp end_date = 6;
+
+  // Campaign budget (optional)
+  Money budget = 7;
+
+  // User creating the campaign
+  string created_by = 8 [
+    (validate.rules).string.min_len = 1,
+    (validate.rules).string.max_len = 100
+  ];
+
+  // Campaign settings
+  CampaignSettings settings = 9 [(validate.rules).message.required = true];
+}
+
+// CreateCampaignResponse contains the created campaign data
+message CreateCampaignResponse {
+  // The newly created campaign
+  Campaign campaign = 1;
+
+  // Validation results if any warnings were generated
+  ValidationResult validation_result = 2;
+}
+
+// UpdateCampaignRequest defines data for updating an existing campaign
+message UpdateCampaignRequest {
+  // Campaign ID to update
+  string campaign_id = 1 [(validate.rules).string.uuid = true];
+
+  // Updated campaign name
+  string name = 2 [(validate.rules).string.max_len = 255];
+
+  // Updated campaign description
+  string description = 3 [(validate.rules).string.max_len = 1000];
+
+  // Updated campaign type
+  CampaignType type = 4;
+
+  // Updated targeting rule IDs
+  repeated string targeting_rule_ids = 5 [
+    (validate.rules).repeated.items.string.uuid = true
+  ];
+
+  // Updated campaign start date
+  google.protobuf.Timestamp start_date = 6;
+
+  // Updated campaign end date
+  google.protobuf.Timestamp end_date = 7;
+
+  // Updated campaign budget
+  Money budget = 8;
+
+  // Updated campaign settings
+  CampaignSettings settings = 9;
+
+  // User performing the update
+  string updated_by = 10 [
+    (validate.rules).string.min_len = 1,
+    (validate.rules).string.max_len = 100
+  ];
+}
+
+// UpdateCampaignResponse contains the updated campaign data
+message UpdateCampaignResponse {
+  // The updated campaign
+  Campaign campaign = 1;
+
+  // Validation results if any warnings were generated
+  ValidationResult validation_result = 2;
+}
+
+// DeleteCampaignRequest specifies the campaign to delete
+message DeleteCampaignRequest {
+  // Campaign ID to delete
+  string campaign_id = 1 [(validate.rules).string.uuid = true];
+
+  // User performing the deletion
+  string deleted_by = 2 [
+    (validate.rules).string.min_len = 1,
+    (validate.rules).string.max_len = 100
+  ];
+
+  // Reason for deletion (optional)
+  string reason = 3 [(validate.rules).string.max_len = 500];
+}
+
+// ActivateCampaignRequest defines data for activating a campaign
+message ActivateCampaignRequest {
+  // Campaign ID to activate
+  string campaign_id = 1 [(validate.rules).string.uuid = true];
+
+  // User activating the campaign
+  string activated_by = 2 [
+    (validate.rules).string.min_len = 1,
+    (validate.rules).string.max_len = 100
+  ];
+}
+
+// ActivateCampaignResponse contains the activation result
+message ActivateCampaignResponse {
+  // The activated campaign
+  Campaign campaign = 1;
+
+  // Activation timestamp
+  google.protobuf.Timestamp activated_at = 2;
+}
+
+// PauseCampaignRequest defines data for pausing a campaign
+message PauseCampaignRequest {
+  // Campaign ID to pause
+  string campaign_id = 1 [(validate.rules).string.uuid = true];
+
+  // User pausing the campaign
+  string paused_by = 2 [
+    (validate.rules).string.min_len = 1,
+    (validate.rules).string.max_len = 100
+  ];
+}
+
+// PauseCampaignResponse contains the pause result
+message PauseCampaignResponse {
+  // The paused campaign
+  Campaign campaign = 1;
+
+  // Pause timestamp
+  google.protobuf.Timestamp paused_at = 2;
+}
+
+// GetCampaignMetricsRequest specifies the campaign and time range for metrics
+message GetCampaignMetricsRequest {
+  // Campaign ID to get metrics for
+  string campaign_id = 1 [(validate.rules).string.uuid = true];
+
+  // Start time for metrics range
+  google.protobuf.Timestamp start_time = 2;
+
+  // End time for metrics range
+  google.protobuf.Timestamp end_time = 3;
+
+  // Metrics granularity (e.g., hourly, daily)
+  MetricsGranularity granularity = 4;
+}
+
+// MetricsGranularity defines the granularity for metrics aggregation
+enum MetricsGranularity {
+  METRICS_GRANULARITY_UNSPECIFIED = 0;
+  METRICS_GRANULARITY_MINUTE = 1;
+  METRICS_GRANULARITY_HOUR = 2;
+  METRICS_GRANULARITY_DAY = 3;
+  METRICS_GRANULARITY_WEEK = 4;
+  METRICS_GRANULARITY_MONTH = 5;
+}
+
+// GetCampaignMetricsResponse contains campaign performance and usage metrics
+message GetCampaignMetricsResponse {
+  // Campaign metrics data
+  CampaignMetrics metrics = 1;
+
+  // Time series data points
+  repeated MetricsDataPoint time_series = 2;
+}
+
+// BatchGetCampaignsRequest defines batch retrieval parameters
+message BatchGetCampaignsRequest {
+  // Campaign IDs to retrieve
+  repeated string campaign_ids = 1 [
+    (validate.rules).repeated.min_items = 1,
+    (validate.rules).repeated.max_items = 100,
+    (validate.rules).repeated.items.string.uuid = true
+  ];
+
+  // Include related entities in response
+  bool include_metrics = 2;
+  bool include_settings = 3;
+}
+
+// BatchGetCampaignsResponse contains batch campaign results
+message BatchGetCampaignsResponse {
+  // Individual campaign results
+  repeated CampaignResult results = 1;
+
+  // Overall batch execution metrics
+  BatchExecutionMetrics batch_metrics = 2;
+}
+
+// CampaignResult represents the result of a single campaign retrieval
+message CampaignResult {
+  // Campaign ID that was requested
+  string campaign_id = 1;
+
+  // Campaign data if found
+  Campaign campaign = 2;
+
+  // Campaign metrics if requested and available
+  CampaignMetrics metrics = 3;
+
+  // Any errors that occurred during retrieval
+  repeated CampaignError errors = 4;
+}
+
+// BatchExecutionMetrics contains metrics for the entire batch operation
+message BatchExecutionMetrics {
+  // Total batch processing time
+  double total_time_ms = 1;
+
+  // Average processing time per campaign
+  double average_time_ms = 2;
+
+  // Number of successful retrievals
+  int32 successful_count = 3;
+
+  // Number of failed retrievals
+  int32 failed_count = 4;
+
+  // Total memory used for batch processing
+  int64 total_memory_bytes = 5;
+}
+
+// CampaignError represents an error during campaign operation
+message CampaignError {
+  // Error code
+  string code = 1;
+
+  // Human-readable error message
+  string message = 2;
+
+  // Error context and location
+  string context = 3;
+
+  // Stack trace if available
+  string stack_trace = 4;
+}
+
+// SubscribeCampaignChangesRequest defines subscription parameters
+message SubscribeCampaignChangesRequest {
+  // Filter for specific campaign IDs (empty for all campaigns)
+  repeated string campaign_ids = 1;
+
+  // Filter for specific event types
+  repeated CampaignChangeEventType event_types = 2;
+
+  // Client identifier for connection tracking
+  string client_id = 3 [(validate.rules).string.min_len = 1];
+}
+
+// CampaignChangeEvent represents a campaign change notification
+message CampaignChangeEvent {
+  // Type of change event
+  CampaignChangeEventType event_type = 1;
+
+  // Campaign that changed
+  Campaign campaign = 2;
+
+  // Previous campaign state (for update events)
+  Campaign previous_campaign = 3;
+
+  // Timestamp when the change occurred
+  google.protobuf.Timestamp timestamp = 4;
+
+  // User who made the change
+  string changed_by = 5;
+
+  // Change reason or description
+  string change_reason = 6;
+}
+
+// CampaignChangeEventType defines the types of campaign change events
+enum CampaignChangeEventType {
+  CAMPAIGN_CHANGE_EVENT_TYPE_UNSPECIFIED = 0;
+  CAMPAIGN_CHANGE_EVENT_TYPE_CREATED = 1;
+  CAMPAIGN_CHANGE_EVENT_TYPE_UPDATED = 2;
+  CAMPAIGN_CHANGE_EVENT_TYPE_DELETED = 3;
+  CAMPAIGN_CHANGE_EVENT_TYPE_ACTIVATED = 4;
+  CAMPAIGN_CHANGE_EVENT_TYPE_PAUSED = 5;
+  CAMPAIGN_CHANGE_EVENT_TYPE_COMPLETED = 6;
+  CAMPAIGN_CHANGE_EVENT_TYPE_CANCELLED = 7;
+}
+
+// ValidateCampaignRequest defines campaign validation parameters
+message ValidateCampaignRequest {
+  // Campaign ID to validate (if validating existing campaign)
+  string campaign_id = 1 [(validate.rules).string.uuid = true];
+
+  // Campaign data to validate (if validating new campaign)
+  CreateCampaignRequest campaign_data = 2;
+
+  // Include targeting rule validation
+  bool include_targeting_validation = 3;
+
+  // Include budget validation
+  bool include_budget_validation = 4;
+}
+
+// ValidateCampaignResponse contains validation results
+message ValidateCampaignResponse {
+  // Overall validation result
+  ValidationResult validation_result = 1;
+
+  // Targeting rule validation results
+  repeated TargetingRuleValidation targeting_rule_validations = 2;
+}
+
+// ValidationResult contains detailed validation information
+message ValidationResult {
+  // Whether the campaign is valid
+  bool is_valid = 1;
+
+  // Validation errors
+  repeated ValidationError errors = 2;
+
+  // Validation warnings
+  repeated ValidationWarning warnings = 3;
+
+  // Validation performance metrics
+  ValidationMetrics metrics = 4;
+}
+
+// ValidationError represents a validation error
+message ValidationError {
+  // Error code
+  string code = 1;
+
+  // Human-readable error message
+  string message = 2;
+
+  // Field that caused the error
+  string field = 3;
+
+  // Error context
+  string context = 4;
+}
+
+// ValidationWarning represents a validation warning
+message ValidationWarning {
+  // Warning code
+  string code = 1;
+
+  // Human-readable warning message
+  string message = 2;
+
+  // Field that caused the warning
+  string field = 3;
+
+  // Context information
+  string context = 4;
+}
+
+// ValidationMetrics contains performance metrics for validation
+message ValidationMetrics {
+  // Total validation time in milliseconds
+  double total_validation_time_ms = 1;
+
+  // Targeting rule validation time in milliseconds
+  double targeting_validation_time_ms = 2;
+
+  // Budget validation time in milliseconds
+  double budget_validation_time_ms = 3;
+}
+
+// TargetingRuleValidation represents validation result for a targeting rule
+message TargetingRuleValidation {
+  // Rule ID that was validated
+  string rule_id = 1;
+
+  // Whether the rule is valid
+  bool is_valid = 2;
+
+  // Validation errors for this rule
+  repeated ValidationError errors = 3;
+
+  // Validation warnings for this rule
+  repeated ValidationWarning warnings = 4;
+}
+
+// MetricsDataPoint represents a single data point in time series metrics
+message MetricsDataPoint {
+  // Timestamp for this data point
+  google.protobuf.Timestamp timestamp = 1;
+
+  // Number of impressions in this time period
+  int64 impressions = 2;
+
+  // Number of clicks in this time period
+  int64 clicks = 3;
+
+  // Number of conversions in this time period
+  int64 conversions = 4;
+
+  // Revenue in this time period
+  Money revenue = 5;
+
+  // Cost in this time period
+  Money cost = 6;
+
+  // Click-through rate for this period
+  double ctr = 7;
+
+  // Conversion rate for this period
+  double conversion_rate = 8;
+}
