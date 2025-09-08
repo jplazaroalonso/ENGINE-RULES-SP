@@ -1,0 +1,1193 @@
+openapi: 3.0.3
+info:
+  title: Analytics Dashboard Service API
+  description: |
+    The Analytics Dashboard Service provides comprehensive analytics, reporting, and insights for the rules engine ecosystem.
+    It aggregates data from all services to provide real-time dashboards, custom reports, and business intelligence capabilities.
+  version: 1.0.0
+  contact:
+    name: Analytics Dashboard Service Team
+    email: analytics-team@company.com
+  license:
+    name: Proprietary
+    url: https://company.com/license
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://api.company.com/analytics/v1
+    description: Production server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns the health status of the service
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  service:
+                    type: string
+                    example: analytics-dashboard-service
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  /dashboards:
+    get:
+      summary: List dashboards
+      description: Retrieve a list of dashboards for a specific owner
+      tags:
+        - Dashboards
+      parameters:
+        - name: ownerId
+          in: query
+          required: true
+          description: Owner ID to filter dashboards
+          schema:
+            type: string
+            format: uuid
+        - name: public
+          in: query
+          required: false
+          description: Filter by public/private dashboards
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of dashboards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dashboards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Dashboard'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create dashboard
+      description: Create a new dashboard
+      tags:
+        - Dashboards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDashboardRequest'
+      responses:
+        '201':
+          description: Dashboard created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /dashboards/{id}:
+    get:
+      summary: Get dashboard
+      description: Retrieve a specific dashboard by ID
+      tags:
+        - Dashboards
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Dashboard ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dashboard details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update dashboard
+      description: Update an existing dashboard
+      tags:
+        - Dashboards
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Dashboard ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDashboardRequest'
+      responses:
+        '200':
+          description: Dashboard updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete dashboard
+      description: Delete a dashboard
+      tags:
+        - Dashboards
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Dashboard ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Dashboard deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reports:
+    get:
+      summary: List reports
+      description: Retrieve a list of reports for a specific owner
+      tags:
+        - Reports
+      parameters:
+        - name: ownerId
+          in: query
+          required: true
+          description: Owner ID to filter reports
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          required: false
+          description: Filter by report type
+          schema:
+            type: string
+            enum: [PERFORMANCE, COMPLIANCE, BUSINESS, CUSTOM]
+      responses:
+        '200':
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create report
+      description: Create a new report
+      tags:
+        - Reports
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReportRequest'
+      responses:
+        '201':
+          description: Report created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reports/{id}:
+    get:
+      summary: Get report
+      description: Retrieve a specific report by ID
+      tags:
+        - Reports
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Report ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Report details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update report
+      description: Update an existing report
+      tags:
+        - Reports
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Report ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReportRequest'
+      responses:
+        '200':
+          description: Report updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete report
+      description: Delete a report
+      tags:
+        - Reports
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Report ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Report deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /reports/{id}/generate:
+    post:
+      summary: Generate report
+      description: Generate a report with current data
+      tags:
+        - Reports
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Report ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Report generated successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /metrics:
+    get:
+      summary: List metrics
+      description: Retrieve a list of available metrics
+      tags:
+        - Metrics
+      parameters:
+        - name: category
+          in: query
+          required: false
+          description: Filter by metric category
+          schema:
+            type: string
+            enum: [PERFORMANCE, BUSINESS, SYSTEM, USER]
+        - name: type
+          in: query
+          required: false
+          description: Filter by metric type
+          schema:
+            type: string
+            enum: [COUNTER, GAUGE, HISTOGRAM, SUMMARY]
+      responses:
+        '200':
+          description: List of metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metrics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Metric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create metric
+      description: Create a new custom metric
+      tags:
+        - Metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMetricRequest'
+      responses:
+        '201':
+          description: Metric created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /metrics/{id}:
+    get:
+      summary: Get metric
+      description: Retrieve a specific metric by ID
+      tags:
+        - Metrics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Metric ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Metric details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metric'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update metric
+      description: Update an existing metric
+      tags:
+        - Metrics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Metric ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMetricRequest'
+      responses:
+        '200':
+          description: Metric updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete metric
+      description: Delete a metric
+      tags:
+        - Metrics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Metric ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Metric deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /metrics/{id}/data:
+    get:
+      summary: Get metric data
+      description: Retrieve data for a specific metric
+      tags:
+        - Metrics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Metric ID
+          schema:
+            type: string
+            format: uuid
+        - name: startTime
+          in: query
+          required: false
+          description: Start time for data range
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          required: false
+          description: End time for data range
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Metric data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MetricData'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /analytics/real-time:
+    get:
+      summary: Get real-time analytics
+      description: Retrieve real-time analytics data
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Real-time analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealTimeAnalytics'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /analytics/performance:
+    get:
+      summary: Get performance metrics
+      description: Retrieve system performance metrics
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetrics'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /analytics/business:
+    get:
+      summary: Get business metrics
+      description: Retrieve business intelligence metrics
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Business metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessMetrics'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /analytics/compliance:
+    get:
+      summary: Get compliance metrics
+      description: Retrieve compliance and audit metrics
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Compliance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceMetrics'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Dashboard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique dashboard identifier
+        name:
+          type: string
+          description: Dashboard name
+          maxLength: 255
+        description:
+          type: string
+          description: Dashboard description
+          maxLength: 1000
+        layout:
+          $ref: '#/components/schemas/DashboardLayout'
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Widget'
+        filters:
+          type: object
+          additionalProperties: true
+        refreshInterval:
+          type: integer
+          description: Refresh interval in seconds
+          minimum: 30
+          maximum: 3600
+        isPublic:
+          type: boolean
+          description: Whether the dashboard is public
+        ownerId:
+          type: string
+          format: uuid
+          description: Owner user ID
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          description: Version number for optimistic locking
+
+    DashboardLayout:
+      type: object
+      properties:
+        columns:
+          type: integer
+          description: Number of columns in the grid
+        rows:
+          type: integer
+          description: Number of rows in the grid
+        gridSize:
+          type: integer
+          description: Grid size for responsive layout
+        responsive:
+          type: boolean
+          description: Whether the layout is responsive
+
+    Widget:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [CHART, TABLE, KPI, GAUGE, HEATMAP, MAP, TEXT, IMAGE]
+        title:
+          type: string
+        position:
+          $ref: '#/components/schemas/WidgetPosition'
+        size:
+          $ref: '#/components/schemas/WidgetSize'
+        configuration:
+          type: object
+          additionalProperties: true
+        dataSource:
+          $ref: '#/components/schemas/DataSource'
+        refreshInterval:
+          type: integer
+          description: Widget refresh interval in seconds
+
+    WidgetPosition:
+      type: object
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+
+    WidgetSize:
+      type: object
+      properties:
+        width:
+          type: integer
+        height:
+          type: integer
+
+    DataSource:
+      type: object
+      properties:
+        type:
+          type: string
+        endpoint:
+          type: string
+        query:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        type:
+          type: string
+          enum: [PERFORMANCE, COMPLIANCE, BUSINESS, CUSTOM]
+        template:
+          $ref: '#/components/schemas/ReportTemplate'
+        parameters:
+          type: object
+          additionalProperties: true
+        schedule:
+          $ref: '#/components/schemas/ReportSchedule'
+        outputFormat:
+          type: string
+          enum: [PDF, EXCEL, CSV, JSON, HTML]
+        recipients:
+          type: array
+          items:
+            type: string
+            format: email
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, GENERATING, ERROR]
+        lastGenerated:
+          type: string
+          format: date-time
+        nextRun:
+          type: string
+          format: date-time
+        ownerId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+
+    ReportTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        layout:
+          $ref: '#/components/schemas/ReportLayout'
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportSection'
+        styles:
+          type: object
+          additionalProperties: true
+
+    ReportLayout:
+      type: object
+      properties:
+        orientation:
+          type: string
+          enum: [portrait, landscape]
+        pageSize:
+          type: string
+          enum: [A4, Letter, Legal]
+        margins:
+          $ref: '#/components/schemas/ReportMargins'
+
+    ReportMargins:
+      type: object
+      properties:
+        top:
+          type: number
+        bottom:
+          type: number
+        left:
+          type: number
+        right:
+          type: number
+
+    ReportSection:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [text, chart, table, image]
+        title:
+          type: string
+        content:
+          type: object
+          additionalProperties: true
+        order:
+          type: integer
+        visible:
+          type: boolean
+
+    ReportSchedule:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [ONCE, HOURLY, DAILY, WEEKLY, MONTHLY]
+        interval:
+          type: integer
+          description: Interval in minutes for hourly schedules
+        days:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+          description: Days of the week (0=Sunday, 6=Saturday)
+        time:
+          type: string
+          pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+          description: Time in HH:MM format
+        timezone:
+          type: string
+          description: Timezone identifier
+
+    Metric:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        type:
+          type: string
+          enum: [COUNTER, GAUGE, HISTOGRAM, SUMMARY]
+        category:
+          type: string
+          enum: [PERFORMANCE, BUSINESS, SYSTEM, USER]
+        unit:
+          type: string
+          maxLength: 50
+        aggregation:
+          type: string
+          enum: [SUM, AVG, MIN, MAX, COUNT, DISTINCT]
+        dataSource:
+          $ref: '#/components/schemas/DataSource'
+        dimensions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dimension'
+        filters:
+          type: object
+          additionalProperties: true
+        calculation:
+          $ref: '#/components/schemas/MetricCalculation'
+        isCalculated:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+
+    Dimension:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [string, number, date, boolean]
+        description:
+          type: string
+        required:
+          type: boolean
+
+    MetricCalculation:
+      type: object
+      properties:
+        formula:
+          type: string
+        variables:
+          type: object
+          additionalProperties: true
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalculationCondition'
+        isValid:
+          type: boolean
+        lastValidated:
+          type: string
+          format: date-time
+
+    CalculationCondition:
+      type: object
+      properties:
+        field:
+          type: string
+        operator:
+          type: string
+          enum: [=, !=, >, <, >=, <=, IN, NOT_IN]
+        value:
+          type: object
+
+    MetricData:
+      type: object
+      properties:
+        id:
+          type: string
+        metricId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        value:
+          type: number
+        dimensions:
+          type: object
+          additionalProperties: true
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+
+    CreateDashboardRequest:
+      type: object
+      required:
+        - name
+        - ownerId
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        ownerId:
+          type: string
+          format: uuid
+
+    UpdateDashboardRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        layout:
+          $ref: '#/components/schemas/DashboardLayout'
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Widget'
+        filters:
+          type: object
+          additionalProperties: true
+        refreshInterval:
+          type: integer
+          minimum: 30
+          maximum: 3600
+        isPublic:
+          type: boolean
+
+    CreateReportRequest:
+      type: object
+      required:
+        - name
+        - type
+        - ownerId
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        type:
+          type: string
+          enum: [PERFORMANCE, COMPLIANCE, BUSINESS, CUSTOM]
+        ownerId:
+          type: string
+          format: uuid
+
+    UpdateReportRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        template:
+          $ref: '#/components/schemas/ReportTemplate'
+        parameters:
+          type: object
+          additionalProperties: true
+        schedule:
+          $ref: '#/components/schemas/ReportSchedule'
+        outputFormat:
+          type: string
+          enum: [PDF, EXCEL, CSV, JSON, HTML]
+        recipients:
+          type: array
+          items:
+            type: string
+            format: email
+
+    CreateMetricRequest:
+      type: object
+      required:
+        - name
+        - type
+        - category
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        type:
+          type: string
+          enum: [COUNTER, GAUGE, HISTOGRAM, SUMMARY]
+        category:
+          type: string
+          enum: [PERFORMANCE, BUSINESS, SYSTEM, USER]
+        unit:
+          type: string
+          maxLength: 50
+
+    UpdateMetricRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        unit:
+          type: string
+          maxLength: 50
+        aggregation:
+          type: string
+          enum: [SUM, AVG, MIN, MAX, COUNT, DISTINCT]
+        dataSource:
+          $ref: '#/components/schemas/DataSource'
+        dimensions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dimension'
+        filters:
+          type: object
+          additionalProperties: true
+        calculation:
+          $ref: '#/components/schemas/MetricCalculation'
+
+    RealTimeAnalytics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties: true
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties: true
+
+    BusinessMetrics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties: true
+
+    ComplianceMetrics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        details:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Dashboards
+    description: Dashboard management
+  - name: Reports
+    description: Report management
+  - name: Metrics
+    description: Metric management
+  - name: Analytics
+    description: Analytics and insights

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-config
+  namespace: rules-engine
+data:
+  nats-url: "nats://nats-service:4222"
+  redis-url: "redis://redis-service:6379"
+  rules-service-url: "http://rules-management-service:8080"
+  customer-service-url: "http://customer-management-service:8080"
+  campaign-service-url: "http://campaigns-management-service:8080"
+  promotion-service-url: "http://promotions-service:8080"

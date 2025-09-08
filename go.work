@@ -1,6 +1,7 @@
 go 1.25.1
 
 use (
+	./analytics-dashboard-service
 	./rules-calculator-service
 	./rules-evaluation-service
 	./rules-management-service

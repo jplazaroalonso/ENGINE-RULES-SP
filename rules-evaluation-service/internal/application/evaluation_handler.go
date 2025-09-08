@@ -37,7 +37,7 @@ func NewEvaluateRuleHandler(evaluationService *evaluation.Service) *EvaluateRule
 // Handle executes the command.
 func (h *EvaluateRuleHandler) Handle(ctx context.Context, cmd EvaluateRuleCommand) (*EvaluateRuleResult, error) {
 	tr := otel.Tracer("application")
-	ctx, span := tr.Start(ctx, "EvaluateRuleHandler.Handle")
+	_, span := tr.Start(ctx, "EvaluateRuleHandler.Handle")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("rule.category", cmd.RuleCategory))

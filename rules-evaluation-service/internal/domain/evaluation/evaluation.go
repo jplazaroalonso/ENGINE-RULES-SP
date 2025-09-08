@@ -1,15 +1,7 @@
 package evaluation
 
-import "time"
-
 // Evaluation represents the aggregate root for a single rule evaluation.
 type Evaluation struct {
-	id          string
-	ruleID      string
-	context     Context
-	result      Result
-	status      Status
-	evaluatedAt time.Time
 }
 
 // Context holds the input data for a rule evaluation.

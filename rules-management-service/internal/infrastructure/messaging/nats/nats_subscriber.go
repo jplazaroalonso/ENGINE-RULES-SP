@@ -54,18 +54,24 @@ func (s *CommandSubscriber) handleCreateRuleCommand(msg *nats.Msg) {
 	var cmd commands.CreateRuleCommand
 	if err := json.Unmarshal(msg.Data, &cmd); err != nil {
 		log.Printf("Error unmarshaling create rule command: %v", err)
-		msg.Nak() // Don't acknowledge, so it can be redelivered or go to DLQ
+		if err := msg.Nak(); err != nil {
+			log.Printf("Error sending Nak: %v", err)
+		}
 		return
 	}
 
 	log.Printf("Received create rule command for: %s", cmd.Name)
 	if _, err := s.createRuleHandler.Handle(context.Background(), cmd); err != nil {
 		log.Printf("Error handling create rule command: %v", err)
-		msg.Nak()
+		if err := msg.Nak(); err != nil {
+			log.Printf("Error sending Nak: %v", err)
+		}
 		return
 	}
 
-	msg.Ack() // Acknowledge the message
+	if err := msg.Ack(); err != nil {
+		log.Printf("Error sending Ack: %v", err)
+	}
 	log.Printf("Successfully processed create rule command for: %s", cmd.Name)
 }
 

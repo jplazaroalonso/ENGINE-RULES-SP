@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-dashboard-service
+  namespace: rules-engine
+  labels:
+    app: analytics-dashboard-service
+    version: v1.0.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: analytics-dashboard-service
+  template:
+    metadata:
+      labels:
+        app: analytics-dashboard-service
+        version: v1.0.0
+    spec:
+      containers:
+      - name: analytics-dashboard-service
+        image: analytics-dashboard-service:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          value: "8080"
+        - name: DATABASE_DSN
+          valueFrom:
+            secretKeyRef:
+              name: analytics-db-secret
+              key: dsn
+        - name: NATS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: analytics-config
+              key: nats-url
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: analytics-config
+              key: redis-url
+        - name: RULES_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: analytics-config
+              key: rules-service-url
+        - name: CUSTOMER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: analytics-config
+              key: customer-service-url
+        - name: CAMPAIGN_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: analytics-config
+              key: campaign-service-url
+        - name: PROMOTION_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: analytics-config
+              key: promotion-service-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        fsGroup: 1000
+      restartPolicy: Always

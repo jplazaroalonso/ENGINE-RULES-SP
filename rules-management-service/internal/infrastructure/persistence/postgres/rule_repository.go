@@ -20,7 +20,10 @@ func NewRuleRepository(db *gorm.DB) *RuleRepository {
 }
 
 func (r *RuleRepository) Save(ctx context.Context, rule *rule.Rule) error {
-	defer telemetry.DBQueryDuration.WithLabelValues("Save").Observe(time.Since(time.Now()).Seconds())
+	start := time.Now()
+	defer func() {
+		telemetry.DBQueryDuration.WithLabelValues("Save").Observe(time.Since(start).Seconds())
+	}()
 	// This is a simplified implementation. A full implementation would handle created vs updated records.
 	if err := r.db.WithContext(ctx).Save(toDBModel(rule)).Error; err != nil {
 		return shared.NewInfrastructureError("failed to save rule", err)
@@ -29,7 +32,10 @@ func (r *RuleRepository) Save(ctx context.Context, rule *rule.Rule) error {
 }
 
 func (r *RuleRepository) FindByID(ctx context.Context, id rule.RuleID) (*rule.Rule, error) {
-	defer telemetry.DBQueryDuration.WithLabelValues("FindByID").Observe(time.Since(time.Now()).Seconds())
+	start := time.Now()
+	defer func() {
+		telemetry.DBQueryDuration.WithLabelValues("FindByID").Observe(time.Since(start).Seconds())
+	}()
 	var ruleDB RuleDBModel
 	if err := r.db.WithContext(ctx).First(&ruleDB, "id = ?", id.String()).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -41,7 +47,10 @@ func (r *RuleRepository) FindByID(ctx context.Context, id rule.RuleID) (*rule.Ru
 }
 
 func (r *RuleRepository) FindByName(ctx context.Context, name string) (*rule.Rule, error) {
-	defer telemetry.DBQueryDuration.WithLabelValues("FindByName").Observe(time.Since(time.Now()).Seconds())
+	start := time.Now()
+	defer func() {
+		telemetry.DBQueryDuration.WithLabelValues("FindByName").Observe(time.Since(start).Seconds())
+	}()
 	var ruleDB RuleDBModel
 	if err := r.db.WithContext(ctx).First(&ruleDB, "name = ?", name).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -53,7 +62,10 @@ func (r *RuleRepository) FindByName(ctx context.Context, name string) (*rule.Rul
 }
 
 func (r *RuleRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
-	defer telemetry.DBQueryDuration.WithLabelValues("ExistsByName").Observe(time.Since(time.Now()).Seconds())
+	start := time.Now()
+	defer func() {
+		telemetry.DBQueryDuration.WithLabelValues("ExistsByName").Observe(time.Since(start).Seconds())
+	}()
 	var count int64
 	if err := r.db.WithContext(ctx).Model(&RuleDBModel{}).Where("name = ?", name).Count(&count).Error; err != nil {
 		return false, shared.NewInfrastructureError("failed to check rule existence by name", err)
@@ -62,7 +74,10 @@ func (r *RuleRepository) ExistsByName(ctx context.Context, name string) (bool, e
 }
 
 func (r *RuleRepository) List(ctx context.Context, options rule.ListOptions) ([]rule.Rule, error) {
-	defer telemetry.DBQueryDuration.WithLabelValues("List").Observe(time.Since(time.Now()).Seconds())
+	start := time.Now()
+	defer func() {
+		telemetry.DBQueryDuration.WithLabelValues("List").Observe(time.Since(start).Seconds())
+	}()
 	
 	var rulesDB []RuleDBModel
 	query := r.db.WithContext(ctx).Model(&RuleDBModel{})
@@ -103,7 +118,10 @@ func (r *RuleRepository) List(ctx context.Context, options rule.ListOptions) ([]
 }
 
 func (r *RuleRepository) Count(ctx context.Context, filters rule.ListFilters) (int, error) {
-	defer telemetry.DBQueryDuration.WithLabelValues("Count").Observe(time.Since(time.Now()).Seconds())
+	start := time.Now()
+	defer func() {
+		telemetry.DBQueryDuration.WithLabelValues("Count").Observe(time.Since(start).Seconds())
+	}()
 	
 	var count int64
 	query := r.db.WithContext(ctx).Model(&RuleDBModel{})
@@ -127,7 +145,10 @@ func (r *RuleRepository) Count(ctx context.Context, filters rule.ListFilters) (i
 }
 
 func (r *RuleRepository) Delete(ctx context.Context, id rule.RuleID) error {
-	defer telemetry.DBQueryDuration.WithLabelValues("Delete").Observe(time.Since(time.Now()).Seconds())
+	start := time.Now()
+	defer func() {
+		telemetry.DBQueryDuration.WithLabelValues("Delete").Observe(time.Since(start).Seconds())
+	}()
 	if err := r.db.WithContext(ctx).Delete(&RuleDBModel{}, "id = ?", id.String()).Error; err != nil {
 		return shared.NewInfrastructureError("failed to delete rule", err)
 	}

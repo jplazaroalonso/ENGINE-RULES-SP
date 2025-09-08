@@ -127,9 +127,9 @@ func (r *Rule) ClearEvents() {
 	r.events = make([]shared.DomainEvent, 0)
 }
 
-func (r *Rule) addEvent(event shared.DomainEvent) {
-	r.events = append(r.events, event)
-}
+// func (r *Rule) addEvent(event shared.DomainEvent) {
+// 	r.events = append(r.events, event)
+// }
 
 // ReconstructRule re-creates a rule from existing data. For repository use.
 func ReconstructRule(

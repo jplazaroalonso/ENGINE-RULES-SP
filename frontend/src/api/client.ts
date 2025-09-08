@@ -91,11 +91,12 @@ const setupResponseInterceptor = (client: typeof apiClient) => {
             notificationStore.showError('Not Found', 'The requested resource was not found')
             break
             
-          case 422:
+          case 422: {
             // Validation error
             const message = data?.message || 'Validation failed'
             notificationStore.showError('Validation Error', message)
             break
+          }
             
           case 429:
             // Rate limited
@@ -107,10 +108,12 @@ const setupResponseInterceptor = (client: typeof apiClient) => {
             notificationStore.showError('Server Error', 'An unexpected error occurred. Please try again.')
             break
             
-          default:
+          default: {
             // Other errors
             const errorMessage = data?.message || `Request failed with status ${status}`
             notificationStore.showError('Request Failed', errorMessage)
+            break
+          }
         }
       } else if (error.request) {
         // Network error
@@ -131,7 +134,7 @@ setupResponseInterceptor(evaluationApiClient)
 setupResponseInterceptor(calculatorApiClient)
 
 // Helper function to handle API responses
-export const handleApiResponse = <T>(response: any): T => {
+export const handleApiResponse = <T>(response: AxiosResponse<T>): T => {
   if (response.data) {
     return response.data
   }
@@ -139,7 +142,7 @@ export const handleApiResponse = <T>(response: any): T => {
 }
 
 // Helper function to handle API errors
-export const handleApiError = (error: any): never => {
+export const handleApiError = (error: AxiosError): never => {
   if (error.response?.data?.message) {
     throw new Error(error.response.data.message)
   }

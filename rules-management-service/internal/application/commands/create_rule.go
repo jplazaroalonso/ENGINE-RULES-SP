@@ -2,7 +2,8 @@ package commands
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"log"
 	"strings"
 	"time"
 
@@ -83,7 +84,7 @@ func (h *CreateRuleHandler) Handle(ctx context.Context, cmd CreateRuleCommand) (
 	isValid, validationErrors := h.validationService.Validate(cmd.DSLContent)
 	if !isValid {
 		// In a real app, you might want a more structured error here.
-		return nil, shared.NewValidationError("DSL validation failed", fmt.Errorf(strings.Join(validationErrors, "; ")))
+		return nil, shared.NewValidationError("DSL validation failed", errors.New(strings.Join(validationErrors, "; ")))
 	}
 
 	exists, err := h.ruleRepo.ExistsByName(ctx, cmd.Name)
@@ -117,7 +118,7 @@ func (h *CreateRuleHandler) Handle(ctx context.Context, cmd CreateRuleCommand) (
 			// In a real app, you might want to handle this more gracefully,
 			// e.g., using an outbox pattern to ensure the event is eventually sent.
 			// For now, we'll just log it.
-			// log.Printf("Warning: failed to publish RuleCreatedEvent: %v", err)
+			log.Printf("Warning: failed to publish RuleCreatedEvent: %v", err)
 		}
 	}
 

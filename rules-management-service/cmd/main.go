@@ -59,7 +59,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	migrations.ApplyMigrations(db)
+	if err := migrations.ApplyMigrations(db); err != nil {
+		log.Fatalf("failed to apply migrations: %v", err)
+	}
 
 	// Infrastructure
 	ruleRepo := persistence.NewRuleRepository(db)
@@ -119,7 +121,6 @@ func main() {
 	apiV1 := router.Group("/api/v1")
 	{
 		log.Println("Registering apiV1.GET /rules route")
-		log.Printf("RuleHandler.ListRules method exists: %t", ruleHandler.ListRules != nil)
 		apiV1.GET("/rules", ruleHandler.ListRules)
 		apiV1.POST("/rules", ruleHandler.CreateRule)
 		apiV1.GET("/rules/:id", ruleHandler.GetRule)

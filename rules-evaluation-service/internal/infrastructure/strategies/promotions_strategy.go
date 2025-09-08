@@ -39,13 +39,20 @@ func (s *PromotionsStrategy) Evaluate(dslContent string, evalContext evaluation.
 	}
 	thresholdStr := strings.Split(strings.TrimSpace(parts[1]), " ")[0]
 	var threshold float64
-	fmt.Sscanf(thresholdStr, "%f", &threshold)
+	if _, err := fmt.Sscanf(thresholdStr, "%f", &threshold); err != nil {
+		return nil, fmt.Errorf("invalid threshold in promotions DSL: %w", err)
+	}
 
 	if orderAmount > threshold {
 		// Another simplified extraction
 		discountParts := strings.Split(dslContent, "= ")
+		if len(discountParts) < 2 {
+			return nil, fmt.Errorf("invalid promotions DSL: missing discount value")
+		}
 		var discount float64
-		fmt.Sscanf(strings.TrimSpace(discountParts[1]), "%f", &discount)
+		if _, err := fmt.Sscanf(strings.TrimSpace(discountParts[1]), "%f", &discount); err != nil {
+			return nil, fmt.Errorf("invalid discount in promotions DSL: %w", err)
+		}
 		return evaluation.Result{"eligible": true, "discount_percentage": discount}, nil
 	}
 

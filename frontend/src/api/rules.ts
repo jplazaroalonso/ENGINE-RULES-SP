@@ -5,7 +5,6 @@ import type {
   UpdateRuleRequest, 
   RuleListParams,
   ApiResponse,
-  PaginationInfo,
   EvaluationRequest,
   EvaluationResponse,
   CalculationRequest,
@@ -116,7 +115,7 @@ export const rulesApi = {
   },
 
   // Get rule metrics
-  async getRuleMetrics(id: string): Promise<ApiResponse<any>> {
+  async getRuleMetrics(id: string): Promise<ApiResponse<Record<string, any>>> {
     try {
       const response = await apiClient.get(`/api/v1/rules/${id}/metrics`)
       return handleApiResponse(response)
@@ -126,7 +125,7 @@ export const rulesApi = {
   },
 
   // Validate rule DSL
-  async validateRule(request: { dslContent: string; testData?: Record<string, any> }): Promise<ApiResponse<any>> {
+  async validateRule(request: { dslContent: string; testData?: Record<string, unknown> }): Promise<ApiResponse<unknown>> {
     try {
       const response = await apiClient.post('/api/v1/rules/validate', request)
       return handleApiResponse(response)
@@ -136,7 +135,7 @@ export const rulesApi = {
   },
 
   // Test rule with sample data
-  async testRule(id: string, testData: Record<string, any>): Promise<ApiResponse<any>> {
+  async testRule(id: string, testData: Record<string, unknown>): Promise<ApiResponse<unknown>> {
     try {
       const response = await apiClient.post(`/api/v1/rules/${id}/test`, { testData })
       return handleApiResponse(response)
@@ -156,7 +155,7 @@ export const rulesApi = {
   },
 
   // Get rule history
-  async getRuleHistory(id: string): Promise<ApiResponse<any[]>> {
+  async getRuleHistory(id: string): Promise<ApiResponse<unknown[]>> {
     try {
       const response = await apiClient.get(`/api/v1/rules/${id}/history`)
       return handleApiResponse(response)
@@ -193,7 +192,7 @@ export const rulesApi = {
   },
 
   // Export rules
-  async exportRules(format: 'json' | 'csv' | 'xlsx', filters?: any): Promise<Blob> {
+  async exportRules(format: 'json' | 'csv' | 'xlsx', filters?: Record<string, unknown>): Promise<Blob> {
     try {
       const response = await apiClient.post('/api/v1/rules/export', { format, filters }, {
         responseType: 'blob'
@@ -205,7 +204,7 @@ export const rulesApi = {
   },
 
   // Import rules
-  async importRules(file: File): Promise<ApiResponse<{ imported: number; errors: any[] }>> {
+  async importRules(file: File): Promise<ApiResponse<{ imported: number; errors: unknown[] }>> {
     try {
       const formData = new FormData()
       formData.append('file', file)
